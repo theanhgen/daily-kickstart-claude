@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=/dev/null
-. "$SCRIPT_DIR/kickstart-lib.sh"
+. "$SCRIPT_DIR/lib.sh"
 
 ensure_project_dir
 ensure_state_dir

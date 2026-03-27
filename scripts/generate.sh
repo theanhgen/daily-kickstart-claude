@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=/dev/null
-. "$SCRIPT_DIR/kickstart-lib.sh"
+. "$SCRIPT_DIR/lib.sh"
 
 HAIKU_OUTPUT=""
 HAIKU_ERROR=""
@@ -45,10 +45,18 @@ log "Generating haiku at $TIMESTAMP..."
 HAIKU_OUTPUT=$(mktemp)
 HAIKU_ERROR=$(mktemp)
 
+# Read user prompt
+PROMPT_FILE="$SCRIPT_DIR/session_prompt.txt"
+if [ ! -f "$PROMPT_FILE" ]; then
+    finish 1 "prompt_missing" "ERROR: $PROMPT_FILE not found"
+fi
+USER_PROMPT="$(cat "$PROMPT_FILE")"
+
 # Generate haiku with proper error separation
 if ! run_with_timeout "$CLAUDE_TIMEOUT_SECONDS" "$CLAUDE_BIN" -p \
+    --max-tokens 30 \
     --system-prompt "Output only the haiku, nothing else. No preamble, no explanation, just three lines." \
-    "Generate a haiku." > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
+    "$USER_PROMPT" > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
     log "ERROR: Claude CLI failed"
     cat "$HAIKU_ERROR" >&2
     finish 1 "claude_failed" "ERROR: Claude CLI failed or timed out"
@@ -58,10 +66,10 @@ fi
 HAIKU=$(sed '/^$/d' "$HAIKU_OUTPUT" | tail -3)
 LINE_COUNT=$(printf '%s' "$HAIKU" | awk 'NF { count++ } END { print count + 0 }')
 
-if [ -z "$HAIKU" ]; then
-    log "ERROR: Claude returned empty output"
+if [ -z "$HAIKU" ] || [ "$HAIKU" = "null" ]; then
+    log "ERROR: Claude returned empty or null output"
     cat "$HAIKU_OUTPUT" >&2
-    finish 1 "haiku_empty" "ERROR: Claude returned empty output"
+    finish 1 "haiku_empty" "ERROR: Claude returned empty or null output"
 fi
 
 if [ "$LINE_COUNT" -ne 3 ]; then

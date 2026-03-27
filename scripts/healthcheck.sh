@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=/dev/null
-. "$SCRIPT_DIR/kickstart-lib.sh"
+. "$SCRIPT_DIR/lib.sh"
 
 ensure_project_dir
 ensure_state_dir
@@ -24,8 +24,8 @@ if run_with_timeout "$HEALTH_FETCH_TIMEOUT_SECONDS" git fetch "$REMOTE_NAME" "$B
     BEHIND_COUNT="${1:-0}"
     AHEAD_COUNT="${2:-0}"
 
-    if [ "$BEHIND_COUNT" -ne 0 ] || [ "$AHEAD_COUNT" -ne 0 ]; then
-        errors+=("branch divergence detected (behind=$BEHIND_COUNT ahead=$AHEAD_COUNT)")
+    if [ "$BEHIND_COUNT" -ne 0 ]; then
+        errors+=("branch is behind remote (behind=$BEHIND_COUNT ahead=$AHEAD_COUNT)")
     fi
 else
     errors+=("git fetch failed")
@@ -84,7 +84,7 @@ fi
 if [ "$CURRENT_HEALTH_STATUS" = "error" ]; then
     log "ERROR: $CURRENT_HEALTH_SUMMARY"
     if [ "$PREVIOUS_HEALTH_STATUS" != "error" ] || [ "$PREVIOUS_HEALTH_SUMMARY" != "$CURRENT_HEALTH_SUMMARY" ]; then
-        "$PROJECT_DIR/notify.sh" error \
+        "$SCRIPT_DIR/notify.sh" error \
             "$PROJECT_NAME healthcheck failed" \
             "$CURRENT_HEALTH_SUMMARY" || true
     fi
@@ -96,7 +96,7 @@ SUCCESS_SUMMARY="last haiku ${LAST_HAIKU_TIMESTAMP:-unknown}; age=${LAST_HAIKU_A
 log "OK: $SUCCESS_SUMMARY"
 
 if [ "$PREVIOUS_HEALTH_STATUS" = "error" ]; then
-    "$PROJECT_DIR/notify.sh" info \
+    "$SCRIPT_DIR/notify.sh" info \
         "$PROJECT_NAME recovered" \
         "$SUCCESS_SUMMARY" || true
 fi

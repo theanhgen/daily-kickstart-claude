@@ -1,12 +1,11 @@
 #!/bin/bash
 # Weekly commit and push for accumulated haikus
-cd "$(dirname "$0")"
-
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$(dirname "$0")/.."
+
 # shellcheck source=/dev/null
-. "$SCRIPT_DIR/kickstart-lib.sh"
+. scripts/lib.sh
 
 MAX_RETRIES="${MAX_RETRIES:-3}"
 RETRY_DELAY="${RETRY_DELAY:-5}"
