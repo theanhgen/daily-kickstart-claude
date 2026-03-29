@@ -32,7 +32,7 @@ NTFY_URL="${NOTIFY_NTFY_URL:-$NOTIFY_NTFY_HOST/$NOTIFY_NTFY_TOPIC}"
 
 case "$SEVERITY" in
     info)
-        PRIORITY="3"
+        PRIORITY="4"
         ;;
     warning)
         PRIORITY="4"
