@@ -54,7 +54,6 @@ USER_PROMPT="$(cat "$PROMPT_FILE")"
 
 # Generate haiku with proper error separation
 if ! run_with_timeout "$CLAUDE_TIMEOUT_SECONDS" "$CLAUDE_BIN" -p \
-    --max-tokens 30 \
     --system-prompt "Output only the haiku, nothing else. No preamble, no explanation, just three lines." \
     "$USER_PROMPT" > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
     log "ERROR: Claude CLI failed"
