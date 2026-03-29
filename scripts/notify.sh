@@ -45,9 +45,15 @@ case "$SEVERITY" in
         ;;
 esac
 
-printf '%s\n' "$MESSAGE" | curl -fsS \
-    -H "Title: $TITLE" \
-    -H "Priority: $PRIORITY" \
-    -H "Tags: $PROJECT_NAME" \
-    -d @- \
-    "$NTFY_URL" > /dev/null
+CURL_ARGS=(
+    -fsS
+    -H "Title: $TITLE"
+    -H "Priority: $PRIORITY"
+    -H "Tags: $PROJECT_NAME"
+)
+
+if [ -n "${NOTIFY_NTFY_TOKEN:-}" ]; then
+    CURL_ARGS+=(-H "Authorization: Bearer $NOTIFY_NTFY_TOKEN")
+fi
+
+printf '%s\n' "$MESSAGE" | curl "${CURL_ARGS[@]}" -d @- "$NTFY_URL" > /dev/null

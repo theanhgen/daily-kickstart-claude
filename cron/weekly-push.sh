@@ -12,6 +12,7 @@ RETRY_DELAY="${RETRY_DELAY:-5}"
 
 ensure_project_dir
 ensure_state_dir
+load_notify_config
 
 finish() {
     local exit_code="$1"
@@ -20,6 +21,9 @@ finish() {
 
     write_status "$status" "weekly-commit" "$message"
     log "$message"
+    if [ "$exit_code" -ne 0 ]; then
+        scripts/notify.sh error "$PROJECT_NAME weekly-push failed" "$message" || true
+    fi
     exit "$exit_code"
 }
 
