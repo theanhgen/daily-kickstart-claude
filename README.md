@@ -34,8 +34,11 @@ crontab -e
 ```
 
 ```cron
+# Lock to Czech local time (DST-proof)
+CRON_TZ=Europe/Prague
+
 # Haiku generation — 4x daily
-0 6,12,18,22 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
+0 6,12,16,22 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
 
 # Weekly commit + push (Sunday 23:00)
 0 23 * * 0 /home/YOUR_USER/daily-kickstart-claude/cron/weekly-push.sh
