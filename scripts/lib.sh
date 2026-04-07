@@ -11,8 +11,10 @@ STATE_DIR="${STATE_DIR:-$PROJECT_DIR/.runtime}"
 STATUS_FILE="${STATUS_FILE:-$STATE_DIR/last_run.env}"
 HEALTH_STATE_FILE="${HEALTH_STATE_FILE:-$STATE_DIR/healthcheck.env}"
 CLAUDE_BIN="${CLAUDE_BIN:-/home/thevetev/.local/bin/claude}"
+CODEX_BIN="${CODEX_BIN:-/usr/bin/codex}"
 FETCH_TIMEOUT_SECONDS="${FETCH_TIMEOUT_SECONDS:-30}"
 CLAUDE_TIMEOUT_SECONDS="${CLAUDE_TIMEOUT_SECONDS:-180}"
+CODEX_TIMEOUT_SECONDS="${CODEX_TIMEOUT_SECONDS:-180}"
 PUSH_TIMEOUT_SECONDS="${PUSH_TIMEOUT_SECONDS:-60}"
 HEALTH_FETCH_TIMEOUT_SECONDS="${HEALTH_FETCH_TIMEOUT_SECONDS:-30}"
 HEALTH_MAX_HAIKU_AGE_HOURS="${HEALTH_MAX_HAIKU_AGE_HOURS:-18}"
@@ -136,7 +138,7 @@ load_status_file() {
 }
 
 last_haiku_timestamp() {
-    grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC$' haiku.txt | tail -1
+    grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC' haiku.txt | tail -1
 }
 
 last_haiku_age_seconds() {
