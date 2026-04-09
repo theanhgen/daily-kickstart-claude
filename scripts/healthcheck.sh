@@ -19,7 +19,7 @@ load_notify_config
 
 errors=()
 
-if run_with_timeout "$HEALTH_FETCH_TIMEOUT_SECONDS" git fetch "$REMOTE_NAME" "$BRANCH_NAME" > /dev/null 2>&1; then
+if retry "$FETCH_RETRY_COUNT" "$FETCH_RETRY_DELAY_SECONDS" run_with_timeout "$HEALTH_FETCH_TIMEOUT_SECONDS" git fetch "$REMOTE_NAME" "$BRANCH_NAME" > /dev/null 2>&1; then
     set -- $(git_divergence_counts)
     BEHIND_COUNT="${1:-0}"
     AHEAD_COUNT="${2:-0}"

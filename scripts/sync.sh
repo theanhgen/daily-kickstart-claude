@@ -29,8 +29,8 @@ if tracked_changes_present; then
 fi
 
 log "Fetching latest changes..."
-if ! run_with_timeout "$FETCH_TIMEOUT_SECONDS" git fetch "$REMOTE_NAME" "$BRANCH_NAME" > /dev/null 2>&1; then
-    finish 1 "sync_fetch_failed" "ERROR: Git fetch failed"
+if ! retry "$FETCH_RETRY_COUNT" "$FETCH_RETRY_DELAY_SECONDS" run_with_timeout "$FETCH_TIMEOUT_SECONDS" git fetch "$REMOTE_NAME" "$BRANCH_NAME" > /dev/null 2>&1; then
+    finish 1 "sync_fetch_failed" "ERROR: Git fetch failed after $FETCH_RETRY_COUNT attempts"
 fi
 
 if ! git rebase "$REMOTE_NAME/$BRANCH_NAME" > /dev/null 2>&1; then

@@ -17,6 +17,8 @@ CLAUDE_TIMEOUT_SECONDS="${CLAUDE_TIMEOUT_SECONDS:-180}"
 CODEX_TIMEOUT_SECONDS="${CODEX_TIMEOUT_SECONDS:-180}"
 PUSH_TIMEOUT_SECONDS="${PUSH_TIMEOUT_SECONDS:-60}"
 HEALTH_FETCH_TIMEOUT_SECONDS="${HEALTH_FETCH_TIMEOUT_SECONDS:-30}"
+FETCH_RETRY_COUNT="${FETCH_RETRY_COUNT:-3}"
+FETCH_RETRY_DELAY_SECONDS="${FETCH_RETRY_DELAY_SECONDS:-5}"
 HEALTH_MAX_HAIKU_AGE_HOURS="${HEALTH_MAX_HAIKU_AGE_HOURS:-18}"
 NOTIFY_CONFIG_FILE="${NOTIFY_CONFIG_FILE:-$PROJECT_DIR/.notify.env}"
 
@@ -55,6 +57,25 @@ run_with_timeout() {
     else
         "$@"
     fi
+}
+
+retry() {
+    local max_attempts="$1"
+    local delay="$2"
+    shift 2
+
+    local attempt=1
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if "$@"; then
+            return 0
+        fi
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            log "Attempt $attempt/$max_attempts failed, retrying in ${delay}s..."
+            sleep "$delay"
+        fi
+        attempt=$((attempt + 1))
+    done
+    return 1
 }
 
 acquire_project_lock() {
