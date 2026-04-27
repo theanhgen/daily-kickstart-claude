@@ -62,12 +62,14 @@ body {
 }
 
 .haiku-date {
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 0.8rem;
   color: var(--muted);
   letter-spacing: 0.08em;
 }
 
 .nav-link {
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 0.75rem;
   color: var(--muted);
   text-decoration: none;
@@ -97,6 +99,7 @@ body {
 }
 
 .archive-header h1 {
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 1rem;
   font-weight: 400;
   letter-spacing: 0.12em;
@@ -109,6 +112,7 @@ body {
 }
 
 .date-label {
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.1em;
@@ -132,6 +136,7 @@ body {
 }
 
 .haiku-entry .time {
+  font-family: system-ui, -apple-system, sans-serif;
   font-size: 0.72rem;
   color: var(--muted);
   margin-top: 0.4rem;
