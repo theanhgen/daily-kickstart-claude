@@ -8,7 +8,7 @@ PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HAIKU_FILE = os.path.join(PROJECT_DIR, "haiku.txt")
 OUTPUT_FILE = os.path.join(PROJECT_DIR, "site", "haiku.json")
 
-TIMESTAMP_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC$")
+TIMESTAMP_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC")
 
 haikus = []
 
