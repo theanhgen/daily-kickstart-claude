@@ -1,5 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital@0;1&display=swap');
 
+@font-face {
+  font-family: 'New York';
+  src: local('New York');
+  font-weight: 100 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'New York';
+  src: local('New York Italic');
+  font-weight: 100 900;
+  font-style: italic;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
