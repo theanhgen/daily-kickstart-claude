@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital@0;1&display=swap');
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -12,7 +14,7 @@
 }
 
 body {
-  font-family: 'New York', ui-serif, Georgia, serif;
+  font-family: 'New York', ui-serif, 'Noto Serif', serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
