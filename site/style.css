@@ -68,12 +68,12 @@ body {
 
 .haiku {
   text-align: center;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+  animation: haiku-in 0.4s ease both;
 }
 
-.haiku.loaded {
-  opacity: 1;
+@keyframes haiku-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .haiku p {
