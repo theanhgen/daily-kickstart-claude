@@ -112,7 +112,6 @@ body {
 
 .haiku-entry-pair .pair-col {
   align-items: flex-start;
-  overflow: clip;
 }
 
 .main-pair .haiku p {
@@ -120,7 +119,7 @@ body {
 }
 
 .haiku-entry-pair p {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 @media (max-width: 540px) {
@@ -171,7 +170,7 @@ body {
 .nav-link {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;
-  color: #bbb;
+  color: #d8d8d8;
   text-decoration: none;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -179,7 +178,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
   .nav-link {
-    color: #444;
+    color: #333;
   }
 }
 
@@ -190,7 +189,7 @@ body {
 /* ── Archive page ── */
 
 .archive-layout {
-  max-width: 560px;
+  max-width: 740px;
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
 }
