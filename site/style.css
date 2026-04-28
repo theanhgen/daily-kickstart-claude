@@ -145,6 +145,7 @@ body {
   color: var(--muted);
   letter-spacing: 0.08em;
   text-align: center;
+  margin-top: 1.25rem;
 }
 
 .source-badge {
