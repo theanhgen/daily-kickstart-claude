@@ -114,6 +114,14 @@ body {
   align-items: flex-start;
 }
 
+.main-pair .haiku p {
+  font-size: clamp(0.85rem, 2vw, 1.4rem);
+}
+
+.haiku-entry-pair .haiku-entry p {
+  font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+}
+
 @media (max-width: 540px) {
   .main-pair,
   .haiku-entry-pair {
@@ -127,6 +135,7 @@ body {
 .haiku-meta {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.6rem;
 }
 
