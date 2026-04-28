@@ -81,14 +81,14 @@ body {
 }
 
 .haiku-date {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.8rem;
   color: var(--muted);
   letter-spacing: 0.08em;
 }
 
 .source-badge {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.65rem;
   color: var(--badge-text);
   background: var(--badge-bg);
@@ -98,7 +98,7 @@ body {
 }
 
 .nav-link {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;
   color: var(--muted);
   text-decoration: none;
@@ -134,13 +134,13 @@ body {
 }
 
 .haiku-count {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;
   color: var(--muted);
 }
 
 .archive-header h1 {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 1rem;
   font-weight: 400;
   letter-spacing: 0.12em;
@@ -153,7 +153,7 @@ body {
 }
 
 .date-label {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.1em;
@@ -184,7 +184,7 @@ body {
 }
 
 .haiku-entry .time {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.72rem;
   color: var(--muted);
 }
