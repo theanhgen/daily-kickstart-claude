@@ -87,14 +87,14 @@ function renderArchive(haikus) {
               <div class="pair-col">
                 ${haikuLines(item.claude)}
                 <div class="entry-meta">
-                  <span class="time">${item.claude.timestamp.slice(11, 16)} UTC</span>
+                  <span class="time">${item.claude.timestamp.slice(11, 19)} UTC</span>
                   <span class="source-badge source-claude">claude</span>
                 </div>
               </div>
               <div class="pair-col">
                 ${haikuLines(item.codex)}
                 <div class="entry-meta">
-                  <span class="time">${item.codex.timestamp.slice(11, 16)} UTC</span>
+                  <span class="time">${item.codex.timestamp.slice(11, 19)} UTC</span>
                   <span class="source-badge source-codex">codex</span>
                 </div>
               </div>
@@ -105,7 +105,7 @@ function renderArchive(haikus) {
           <div class="haiku-entry">
             ${haikuLines(h)}
             <div class="entry-meta">
-              <span class="time">${h.timestamp.slice(11, 16)} UTC</span>
+              <span class="time">${h.timestamp.slice(11, 19)} UTC</span>
               ${h.source ? `<span class="source-badge source-${h.source}">${h.source}</span>` : ""}
             </div>
           </div>`;
