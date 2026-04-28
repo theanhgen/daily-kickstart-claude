@@ -24,6 +24,19 @@
   --text: #1a1a1a;
   --muted: #999;
   --rule: #e8e5e0;
+  --badge-bg: #ede9e3;
+  --badge-text: #888;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111110;
+    --text: #ede8e0;
+    --muted: #666;
+    --rule: #2a2a28;
+    --badge-bg: #242422;
+    --badge-text: #666;
+  }
 }
 
 body {
@@ -61,11 +74,27 @@ body {
   font-style: italic;
 }
 
+.haiku-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .haiku-date {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 0.8rem;
   color: var(--muted);
   letter-spacing: 0.08em;
+}
+
+.source-badge {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.65rem;
+  color: var(--badge-text);
+  background: var(--badge-bg);
+  padding: 0.15em 0.5em;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
 }
 
 .nav-link {
@@ -96,6 +125,18 @@ body {
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--rule);
   margin-bottom: 2.5rem;
+}
+
+.archive-header-right {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+}
+
+.haiku-count {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 .archive-header h1 {
@@ -135,9 +176,15 @@ body {
   font-style: italic;
 }
 
+.entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
 .haiku-entry .time {
   font-family: system-ui, -apple-system, sans-serif;
   font-size: 0.72rem;
   color: var(--muted);
-  margin-top: 0.4rem;
 }

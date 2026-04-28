@@ -11,15 +11,30 @@ function formatDate(dateStr) {
   });
 }
 
+function sourceTag(source) {
+  if (!source) return "";
+  return `<span class="source-badge">${source}</span>`;
+}
+
 function renderMain(haikus) {
   const latest = haikus[0];
   const el = document.getElementById("haiku");
   el.innerHTML = latest.lines.map(l => `<p>${l}</p>`).join("");
   el.classList.add("loaded");
   document.getElementById("haiku-date").textContent = formatDate(latest.date);
+  const src = document.getElementById("haiku-source");
+  if (latest.source) {
+    src.textContent = latest.source;
+    src.style.display = "";
+  } else {
+    src.style.display = "none";
+  }
 }
 
 function renderArchive(haikus) {
+  const count = document.getElementById("haiku-count");
+  if (count) count.textContent = `${haikus.length} haikus`;
+
   const byDate = {};
   for (const h of haikus) {
     (byDate[h.date] ??= []).push(h);
@@ -32,7 +47,10 @@ function renderArchive(haikus) {
         ${entries.map(h => `
           <div class="haiku-entry">
             ${h.lines.map(l => `<p>${l}</p>`).join("")}
-            <div class="time">${h.timestamp.slice(11, 16)} UTC</div>
+            <div class="entry-meta">
+              <span class="time">${h.timestamp.slice(11, 16)} UTC</span>
+              ${h.source ? `<span class="source-badge">${h.source}</span>` : ""}
+            </div>
           </div>`).join("")}
       </div>`).join("");
 }
