@@ -122,6 +122,12 @@ body {
   font-size: 0.85rem;
 }
 
+@media (max-width: 680px) {
+  .main-pair {
+    gap: 2rem;
+  }
+}
+
 @media (max-width: 540px) {
   .main-pair,
   .haiku-entry-pair {
