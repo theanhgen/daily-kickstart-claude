@@ -49,11 +49,11 @@ function renderMain(haikus) {
       <div class="main-pair">
         <div class="pair-col">
           <div class="haiku loaded">${haikuLines(first.claude)}</div>
-          <span class="source-badge">claude</span>
+          <span class="source-badge source-claude">claude</span>
         </div>
         <div class="pair-col">
           <div class="haiku loaded">${haikuLines(first.codex)}</div>
-          <span class="source-badge">codex</span>
+          <span class="source-badge source-codex">codex</span>
         </div>
       </div>
       <div class="haiku-date">${formatDate(first.claude.date)}</div>`;
@@ -63,7 +63,7 @@ function renderMain(haikus) {
       <div class="haiku loaded">${haikuLines(h)}</div>
       <div class="haiku-meta">
         <span class="haiku-date">${formatDate(h.date)}</span>
-        ${h.source ? `<span class="source-badge">${h.source}</span>` : ""}
+        ${h.source ? `<span class="source-badge source-${h.source}">${h.source}</span>` : ""}
       </div>`;
   }
 }
@@ -88,14 +88,14 @@ function renderArchive(haikus) {
                 ${haikuLines(item.claude)}
                 <div class="entry-meta">
                   <span class="time">${item.claude.timestamp.slice(11, 16)} UTC</span>
-                  <span class="source-badge">claude</span>
+                  <span class="source-badge source-claude">claude</span>
                 </div>
               </div>
               <div class="pair-col">
                 ${haikuLines(item.codex)}
                 <div class="entry-meta">
                   <span class="time">${item.codex.timestamp.slice(11, 16)} UTC</span>
-                  <span class="source-badge">codex</span>
+                  <span class="source-badge source-codex">codex</span>
                 </div>
               </div>
             </div>`;
@@ -106,7 +106,7 @@ function renderArchive(haikus) {
             ${haikuLines(h)}
             <div class="entry-meta">
               <span class="time">${h.timestamp.slice(11, 16)} UTC</span>
-              ${h.source ? `<span class="source-badge">${h.source}</span>` : ""}
+              ${h.source ? `<span class="source-badge source-${h.source}">${h.source}</span>` : ""}
             </div>
           </div>`;
       }).join("");

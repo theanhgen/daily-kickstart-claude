@@ -26,6 +26,10 @@
   --rule: #e8e5e0;
   --badge-bg: #ede9e3;
   --badge-text: #888;
+  --claude-text: #c8622b;
+  --claude-bg: #f7ece5;
+  --codex-text: #2a7d62;
+  --codex-bg: #e4f2ec;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,6 +40,10 @@
     --rule: #2a2a28;
     --badge-bg: #242422;
     --badge-text: #666;
+    --claude-text: #e07a45;
+    --claude-bg: #2a1a12;
+    --codex-text: #45a882;
+    --codex-bg: #0e2420;
   }
 }
 
@@ -131,6 +139,16 @@ body {
   padding: 0.15em 0.5em;
   border-radius: 3px;
   letter-spacing: 0.05em;
+}
+
+.source-claude {
+  color: var(--claude-text);
+  background: var(--claude-bg);
+}
+
+.source-codex {
+  color: var(--codex-text);
+  background: var(--codex-bg);
 }
 
 .nav-link {
