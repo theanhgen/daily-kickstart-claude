@@ -92,7 +92,7 @@ body {
 
 .main-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 3rem;
   text-align: center;
 }
@@ -106,20 +106,21 @@ body {
 
 .haiku-entry-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.5rem;
 }
 
 .haiku-entry-pair .pair-col {
   align-items: flex-start;
+  overflow: clip;
 }
 
 .main-pair .haiku p {
   font-size: clamp(0.85rem, 2vw, 1.4rem);
 }
 
-.haiku-entry-pair .haiku-entry p {
-  font-size: clamp(0.85rem, 1.8vw, 1.1rem);
+.haiku-entry-pair p {
+  font-size: 0.9rem;
 }
 
 @media (max-width: 540px) {
@@ -170,10 +171,16 @@ body {
 .nav-link {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;
-  color: var(--muted);
+  color: #bbb;
   text-decoration: none;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nav-link {
+    color: #444;
+  }
 }
 
 .nav-link:hover {
