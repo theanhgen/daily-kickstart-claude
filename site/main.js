@@ -11,6 +11,13 @@ function formatDate(dateStr) {
   });
 }
 
+function formatMonth(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", {
+    year: "numeric", month: "long",
+  });
+}
+
 function tsMs(ts) {
   return new Date(ts.replace(" ", "T").replace(" UTC", "Z")).getTime();
 }
@@ -60,11 +67,9 @@ function renderMain(haikus) {
   } else {
     const h = first.haiku;
     container.innerHTML = `
+      <span class="haiku-kicker">${formatDate(h.date)}</span>
       <div class="haiku loaded">${haikuLines(h)}</div>
-      <div class="haiku-meta">
-        <span class="haiku-date">${formatDate(h.date)}</span>
-        ${h.source ? `<span class="source-badge source-${h.source}">${h.source}</span>` : ""}
-      </div>`;
+      ${h.source ? `<div class="haiku-rule"></div><div class="haiku-meta"><span class="source-badge source-${h.source}">${h.source}</span></div>` : ""}`;
   }
 }
 
@@ -72,13 +77,14 @@ function renderArchive(haikus) {
   const count = document.getElementById("haiku-count");
   if (count) count.textContent = `${haikus.length} haikus`;
 
-  const byDate = {};
+  const byMonth = {};
   for (const h of haikus) {
-    (byDate[h.date] ??= []).push(h);
+    const key = h.date.slice(0, 7);
+    (byMonth[key] ??= []).push(h);
   }
 
-  document.getElementById("archive-content").innerHTML = Object.entries(byDate)
-    .map(([date, entries]) => {
+  document.getElementById("archive-content").innerHTML = Object.entries(byMonth)
+    .map(([monthKey, entries]) => {
       const items = pairUp(entries);
       const rows = items.map(item => {
         if (item.type === "pair") {
@@ -87,14 +93,14 @@ function renderArchive(haikus) {
               <div class="pair-col">
                 ${haikuLines(item.claude)}
                 <div class="entry-meta">
-                  <span class="time">${item.claude.timestamp.slice(11, 19)} UTC</span>
+                  <span class="time">${formatDate(item.claude.date)}</span>
                   <span class="source-badge source-claude">claude</span>
                 </div>
               </div>
               <div class="pair-col">
                 ${haikuLines(item.codex)}
                 <div class="entry-meta">
-                  <span class="time">${item.codex.timestamp.slice(11, 19)} UTC</span>
+                  <span class="time">${formatDate(item.codex.date)}</span>
                   <span class="source-badge source-codex">codex</span>
                 </div>
               </div>
@@ -105,12 +111,17 @@ function renderArchive(haikus) {
           <div class="haiku-entry">
             ${haikuLines(h)}
             <div class="entry-meta">
-              <span class="time">${h.timestamp.slice(11, 19)} UTC</span>
+              <span class="time">${formatDate(h.date)}</span>
               ${h.source ? `<span class="source-badge source-${h.source}">${h.source}</span>` : ""}
             </div>
           </div>`;
       }).join("");
-      return `<div class="date-group"><div class="date-label">${formatDate(date)}</div>${rows}</div>`;
+      return `
+        <div class="month-group">
+          <h2 class="month-heading">${formatMonth(monthKey)}</h2>
+          <span class="month-count">${entries.length} haiku</span>
+          <div class="month-entries">${rows}</div>
+        </div>`;
     }).join("");
 }
 
