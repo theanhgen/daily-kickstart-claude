@@ -84,6 +84,8 @@ body {
   font-size: clamp(0.85rem, 3vw, 1.9rem);
   line-height: 1.9;
   font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
   animation: haiku-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .haiku p:nth-child(1) { animation-delay: 0.12s; }
@@ -296,6 +298,8 @@ body {
   line-height: 1.85;
   font-style: italic;
   color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .month-group {
