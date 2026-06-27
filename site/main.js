@@ -161,6 +161,14 @@ function distinctive(a, na, b, nb, n) {
   return { a: scored.slice(0, n).map(x => x[0]), b: scored.slice(-n).reverse().map(x => x[0]) };
 }
 
+const ENGINES = ["claude", "codex", "agy"];
+const MIN_ENGINE_HAIKUS = 25;   // an engine joins per-engine rankings once it clears this
+
+// A haiku's identity for repetition detection — lowercased, trimmed lines.
+function normHaiku(h) {
+  return h.lines.map(l => l.toLowerCase().trim()).join(" / ");
+}
+
 function computeStats(haikus) {
   const total = haikus.length;
   const all = countWords(haikus);
@@ -178,6 +186,22 @@ function computeStats(haikus) {
   const topOpen = topN(openings, 3);
   const openPct = Math.round(100 * topOpen.reduce((s, x) => s + x[1], 0) / total);
 
+  // Per-engine originality = share of an engine's haikus that are unique.
+  const originality = ENGINES.map(src => {
+    const es = haikus.filter(h => h.source === src);
+    const distinct = new Set(es.map(normHaiku)).size;
+    return { src, n: es.length, pct: es.length ? Math.round(100 * distinct / es.length) : 0 };
+  }).filter(o => o.n > 0);
+
+  // The single most-written haiku across the whole archive.
+  const counts = new Map();
+  for (const h of haikus) { const k = normHaiku(h); counts.set(k, (counts.get(k) || 0) + 1); }
+  let mostWritten = null;
+  for (const h of haikus) {
+    const c = counts.get(normHaiku(h));
+    if (!mostWritten || c > mostWritten.count) mostWritten = { count: c, firstLine: h.lines[0] };
+  }
+
   return {
     total,
     uniqueWords: all.size,
@@ -187,6 +211,9 @@ function computeStats(haikus) {
     topOpen: topOpen.map(x => x[0]),
     openPct,
     missing: ["spring", "summer", "autumn", "winter"].filter(s => !all.get(s)),
+    originality,
+    ranked: originality.filter(o => o.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.pct - a.pct),
+    mostWritten,
   };
 }
 
@@ -201,6 +228,12 @@ function heroLines(s) {
     out.push(`claude reaches for ${s.dist.a.slice(0, 2).join(" and ")}; codex for ${s.dist.b.slice(0, 2).join(" and ")}.`);
   if (s.topWord)
     out.push(`Their most-loved image — ${s.topWord[0]}, written ${s.topWord[1]} times.`);
+  if (s.ranked.length >= 2) {
+    const most = s.ranked[0], least = s.ranked[s.ranked.length - 1];
+    out.push(`${most.src} almost never repeats itself — ${most.pct}% of its haikus are unique; ${least.src} returns to its favorites (${least.pct}%).`);
+  }
+  if (s.mostWritten && s.mostWritten.count >= 3)
+    out.push(`One haiku has been written ${s.mostWritten.count} times: “${s.mostWritten.firstLine}…”`);
   return out;
 }
 
@@ -225,6 +258,11 @@ function renderInsights(haikus) {
     if (s.dist) {
       cells.push(`claude’s world — ${s.dist.a.join(" · ")}`);
       cells.push(`codex’s world — ${s.dist.b.join(" · ")}`);
+    }
+    if (s.ranked.length >= 2) {
+      const warming = s.originality.filter(o => o.n < MIN_ENGINE_HAIKUS);
+      cells.push(`originality — ${s.ranked.map(o => `${o.src} ${o.pct}%`).join(" · ")}`
+        + (warming.length ? ` (${warming.map(o => `${o.src} ${o.n}`).join(", ")} warming up)` : ""));
     }
     // Only note the basis when some haikus are still unattributed.
     const note = s.dist && s.attributed < s.total
