@@ -269,30 +269,34 @@ function renderInsights(haikus) {
   }
 }
 
-// Keep every haiku on exactly three rows: lines never wrap (CSS nowrap), and
-// if a line is wider than its column we shrink the whole block to fit rather
-// than letting it wrap to a fourth row or clip. Measure against the COLUMN's
-// width — the inner block grows to the text, so it can't be the reference.
-function fitColumn(col) {
-  const ps = col.querySelectorAll("p");
+// Fit a whole cycle to ONE shared font size so every haiku in it matches.
+// Lines never wrap (CSS nowrap); we shrink all of them uniformly by the
+// worst-case column, so they stay on exactly three rows without overlapping.
+// Measure against each COLUMN's width — the inner block grows to the text,
+// so it can't be the reference.
+function fitCycle(cycle) {
+  const ps = cycle.querySelectorAll("p");
   if (!ps.length) return;
   ps.forEach(p => { p.style.fontSize = ""; });          // reset to CSS default
-  const cs = getComputedStyle(col);
-  const avail = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-  if (avail <= 0) return;
-  let widest = 0;
-  ps.forEach(p => { widest = Math.max(widest, p.scrollWidth); });
-  if (widest > avail) {
+  let scale = 1;
+  cycle.querySelectorAll(".pair-col").forEach(col => {
+    const cs = getComputedStyle(col);
+    const avail = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (avail <= 0) return;
+    col.querySelectorAll("p").forEach(p => {
+      if (p.scrollWidth > avail) scale = Math.min(scale, avail / p.scrollWidth);
+    });
+  });
+  if (scale < 1) {
     const base = parseFloat(getComputedStyle(ps[0]).fontSize);
-    const size = Math.max(9, base * (avail / widest) * 0.96);
+    const size = Math.max(9, base * scale * 0.96);
     ps.forEach(p => { p.style.fontSize = size + "px"; });
   }
 }
 
 // Only the side-by-side cycle columns are narrow enough to need fitting.
 function fitCycles() {
-  document.querySelectorAll(".main-cycle .pair-col, .haiku-entry-cycle .pair-col")
-    .forEach(fitColumn);
+  document.querySelectorAll(".main-cycle, .haiku-entry-cycle").forEach(fitCycle);
 }
 
 (async () => {
