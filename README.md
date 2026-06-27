@@ -78,6 +78,12 @@ Change what Claude writes:
 echo "Write a two-line koan." > scripts/session_prompt.txt
 ```
 
+Change the engine. Each generation cycle runs three CLIs in order — `claude`, `codex`, then `agy` (Google Antigravity) — tagging each haiku with its source. Select one manually with `ENGINE`:
+```bash
+ENGINE=agy scripts/generate.sh    # claude (default) | codex | agy
+```
+`agy` requires a one-time login (`agy -p test`); per-engine binaries and timeouts are configurable via `AGY_BIN`, `AGY_TIMEOUT_SECONDS`, etc. in `scripts/lib.sh`.
+
 Change the schedule: `crontab -e`
 
 Enable notifications:
