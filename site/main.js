@@ -22,22 +22,30 @@ function tsMs(ts) {
   return new Date(ts.replace(" ", "T").replace(" UTC", "Z")).getTime();
 }
 
-// Group consecutive haikus into pairs if different sources within 120s
-function pairUp(haikus) {
+// Engines in display order; haikus from one cron cycle are shown together.
+const ENGINE_ORDER = { claude: 0, codex: 1, agy: 2 };
+const CYCLE_WINDOW_MS = 10 * 60 * 1000;   // a cycle's engines all land within minutes
+
+function orderByEngine(hs) {
+  return [...hs].sort((a, b) => (ENGINE_ORDER[a.source] ?? 9) - (ENGINE_ORDER[b.source] ?? 9));
+}
+
+// Group consecutive haikus from the same cron cycle: distinct engines, close
+// in time. Handles 2 (claude+codex) or 3 (claude+codex+agy) per cycle.
+function groupCycle(haikus) {
   const out = [];
   let i = 0;
   while (i < haikus.length) {
-    const a = haikus[i], b = haikus[i + 1];
-    if (b && a.source && b.source && a.source !== b.source
-        && Math.abs(tsMs(a.timestamp) - tsMs(b.timestamp)) <= 120000) {
-      const claude = a.source === "claude" ? a : b;
-      const codex  = a.source === "codex"  ? a : b;
-      out.push({ type: "pair", claude, codex });
-      i += 2;
-    } else {
-      out.push({ type: "single", haiku: a });
-      i++;
+    const sources = new Set(haikus[i].source ? [haikus[i].source] : []);
+    let j = i + 1;
+    while (haikus[i].source && j < haikus.length && haikus[j].source
+        && !sources.has(haikus[j].source)
+        && Math.abs(tsMs(haikus[j].timestamp) - tsMs(haikus[j - 1].timestamp)) <= CYCLE_WINDOW_MS) {
+      sources.add(haikus[j].source);
+      j++;
     }
+    if (j - i > 1) { out.push({ type: "cycle", haikus: orderByEngine(haikus.slice(i, j)) }); i = j; }
+    else { out.push({ type: "single", haiku: haikus[i] }); i++; }
   }
   return out;
 }
@@ -48,22 +56,18 @@ function haikuLines(h) {
 
 function renderMain(haikus) {
   const container = document.getElementById("main-content");
-  const items = pairUp(haikus.slice(0, 2));
-  const first = items[0];
+  const first = groupCycle(haikus.slice(0, 3))[0];
 
-  if (first.type === "pair") {
+  if (first.type === "cycle") {
     container.innerHTML = `
-      <div class="main-pair">
+      <div class="main-cycle cols-${first.haikus.length}">
+        ${first.haikus.map(h => `
         <div class="pair-col">
-          <div class="haiku loaded">${haikuLines(first.claude)}</div>
-          <span class="source-badge source-claude">claude</span>
-        </div>
-        <div class="pair-col">
-          <div class="haiku loaded">${haikuLines(first.codex)}</div>
-          <span class="source-badge source-codex">codex</span>
-        </div>
+          <div class="haiku loaded">${haikuLines(h)}</div>
+          <span class="source-badge source-${h.source}">${h.source}</span>
+        </div>`).join("")}
       </div>
-      <div class="haiku-date">${formatDate(first.claude.date)}</div>`;
+      <div class="haiku-date">${formatDate(first.haikus[0].date)}</div>`;
   } else {
     const h = first.haiku;
     container.innerHTML = `
@@ -85,25 +89,19 @@ function renderArchive(haikus) {
 
   document.getElementById("archive-content").innerHTML = Object.entries(byMonth)
     .map(([monthKey, entries]) => {
-      const items = pairUp(entries);
+      const items = groupCycle(entries);
       const rows = items.map(item => {
-        if (item.type === "pair") {
+        if (item.type === "cycle") {
           return `
-            <div class="haiku-entry haiku-entry-pair">
+            <div class="haiku-entry haiku-entry-cycle cols-${item.haikus.length}">
+              ${item.haikus.map(h => `
               <div class="pair-col">
-                ${haikuLines(item.claude)}
+                ${haikuLines(h)}
                 <div class="entry-meta">
-                  <span class="time">${formatDate(item.claude.date)}</span>
-                  <span class="source-badge source-claude">claude</span>
+                  <span class="time">${formatDate(h.date)}</span>
+                  <span class="source-badge source-${h.source}">${h.source}</span>
                 </div>
-              </div>
-              <div class="pair-col">
-                ${haikuLines(item.codex)}
-                <div class="entry-meta">
-                  <span class="time">${formatDate(item.codex.date)}</span>
-                  <span class="source-badge source-codex">codex</span>
-                </div>
-              </div>
+              </div>`).join("")}
             </div>`;
         }
         const h = item.haiku;

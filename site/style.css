@@ -30,6 +30,8 @@
   --claude-bg: #f7ece5;
   --codex-text: #2a7d62;
   --codex-bg: #e4f2ec;
+  --agy-text: #4f5bd5;
+  --agy-bg: #ece9f7;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -44,6 +46,8 @@
     --claude-bg: #2a1a12;
     --codex-text: #45a882;
     --codex-bg: #0e2420;
+    --agy-text: #8b93e6;
+    --agy-bg: #161430;
   }
 }
 
@@ -109,26 +113,15 @@ body {
   margin: 1.25rem auto 0.75rem;
 }
 
-/* ── Pair layout (main + archive) ── */
+/* ── Cycle layout: 2–3 engines side by side (main + archive) ── */
 
-.main-pair {
+.main-cycle {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   text-align: center;
-  position: relative;
 }
-
-.main-pair::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0.5rem;
-  bottom: 0.5rem;
-  width: 1px;
-  background: var(--rule);
-  transform: translateX(-50%);
-  pointer-events: none;
+.main-cycle.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pair-col {
@@ -138,41 +131,58 @@ body {
   gap: 0.6rem;
 }
 
-.main-pair .pair-col {
-  padding: 0 clamp(1.25rem, 4vw, 2.5rem);
+.main-cycle .pair-col {
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
 }
-.main-pair .pair-col:first-child { padding-left: 0; }
-.main-pair .pair-col:last-child  { padding-right: 0; }
+.main-cycle .pair-col + .pair-col {
+  border-left: 1px solid var(--rule);
+}
 
-.haiku-entry-pair {
+.haiku-entry-cycle {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
 }
+.haiku-entry-cycle.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 
-.haiku-entry-pair .pair-col {
+.haiku-entry-cycle .pair-col {
   align-items: flex-start;
 }
 
-.main-pair .haiku p {
-  font-size: clamp(0.85rem, 2vw, 1.4rem);
+.main-cycle .haiku p {
+  font-size: clamp(0.8rem, 1.8vw, 1.4rem);
 }
 
-.haiku-entry-pair p {
+.haiku-entry-cycle p {
   font-size: clamp(0.7rem, 1.5vw, 0.85rem);
 }
 
+/* Narrow side-by-side columns: let longer lines wrap instead of clipping.
+   .pair-col keeps specificity above the archive's later nowrap rule. */
+.main-cycle .haiku p,
+.haiku-entry-cycle .pair-col p {
+  white-space: normal;
+  overflow: visible;
+}
+
 @media (max-width: 680px) {
-  .main-pair {
-    gap: 2rem;
+  .main-cycle {
+    gap: 1.5rem;
   }
 }
 
 @media (max-width: 540px) {
-  .main-pair,
-  .haiku-entry-pair {
+  .main-cycle,
+  .haiku-entry-cycle,
+  .main-cycle.cols-3,
+  .haiku-entry-cycle.cols-3 {
     grid-template-columns: 1fr;
     gap: 2rem;
+  }
+  .main-cycle .pair-col + .pair-col {
+    border-left: none;
   }
 }
 
@@ -214,6 +224,12 @@ body {
 .source-codex {
   color: var(--codex-text);
   border-color: color-mix(in srgb, var(--codex-text) 35%, var(--bg));
+  background: transparent;
+}
+
+.source-agy {
+  color: var(--agy-text);
+  border-color: color-mix(in srgb, var(--agy-text) 35%, var(--bg));
   background: transparent;
 }
 
@@ -338,7 +354,7 @@ body {
 }
 
 .haiku-entry p,
-.haiku-entry-pair p {
+.haiku-entry-cycle p {
   font-size: clamp(0.85rem, 2.5vw, 1.1rem);
   line-height: 1.85;
   font-style: italic;
