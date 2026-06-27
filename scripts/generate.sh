@@ -3,7 +3,7 @@
 # Daily Kickstart - CLI Version
 # Generates a haiku and appends to haiku.txt (no git operations).
 # Commits are handled separately by the weekly push job.
-# Supports ENGINE=claude (default) or ENGINE=codex.
+# Supports ENGINE=claude (default), ENGINE=codex, or ENGINE=agy.
 
 set -euo pipefail
 
@@ -76,8 +76,26 @@ case "$ENGINE" in
             finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
         fi
         ;;
+    agy)
+        # agy -p reads stdin until EOF; without </dev/null it hangs on the
+        # inherited pipe under cron until the timeout fires.
+        if ! run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" -p \
+            "Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
+            < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
+            log "ERROR: Antigravity CLI failed"
+            cat "$HAIKU_ERROR" >&2
+            finish 1 "agy_failed" "ERROR: Antigravity CLI failed or timed out"
+        fi
+        # agy prints an OAuth login blob to stdout and still exits 0 when
+        # unauthenticated; guard so we never append that to haiku.txt.
+        if grep -qiE 'Authentication required|authentication timed out' "$HAIKU_OUTPUT"; then
+            log "ERROR: Antigravity CLI not authenticated"
+            cat "$HAIKU_OUTPUT" >&2
+            finish 1 "agy_unauthenticated" "ERROR: Antigravity CLI not authenticated (run 'agy -p test' to log in)"
+        fi
+        ;;
     *)
-        finish 1 "invalid_engine" "ERROR: Unknown ENGINE=$ENGINE (use claude or codex)"
+        finish 1 "invalid_engine" "ERROR: Unknown ENGINE=$ENGINE (use claude, codex, or agy)"
         ;;
 esac
 
