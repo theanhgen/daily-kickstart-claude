@@ -269,12 +269,43 @@ function renderInsights(haikus) {
   }
 }
 
+// Keep every haiku on exactly three rows: lines never wrap (CSS nowrap), and
+// if a line is wider than its column we shrink the whole block to fit rather
+// than letting it wrap to a fourth row or clip. Measure against the COLUMN's
+// width — the inner block grows to the text, so it can't be the reference.
+function fitColumn(col) {
+  const ps = col.querySelectorAll("p");
+  if (!ps.length) return;
+  ps.forEach(p => { p.style.fontSize = ""; });          // reset to CSS default
+  const cs = getComputedStyle(col);
+  const avail = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  if (avail <= 0) return;
+  let widest = 0;
+  ps.forEach(p => { widest = Math.max(widest, p.scrollWidth); });
+  if (widest > avail) {
+    const base = parseFloat(getComputedStyle(ps[0]).fontSize);
+    const size = Math.max(9, base * (avail / widest) * 0.96);
+    ps.forEach(p => { p.style.fontSize = size + "px"; });
+  }
+}
+
+// Only the side-by-side cycle columns are narrow enough to need fitting.
+function fitCycles() {
+  document.querySelectorAll(".main-cycle .pair-col, .haiku-entry-cycle .pair-col")
+    .forEach(fitColumn);
+}
+
 (async () => {
   try {
     const haikus = await loadHaikus();
     if (document.getElementById("main-content")) renderMain(haikus);
     if (document.getElementById("archive-content")) renderArchive(haikus);
     renderInsights(haikus);
+    fitCycles();
+    // Re-fit once web fonts load — first pass measures with fallback metrics.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCycles);
+    let t;
+    window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(fitCycles, 150); });
   } catch {
     const el = document.getElementById("main-content") || document.getElementById("archive-content");
     if (el) el.innerHTML = "<p>—</p>";

@@ -138,6 +138,18 @@ body {
   border-left: 1px solid var(--rule);
 }
 
+/* Safety net: columns and their inner blocks never spill past the column,
+   so a too-long line clips rather than overlapping a neighbour (the JS fit
+   normally shrinks it to fit before that happens). */
+.main-cycle .pair-col,
+.haiku-entry-cycle .pair-col {
+  min-width: 0;
+  overflow: hidden;
+}
+.main-cycle .haiku {
+  max-width: 100%;
+}
+
 .haiku-entry-cycle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -159,13 +171,8 @@ body {
   font-size: clamp(0.7rem, 1.5vw, 0.85rem);
 }
 
-/* Narrow side-by-side columns: let longer lines wrap instead of clipping.
-   .pair-col keeps specificity above the archive's later nowrap rule. */
-.main-cycle .haiku p,
-.haiku-entry-cycle .pair-col p {
-  white-space: normal;
-  overflow: visible;
-}
+/* Cycle lines stay on one row (inherit nowrap); main.js shrinks any block
+   whose lines would overflow a narrow column, keeping exactly three rows. */
 
 @media (max-width: 680px) {
   .main-cycle {
