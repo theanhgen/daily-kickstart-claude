@@ -226,8 +226,10 @@ function renderInsights(haikus) {
       cells.push(`claude’s world — ${s.dist.a.join(" · ")}`);
       cells.push(`codex’s world — ${s.dist.b.join(" · ")}`);
     }
-    strip.innerHTML = cells.map(c => `<span class="stat-cell">${c}</span>`).join("")
-      + (s.dist ? `<span class="stat-note">among ${s.attributed} attributed haikus</span>` : "");
+    // Only note the basis when some haikus are still unattributed.
+    const note = s.dist && s.attributed < s.total
+      ? `<span class="stat-note">among ${s.attributed} attributed haikus</span>` : "";
+    strip.innerHTML = cells.map(c => `<span class="stat-cell">${c}</span>`).join("") + note;
   }
 }
 

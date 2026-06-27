@@ -21,6 +21,11 @@ while i < len(lines):
     m = TIMESTAMP_RE.match(lines[i].strip())
     if m:
         date, time, source = m.group(1), m.group(2), m.group(3)
+        # Haikus on or before 2026-04-07 predate engine tagging (which began
+        # mid-day on the 7th), when claude was the only engine. Attribute them
+        # so analysis and archive badges cover the full archive.
+        if source is None and date <= "2026-04-07":
+            source = "claude"
         body, j = [], i + 1
         while j < len(lines) and len(body) < 3:
             l = lines[j].strip()
