@@ -62,7 +62,15 @@ CRON_TZ=Europe/Prague
 
 # Sweep the logs every 3 days
 0 0 */3 * * /home/YOUR_USER/daily-kickstart-claude/cron/rotate-logs.sh
+
+# Keep the engine CLIs current (before the first cycle) — a stale CLI can
+# silently drop an engine when a provider ships a new default model
+0 5 * * * /home/YOUR_USER/daily-kickstart-claude/cron/update-clis.sh
 ```
+
+If a provider's default model outruns its CLI (it happens), pin a working one
+without touching code — e.g. `CODEX_MODEL=gpt-5.1`. A failed engine is isolated:
+the others still run, and the alert says whether it needs an upgrade or a pin.
 
 ## Meet the poets
 
