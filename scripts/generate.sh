@@ -66,13 +66,20 @@ case "$ENGINE" in
         fi
         ;;
     codex)
-        if ! run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" exec \
-            --ephemeral --skip-git-repo-check \
-            -o "$HAIKU_OUTPUT" \
+        CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
+        [ -n "$CODEX_MODEL" ] && CODEX_ARGS+=(-m "$CODEX_MODEL")
+        CODEX_ARGS+=(-o "$HAIKU_OUTPUT")
+        if ! run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" "${CODEX_ARGS[@]}" \
             "Output only a haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
             2> "$HAIKU_ERROR"; then
             log "ERROR: Codex CLI failed"
             cat "$HAIKU_ERROR" >&2
+            # Distinguish "the CLI is out of date / model unavailable" (needs
+            # an upgrade or a CODEX_MODEL pin) from a plain timeout, so the
+            # operator alert is actionable.
+            if grep -qiE 'requires a newer version|not supported|please upgrade' "$HAIKU_ERROR"; then
+                finish 1 "codex_needs_upgrade" "ERROR: Codex CLI out of date or model unavailable — run 'codex update' or set CODEX_MODEL"
+            fi
             finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
         fi
         ;;
@@ -84,6 +91,9 @@ case "$ENGINE" in
             < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
             log "ERROR: Antigravity CLI failed"
             cat "$HAIKU_ERROR" >&2
+            if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$HAIKU_ERROR"; then
+                finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
+            fi
             finish 1 "agy_failed" "ERROR: Antigravity CLI failed or timed out"
         fi
         # agy prints an OAuth login blob to stdout and still exits 0 when
