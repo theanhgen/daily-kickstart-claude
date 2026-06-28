@@ -2,18 +2,18 @@
 stage: maintaining
 ---
 
-Automated haiku generator running on Raspberry Pi — generates and commits four haikus daily via the Claude API.
+Automated haiku generator running on Raspberry Pi — three engines (claude, codex, agy) each write a haiku four times daily; haikus are committed weekly and published to a GitHub Pages site.
 
 ## Current
-The top-level docs describe an operational Raspberry Pi setup that generates haikus four times daily, runs health checks, and pushes weekly commits automatically. Nothing in the README suggests active feature work; this reads like a maintenance runbook.
+Operational and in maintenance. Cron drives generation 4x/day across three engines, health checks every 30 min, weekly push, and CLI self-updates. Every push rebuilds the static site (today's haiku + archive with mood/sentiment trends, permalinks, OG cards). The codex engine outage (account default migrated to gpt-5.5) was fixed by pinning `CODEX_MODEL=gpt-5.4` in `scripts/lib.sh`.
 
 ## Next
-Run the Pi status check and confirm the last generation, sync, and healthcheck are all current.
+Keep the engines healthy: watch for CLI/model drift (the recurring failure mode) and confirm the daily site deploy succeeds.
 
 ## Milestone
-**What:** Pi health verification
-**Target:** 2026-05-31
-- [ ] Verify last 7 days of haiku generation
-- [ ] Check sync + push history
-- [ ] Confirm cron is healthy
-- [ ] Rotate logs if needed
+**What:** Steady-state health verification
+**Target:** 2026-07-31
+- [ ] Verify last 7 days of generation across all three engines
+- [ ] Confirm weekly push + Pages deploy are landing
+- [ ] Confirm cron is healthy (no stale-haiku alerts)
+- [ ] Confirm `update-clis.sh` is keeping codex/agy current

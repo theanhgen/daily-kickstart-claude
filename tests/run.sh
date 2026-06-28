@@ -94,12 +94,11 @@ set -euo pipefail
 
 mode="${GENERATE_STUB_MODE:-success}"
 
+# generate.sh calls claude with --output-format json and parses .result /
+# .modelUsage with node, so the stub emits JSON like the real CLI does.
 case "$mode" in
     success)
-        printf '%s\n' \
-            'morning sparrow sings' \
-            'rooftops warming into gold' \
-            'day opens its hands'
+        printf '%s\n' '{"result":"morning sparrow sings\nrooftops warming into gold\nday opens its hands","modelUsage":{"claude-stub":{}}}'
         ;;
     empty)
         ;;
@@ -159,7 +158,37 @@ case "$mode" in
 esac
 EOF
 
-    chmod +x "$project_dir/bin/claude" "$project_dir/bin/codex"
+    cat > "$project_dir/bin/agy" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# agy -p prints the haiku as plain text to stdout (no JSON wrapper).
+mode="${GENERATE_STUB_MODE:-success}"
+
+case "$mode" in
+    success)
+        printf '%s\n' \
+            'morning sparrow sings' \
+            'rooftops warming into gold' \
+            'day opens its hands'
+        ;;
+    empty)
+        ;;
+    unauth)
+        # agy exits 0 but prints a login blob when not authenticated.
+        printf 'Authentication required: run agy -p test to log in\n'
+        ;;
+    fail)
+        printf 'stubbed agy failure\n' >&2
+        exit 1
+        ;;
+    *)
+        printf '%s\n' "$mode"
+        ;;
+esac
+EOF
+
+    chmod +x "$project_dir/bin/claude" "$project_dir/bin/codex" "$project_dir/bin/agy"
     printf '%s\n' 'Write a haiku about the weather.' > "$project_dir/scripts/session_prompt.txt"
 
     printf '%s\n' "$project_dir"
@@ -178,6 +207,7 @@ run_generate() {
             LOCK_FILE="$project_dir/.runtime/kickstart.lock" \
             CLAUDE_BIN="$project_dir/bin/claude" \
             CODEX_BIN="$project_dir/bin/codex" \
+            AGY_BIN="$project_dir/bin/agy" \
             "$@" \
             bash "$project_dir/scripts/generate.sh" 2>&1
     )"
@@ -224,7 +254,7 @@ test_invalid_engine() {
     # shellcheck source=/dev/null
     . "$status_file"
     assert_eq "invalid_engine" "$LAST_RUN_STATUS" "invalid ENGINE should record invalid_engine"
-    assert_eq "ERROR: Unknown ENGINE=bogus (use claude or codex)" "$LAST_RUN_MESSAGE" "invalid ENGINE should explain the accepted values"
+    assert_eq "ERROR: Unknown ENGINE=bogus (use claude, codex, or agy)" "$LAST_RUN_MESSAGE" "invalid ENGINE should explain the accepted values"
     assert_file_missing "$project_dir/haiku.txt" "invalid ENGINE should not create haiku output"
 }
 
@@ -317,6 +347,46 @@ test_successful_generation() {
     assert_eq "day opens its hands" "${lines[4]}" "successful generation should write the third haiku line"
 }
 
+test_agy_successful_generation() {
+    local project_dir
+    local status_file
+    local -a lines
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=agy
+    assert_eq "0" "$RUN_STATUS" "agy generation should exit cleanly"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "success" "$LAST_RUN_STATUS" "agy generation should record success"
+    assert_eq "Haiku [agy] appended to haiku.txt" "$LAST_RUN_MESSAGE" "agy generation should record a success message"
+
+    assert_file_exists "$project_dir/haiku.txt" "agy generation should create haiku.txt"
+    mapfile -t lines < "$project_dir/haiku.txt"
+    assert_match '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC \[agy\]$' "${lines[1]}" "agy generation should write a timestamped engine header"
+    assert_eq "morning sparrow sings" "${lines[2]}" "agy generation should write the first haiku line"
+}
+
+test_agy_unauthenticated() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=agy GENERATE_STUB_MODE=unauth
+    assert_eq "1" "$RUN_STATUS" "unauthenticated agy should fail"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "agy_unauthenticated" "$LAST_RUN_STATUS" "unauthenticated agy should record agy_unauthenticated"
+    assert_file_missing "$project_dir/haiku.txt" "unauthenticated agy should not create haiku output"
+}
+
 test_write_status_round_trips_values() {
     local project_dir
 
@@ -382,6 +452,8 @@ main() {
     run_test test_empty_output
     run_test test_null_output
     run_test test_successful_generation
+    run_test test_agy_successful_generation
+    run_test test_agy_unauthenticated
     run_test test_write_status_round_trips_values
     run_test test_write_health_state_round_trips_values
 

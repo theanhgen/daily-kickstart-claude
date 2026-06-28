@@ -19,7 +19,18 @@ Ripples carry light
 
 Somewhere on a Raspberry Pi, the clock ticks over to 06:00. Cron yawns, stretches, and pokes three AI CLIs awake — `claude`, `codex`, and `agy`. Each one squints at the morning and coughs up a haiku. The script catches them, stamps each with its author, and files them into `haiku.txt`. Come Sunday night, the whole week's worth gets committed and pushed while you sleep. Then it does it all again. Forever. That's it. That's the app.
 
-No server. No dashboard. No "please rate your experience." Just a small machine quietly being a poet.
+No human in the loop. Just a small machine quietly being a poet — and a little website out front showing off the verses.
+
+## The website
+
+Every push triggers a GitHub Actions job that rebuilds a static site and ships it to GitHub Pages — no server to run, just files. [scripts/build-site.py](scripts/build-site.py) parses `haiku.txt` and renders:
+
+- **Today's haiku** on the front page, with the writing engine's colour.
+- **An archive** of every haiku ever written, grouped by daily cycle, each tagged with its author and a mood score.
+- **Sentiment trends** — a combined chart of per-engine mood over the last 90 days, so you can watch the robots' collective temperament drift.
+- **Shareable permalinks** — every haiku gets its own page (`/h/<slug>/`) with Open Graph / Twitter meta and a 1200×630 preview card, so a link unfurls into the poem on social media.
+
+Live at `https://theanhgen.github.io/daily-kickstart-claude/`. The build is defined in [.github/workflows/deploy.yml](.github/workflows/deploy.yml); preview images are cached between deploys so only new haikus get re-rendered.
 
 ## Grab it and go
 
@@ -69,7 +80,7 @@ CRON_TZ=Europe/Prague
 ```
 
 If a provider's default model outruns its CLI (it happens), pin a working one
-without touching code — e.g. `CODEX_MODEL=gpt-5.1`. A failed engine is isolated:
+without touching code — e.g. `CODEX_MODEL=gpt-5.4`. A failed engine is isolated:
 the others still run, and the alert says whether it needs an upgrade or a pin.
 
 ## Meet the poets
@@ -88,24 +99,36 @@ Want just one? Summon it by name:
 ENGINE=agy scripts/generate.sh     # claude (default) | codex | agy
 ```
 
-First time with `agy`, log it in once (`agy -p test`). Swapping binaries or tweaking timeouts? Everything lives in `scripts/lib.sh` — `AGY_BIN`, `AGY_TIMEOUT_SECONDS`, and friends.
+First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tweaking timeouts? Everything lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. Each generation also records which model actually answered to `model.log` (committed, never rotated), so the site's mood trends stay attributable to model changes over time.
 
 ## What's in the box
 
 ```
 scripts/
-  generate.sh           Writes one haiku, appends to haiku.txt
+  generate.sh           Writes one haiku with the chosen ENGINE, appends to haiku.txt
   lib.sh                Shared config, locking, the boring-but-load-bearing bits
+  build-site.py         Renders haiku.txt → site/ (json, permalinks, preview cards)
   healthcheck.sh        "Is the poet still breathing?"
   status.sh             Operator dashboard at a glance
   sync.sh               Fetch, rebase, push — no poetry involved
   notify.sh             Optional ntfy pings
   session_prompt.txt    The muse. Edit this, change the soul.
-  .notify.env.example   Notification config template
 
 cron/                   Thin wrappers that log everything and call scripts/
+  generate.sh             Runs all three engines, one cycle
+  weekly-push.sh          Sunday-night commit + push of the week's verses
+  healthcheck.sh          Periodic vital-signs check
+  sync.sh                 Daily fetch/rebase/push safety net
+  rotate-logs.sh          Keeps the *.log files from growing forever
+  update-clis.sh          Self-updates the engine CLIs ahead of the day's first run
 
+site/                   The static site (index, archive, main.js, style.css, fonts,
+                        favicons). haiku.json and h/ are build artifacts, not committed.
+.github/workflows/      deploy.yml — builds site/ and publishes to GitHub Pages on push
+tests/run.sh            Stubbed unit tests for generate.sh + lib.sh
 haiku.txt               The ever-growing book of verses
+model.log               Which model wrote each haiku (committed, never rotated)
+.notify.env.example     Notification config template
 ```
 
 ## Make it yours
@@ -117,9 +140,9 @@ echo "Write a two-line koan." > scripts/session_prompt.txt
 
 Change when the magic happens: `crontab -e`
 
-Get pinged when a haiku lands (or when something breaks):
+Get pinged when something breaks (or recovers):
 ```bash
-cp scripts/.notify.env.example .notify.env
+cp .notify.env.example .notify.env
 # drop your ntfy topic in .notify.env
 ```
 
@@ -130,6 +153,8 @@ scripts/generate.sh      # Make a haiku, right now, on demand
 scripts/status.sh        # Dashboard: sync state, last run, recent logs
 scripts/healthcheck.sh   # Take the patient's pulse
 scripts/sync.sh          # Push whatever's pending
+scripts/build-site.py    # Rebuild the site locally (needs Python; Pillow for cards)
+tests/run.sh             # Run the unit tests
 tail -f kickstart.log    # Watch the poems roll in, live
 ```
 
