@@ -59,7 +59,7 @@ function sourceBadge(h) {
   if (!h.source) return "";
   const v = moodOf(h);
   return `<span class="source-badge source-${h.source}">${h.source}</span>`
-    + `<span class="mood">${v > 0 ? "+" : ""}${v.toFixed(1)}</span>`;
+    + `<span class="mood">${v > 0 ? "+" : ""}${v.toFixed(2)}</span>`;
 }
 
 function renderMain(haikus) {
