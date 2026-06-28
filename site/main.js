@@ -303,6 +303,70 @@ function heroLines(s) {
   return out;
 }
 
+const DAY_MS = 86400000;
+
+// Daily mean mood per engine over the last `days`, anchored to the newest
+// haiku so the axis tracks the data even if the page is opened later. Returns
+// src -> [{ day, mean, n }] for the days that engine actually wrote on.
+function moodTrend(haikus, days) {
+  const out = new Map(ENGINES.map(src => [src, []]));
+  if (!haikus.length) return out;
+  const anchor = haikus.reduce((m, h) => Math.max(m, tsMs(h.timestamp)), 0);
+  const start = anchor - (days - 1) * DAY_MS;
+  for (const src of ENGINES) {
+    const byDay = new Map();
+    for (const h of haikus) {
+      if (h.source !== src) continue;
+      const t = tsMs(h.timestamp);
+      if (t < start) continue;
+      const day = Math.floor((t - start) / DAY_MS);
+      if (!byDay.has(day)) byDay.set(day, []);
+      byDay.get(day).push(moodOf(h));
+    }
+    out.set(src, [...byDay.entries()].sort((a, b) => a[0] - b[0]).map(
+      ([day, xs]) => ({ day, mean: xs.reduce((s, x) => s + x, 0) / xs.length, n: xs.length })));
+  }
+  return out;
+}
+
+// A fixed-range sparkline (shared −0.8…+0.8 scale so engines compare directly),
+// with a dashed zero baseline and a dot on the latest day. stroke uses a CSS
+// var so it follows the engine's colour in light/dark.
+function sparkline(series, days, color) {
+  const W = 240, H = 34, P = 3, R = 0.8;
+  const x = d => P + (days < 2 ? 0 : d / (days - 1)) * (W - 2 * P);
+  const y = v => H / 2 - Math.max(-R, Math.min(R, v)) / R * (H / 2 - P);
+  const zero = `<line x1="${P}" y1="${y(0).toFixed(1)}" x2="${W - P}" y2="${y(0).toFixed(1)}" class="spark-zero"/>`;
+  let marks = "";
+  if (series.length >= 2) {
+    const pts = series.map(p => `${x(p.day).toFixed(1)},${y(p.mean).toFixed(1)}`).join(" ");
+    marks = `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  const last = series[series.length - 1];
+  if (last) marks += `<circle cx="${x(last.day).toFixed(1)}" cy="${y(last.mean).toFixed(1)}" r="2" fill="${color}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark" preserveAspectRatio="none">${zero}${marks}</svg>`;
+}
+
+function renderTrend(haikus) {
+  const el = document.getElementById("archive-trend");
+  if (!el) return;
+  const days = 90;
+  const trend = moodTrend(haikus, days);
+  const rows = ENGINES.map(src => {
+    const series = trend.get(src);
+    const last = series.length ? series[series.length - 1].mean : null;
+    const cur = last == null ? "—" : `${last > 0 ? "+" : ""}${last.toFixed(2)}`;
+    const sparse = series.length < 2 ? ` <span class="trend-note">few days</span>` : "";
+    return `<div class="trend-row">
+      <span class="trend-label source-${src}">${src}</span>
+      ${sparkline(series, days, `var(--${src}-text)`)}
+      <span class="trend-cur">${cur}${sparse}</span>
+    </div>`;
+  }).join("");
+  el.innerHTML = `<div class="trend-head"><span>sentiment · last ${days} days</span>`
+    + `<span class="trend-axis">cool −1 ⋯ +1 warm</span></div>${rows}`;
+}
+
 function renderInsights(haikus) {
   if (!haikus.length) return;
   const s = computeStats(haikus);
@@ -338,6 +402,8 @@ function renderInsights(haikus) {
       ? `<span class="stat-note">among ${s.attributed} attributed haikus</span>` : "";
     strip.innerHTML = cells.map(c => `<span class="stat-cell">${c}</span>`).join("") + note;
   }
+
+  renderTrend(haikus);
 }
 
 // Fit a whole cycle to ONE shared font size so every haiku in it matches.
