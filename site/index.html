@@ -7,14 +7,23 @@
   <meta property="og:title" content="Daily Haiku">
   <meta property="og:description" content="Morning terminal / Quiet keys wake the old code / Spring builds in silence">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://theanhgen.github.io/daily-kickstart-claude/">
+  <meta property="og:image" content="">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="main-layout">
     <div id="main-content"></div>
     <div id="main-insight" class="insight"></div>
-    <a class="nav-link" href="archive.html">Archive</a>
+    <div class="main-actions">
+      <a class="nav-link" href="archive.html">Archive</a>
+      <button id="share-btn" class="nav-link share-btn" type="button" hidden>Share a haiku</button>
+    </div>
   </main>
+  <div id="toast" class="toast" hidden></div>
   <script src="main.js"></script>
 </body>
 </html>

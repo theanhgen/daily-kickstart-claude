@@ -87,6 +87,46 @@ function renderMain(haikus) {
       <div class="haiku loaded">${haikuLines(h)}</div>
       ${h.source ? `<div class="haiku-rule"></div><div class="haiku-meta">${sourceBadge(h)}</div>` : ""}`;
   }
+
+  // Haikus the share button can deep-link to: this cycle's (today's) haikus.
+  const cycle = first.type === "cycle" ? first.haikus : (first.haiku.source ? [first.haiku] : []);
+  setupShare(cycle);
+}
+
+// Permalink slug for a haiku — must byte-match build-site.py's slug():
+// YYYYMMDD-HHMMSS-engine.
+function shareSlug(h) {
+  const s = h.timestamp.slice(0, 19).replace(/[-:]/g, "").replace(" ", "-");
+  return `${s}-${h.source || "claude"}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  if (!t) return;
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { t.hidden = true; }, 2400);
+}
+
+// Pick a random haiku from today's cycle and share its rich permalink. Native
+// share sheet on mobile; clipboard copy + toast as the desktop fallback.
+function setupShare(cycle) {
+  const btn = document.getElementById("share-btn");
+  if (!btn) return;
+  if (!cycle.length) { btn.hidden = true; return; }
+  btn.hidden = false;
+  btn.onclick = async () => {
+    const h = cycle[Math.floor(Math.random() * cycle.length)];
+    const url = new URL(`h/${shareSlug(h)}/`, location.href).href;
+    const data = { title: "Daily Haiku", text: h.lines.join(" / "), url };
+    if (navigator.share) {
+      try { await navigator.share(data); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(url); showToast("Link copied"); }
+    catch { showToast(url); }
+  };
 }
 
 function renderArchive(haikus) {
