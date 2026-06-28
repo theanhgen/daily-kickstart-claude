@@ -445,26 +445,30 @@ function renderTrend(haikus) {
           <line class="chart-cursor" x1="0" y1="${PT}" x2="0" y2="${H - PB}" style="display:none"/>
         </svg>
         <div class="chart-tip" hidden></div>
-        <div class="chart-hot" style="left:${(PL / W * 100).toFixed(2)}%;right:${(PR / W * 100).toFixed(2)}%"></div>
       </div>
       <div class="chart-foot"><div class="chart-foot-main">${foot}</div><div class="chart-foot-sub">cool below the line · warm above · shared −0.8…+0.8 scale</div></div>
     </div>`;
 
-  // Hover tooltip + cursor.
+  // Hover tooltip + cursor. Map the pointer through the SVG's own rect and the
+  // viewBox scale — the same coordinate space the lines and cursor draw in — so
+  // the crosshair sits exactly on a data column, edges included. (A separately
+  // positioned overlay drifts because chart-body's padding offsets its frame.)
   const svg = el.querySelector(".trend-chart");
   const cursor = el.querySelector(".chart-cursor");
   const tip = el.querySelector(".chart-tip");
-  const hot = el.querySelector(".chart-hot");
+  const body = el.querySelector(".chart-body");
   const valAt = (src, day) => {
     const a = lookup[src];
     for (let r = 0; r <= 5; r++) { if (a[day - r] != null) return a[day - r]; if (a[day + r] != null) return a[day + r]; }
     return null;
   };
-  hot.addEventListener("pointermove", e => {
-    const rect = hot.getBoundingClientRect();
-    const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  body.addEventListener("pointermove", e => {
+    const sr = svg.getBoundingClientRect();
+    const vbx = (e.clientX - sr.left) / sr.width * W;          // pointer → viewBox x
+    const f = Math.max(0, Math.min(1, (vbx - PL) / (W - PL - PR)));
     const day = Math.round(f * (days - 1));
-    cursor.setAttribute("x1", x(day)); cursor.setAttribute("x2", x(day));
+    const cx = x(day);                                         // snap to the data column
+    cursor.setAttribute("x1", cx); cursor.setAttribute("x2", cx);
     cursor.style.display = "";
     const rows = ENGINES.map(src => ({ src, v: valAt(src, day) }))
       .filter(r => r.v != null)
@@ -473,11 +477,12 @@ function renderTrend(haikus) {
       .join("");
     tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}`;
     tip.hidden = false;
-    const body = hot.parentElement.getBoundingClientRect();
+    const br = body.getBoundingClientRect();
     const tw = tip.offsetWidth;
-    tip.style.left = Math.max(0, Math.min(body.width - tw, e.clientX - body.left - tw / 2)) + "px";
+    const cursorScreenX = sr.left + cx / W * sr.width;         // centre tip on the crosshair, not the raw pointer
+    tip.style.left = Math.max(0, Math.min(br.width - tw, cursorScreenX - br.left - tw / 2)) + "px";
   });
-  hot.addEventListener("pointerleave", () => { tip.hidden = true; cursor.style.display = "none"; });
+  body.addEventListener("pointerleave", () => { tip.hidden = true; cursor.style.display = "none"; });
 }
 
 function renderInsights(haikus) {

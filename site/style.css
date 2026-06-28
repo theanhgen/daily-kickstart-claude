@@ -291,8 +291,7 @@ body {
   gap: 0.5rem 1.25rem;
   align-items: baseline;
   padding-bottom: 1.25rem;
-  margin-bottom: 2.5rem;
-  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.5rem;
 }
 .stats-strip:empty {
   display: none;
@@ -377,6 +376,7 @@ body {
 .chart-body {
   position: relative;
   padding: 0.25rem 1rem 0.5rem;
+  cursor: crosshair;
 }
 .trend-chart {
   width: 100%;
@@ -409,14 +409,6 @@ body {
   stroke: var(--muted);
   stroke-width: 0.75;
   opacity: 0.5;
-}
-
-/* Transparent hover-capture band over the plot area. */
-.chart-hot {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  cursor: crosshair;
 }
 
 .chart-tip {
