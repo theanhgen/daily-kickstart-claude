@@ -1,0 +1,5 @@
+# model attribution log — appended per generation, never rotated.
+# format: <UTC timestamp> engine=<engine> model=<model>
+2026-06-28 08:31:51 UTC engine=claude model=claude-haiku-4-5-20251001
+2026-06-28 08:31:59 UTC engine=codex model=gpt-5.4
+2026-06-28 08:32:05 UTC engine=agy model=default
