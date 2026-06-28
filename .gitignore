@@ -15,6 +15,9 @@ Thumbs.db
 *.log
 *.log.*
 
+# ...but keep the persistent model-attribution log (committed, never rotated)
+!model.log
+
 # Temporary files
 *.tmp
 .cache/

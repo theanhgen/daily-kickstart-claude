@@ -32,6 +32,9 @@ FETCH_RETRY_COUNT="${FETCH_RETRY_COUNT:-3}"
 FETCH_RETRY_DELAY_SECONDS="${FETCH_RETRY_DELAY_SECONDS:-5}"
 HEALTH_MAX_HAIKU_AGE_HOURS="${HEALTH_MAX_HAIKU_AGE_HOURS:-18}"
 NOTIFY_CONFIG_FILE="${NOTIFY_CONFIG_FILE:-$PROJECT_DIR/.notify.env}"
+# Persistent, never-rotated, committed log of which model wrote each haiku —
+# so mood/sentiment trends stay attributable to model changes over time.
+MODEL_LOG="${MODEL_LOG:-$PROJECT_DIR/model.log}"
 
 LOCK_BACKEND=""
 LOCK_FD=""

@@ -14,10 +14,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENGINE="${ENGINE:-claude}"
 HAIKU_OUTPUT=""
 HAIKU_ERROR=""
+HAIKU_RAW=""
+HAIKU_MODEL="default"
 
 cleanup() {
     [ -n "$HAIKU_OUTPUT" ] && rm -f "$HAIKU_OUTPUT"
     [ -n "$HAIKU_ERROR" ] && rm -f "$HAIKU_ERROR"
+    [ -n "$HAIKU_RAW" ] && rm -f "$HAIKU_RAW"
     release_project_lock
 }
 trap cleanup EXIT
@@ -46,6 +49,7 @@ log "Generating haiku at $TIMESTAMP..."
 # Create temp files for Claude output
 HAIKU_OUTPUT=$(mktemp)
 HAIKU_ERROR=$(mktemp)
+HAIKU_RAW=$(mktemp)
 
 # Read user prompt
 PROMPT_FILE="$SCRIPT_DIR/session_prompt.txt"
@@ -57,13 +61,16 @@ USER_PROMPT="$(cat "$PROMPT_FILE")"
 # Generate haiku with proper error separation
 case "$ENGINE" in
     claude)
-        if ! run_with_timeout "$CLAUDE_TIMEOUT_SECONDS" "$CLAUDE_BIN" -p \
+        # JSON output also reveals which model actually answered (modelUsage).
+        if ! run_with_timeout "$CLAUDE_TIMEOUT_SECONDS" "$CLAUDE_BIN" -p --output-format json \
             --system-prompt "Output only the haiku, nothing else. No preamble, no explanation, just three lines." \
-            "$USER_PROMPT" > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
+            "$USER_PROMPT" > "$HAIKU_RAW" 2> "$HAIKU_ERROR"; then
             log "ERROR: Claude CLI failed"
             cat "$HAIKU_ERROR" >&2
             finish 1 "claude_failed" "ERROR: Claude CLI failed or timed out"
         fi
+        node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write((JSON.parse(d).result||"")+"\n")}catch{}})' < "$HAIKU_RAW" > "$HAIKU_OUTPUT" 2>/dev/null
+        HAIKU_MODEL="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(Object.keys(JSON.parse(d).modelUsage||{})[0]||"unknown")}catch{process.stdout.write("unknown")}})' < "$HAIKU_RAW" 2>/dev/null || echo unknown)"
         ;;
     codex)
         CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
@@ -84,6 +91,7 @@ case "$ENGINE" in
             fi
             finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
         fi
+        HAIKU_MODEL="${CODEX_MODEL:-default}"
         ;;
     agy)
         # agy -p reads stdin until EOF; without </dev/null it hangs on the
@@ -125,16 +133,10 @@ if [ "$LINE_COUNT" -ne 3 ]; then
     log "WARNING: Haiku has $LINE_COUNT lines (expected 3), using anyway"
 fi
 
-# Stamp the engine's CLI version and model in the LOG (not in haiku.txt) so a
-# future mood/sentiment trend can be attributed to model changes over time.
-case "$ENGINE" in
-    claude) VER_BIN="$CLAUDE_BIN"; VER_MODEL="default" ;;
-    codex)  VER_BIN="$CODEX_BIN";  VER_MODEL="${CODEX_MODEL:-default}" ;;
-    agy)    VER_BIN="$AGY_BIN";    VER_MODEL="default" ;;
-    *)      VER_BIN="";            VER_MODEL="" ;;
-esac
-VER_CLI="$("$VER_BIN" --version 2>/dev/null | head -1 || true)"
-log "version engine=$ENGINE cli=\"${VER_CLI:-unknown}\" model=$VER_MODEL"
+# Record which model wrote this haiku in the persistent model.log (never
+# rotated, not in haiku.txt) so a future mood/sentiment trend can be
+# attributed to model changes over time.
+printf '%s engine=%s model=%s\n' "$TIMESTAMP" "$ENGINE" "${HAIKU_MODEL:-unknown}" >> "$MODEL_LOG"
 
 # Append to haiku.txt with clean format
 {
