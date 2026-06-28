@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Daily Haiku">
+  <rect width="512" height="512" rx="118" fill="#1a1a18"/>
+  <rect x="123" y="131" width="165" height="46" rx="23" fill="#e07a45"/>
+  <rect x="123" y="233" width="197" height="46" rx="23" fill="#45a882"/>
+  <rect x="123" y="335" width="133" height="46" rx="23" fill="#8b93e6"/>
+</svg>

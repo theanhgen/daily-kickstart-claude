@@ -146,6 +146,9 @@ PAGE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
+<link rel="icon" href="{site}/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{site}/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="{site}/apple-touch-icon.png">
 <link rel="canonical" href="{url}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Daily Haiku">
