@@ -329,42 +329,60 @@ function moodTrend(haikus, days) {
   return out;
 }
 
-// A fixed-range sparkline (shared −0.8…+0.8 scale so engines compare directly),
-// with a dashed zero baseline and a dot on the latest day. stroke uses a CSS
-// var so it follows the engine's colour in light/dark.
-function sparkline(series, days, color) {
-  const W = 240, H = 34, P = 3, R = 0.8;
-  const x = d => P + (days < 2 ? 0 : d / (days - 1)) * (W - 2 * P);
-  const y = v => H / 2 - Math.max(-R, Math.min(R, v)) / R * (H / 2 - P);
-  const zero = `<line x1="${P}" y1="${y(0).toFixed(1)}" x2="${W - P}" y2="${y(0).toFixed(1)}" class="spark-zero"/>`;
-  let marks = "";
-  if (series.length >= 2) {
-    const pts = series.map(p => `${x(p.day).toFixed(1)},${y(p.mean).toFixed(1)}`).join(" ");
-    marks = `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  }
-  const last = series[series.length - 1];
-  if (last) marks += `<circle cx="${x(last.day).toFixed(1)}" cy="${y(last.mean).toFixed(1)}" r="2" fill="${color}"/>`;
-  return `<svg viewBox="0 0 ${W} ${H}" class="spark" preserveAspectRatio="none">${zero}${marks}</svg>`;
+// Centered rolling mean over ±win days — smooths daily jitter so three
+// overlaid engine lines stay legible without hiding the real trend.
+function smooth(series, win) {
+  return series.map(p => {
+    let s = 0, c = 0;
+    for (const q of series) if (Math.abs(q.day - p.day) <= win) { s += q.mean; c++; }
+    return { day: p.day, mean: s / c };
+  });
 }
 
+// One combined chart: all three engines overlaid on a shared −0.8…+0.8 axis,
+// with a zero baseline and faint ±0.4 gridlines, a legend with each engine's
+// latest value, and start/end date ticks. Uniform scaling (no stretch) keeps
+// dots round and strokes even.
 function renderTrend(haikus) {
   const el = document.getElementById("archive-trend");
   if (!el) return;
   const days = 90;
   const trend = moodTrend(haikus, days);
-  const rows = ENGINES.map(src => {
-    const series = trend.get(src);
-    const last = series.length ? series[series.length - 1].mean : null;
-    const cur = last == null ? "—" : `${last > 0 ? "+" : ""}${last.toFixed(2)}`;
-    const sparse = series.length < 2 ? ` <span class="trend-note">few days</span>` : "";
-    return `<div class="trend-row">
-      <span class="trend-label source-${src}">${src}</span>
-      ${sparkline(series, days, `var(--${src}-text)`)}
-      <span class="trend-cur">${cur}${sparse}</span>
-    </div>`;
-  }).join("");
-  el.innerHTML = `<div class="trend-head"><span>sentiment · last ${days} days</span>`
-    + `<span class="trend-axis">cool −1 ⋯ +1 warm</span></div>${rows}`;
+  const W = 600, H = 150, PL = 6, PR = 6, PT = 10, PB = 18, R = 0.8;
+  const x = d => PL + (days < 2 ? 0 : d / (days - 1)) * (W - PL - PR);
+  const y = v => PT + (1 - (Math.max(-R, Math.min(R, v)) + R) / (2 * R)) * (H - PT - PB);
+
+  let grid = "";
+  for (const g of [0.4, 0, -0.4]) {
+    grid += `<line x1="${PL}" y1="${y(g).toFixed(1)}" x2="${W - PR}" y2="${y(g).toFixed(1)}" class="${g === 0 ? "spark-zero" : "spark-grid"}"/>`
+      + `<text x="${PL}" y="${(y(g) - 2).toFixed(1)}" class="spark-glabel">${g > 0 ? "+" : ""}${g}</text>`;
+  }
+
+  let lines = "";
+  const legend = [];
+  for (const src of ENGINES) {
+    const raw = trend.get(src);
+    if (!raw.length) continue;
+    legend.push({ src, last: raw[raw.length - 1].mean });
+    const ser = smooth(raw, 3);
+    if (ser.length >= 2) {
+      const pts = ser.map(p => `${x(p.day).toFixed(1)},${y(p.mean).toFixed(1)}`).join(" ");
+      lines += `<polyline points="${pts}" fill="none" stroke="var(--${src}-text)" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+    const lp = ser[ser.length - 1];
+    lines += `<circle cx="${x(lp.day).toFixed(1)}" cy="${y(lp.mean).toFixed(1)}" r="2.5" fill="var(--${src}-text)"/>`;
+  }
+
+  const leg = legend.map(l =>
+    `<span class="trend-key"><i style="background:var(--${l.src}-text)"></i>${l.src} ${l.last > 0 ? "+" : ""}${l.last.toFixed(2)}</span>`).join("");
+  const anchor = haikus.reduce((m, h) => Math.max(m, tsMs(h.timestamp)), 0);
+  const fmt = ms => new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+  el.innerHTML =
+    `<div class="trend-head"><span>sentiment · last ${days} days</span><span class="trend-legend">${leg}</span></div>`
+    + `<svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${lines}</svg>`
+    + `<div class="trend-xaxis"><span>${fmt(anchor - (days - 1) * DAY_MS)}</span>`
+    + `<span class="trend-axis">cool below · warm above</span><span>${fmt(anchor)}</span></div>`;
 }
 
 function renderInsights(haikus) {
