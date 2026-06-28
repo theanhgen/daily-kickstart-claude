@@ -13,6 +13,22 @@
   font-style: italic;
 }
 
+/* DM Serif Display — the haiku face; bundled so it matches the share card. */
+@font-face {
+  font-family: 'DM Serif Display';
+  src: url('assets/fonts/DMSerifDisplay-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Serif Display';
+  src: url('assets/fonts/DMSerifDisplay-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -85,6 +101,7 @@ body {
 }
 
 .haiku p {
+  font-family: 'DM Serif Display', 'New York', ui-serif, 'Noto Serif', serif;
   font-size: clamp(0.85rem, 3vw, 1.9rem);
   line-height: 1.9;
   font-style: italic;
@@ -267,6 +284,42 @@ body {
 
 .nav-link:hover {
   color: var(--text);
+}
+
+.main-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.share-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast[hidden] {
+  display: none;
 }
 
 /* ── Live insights ── */
