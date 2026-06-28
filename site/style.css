@@ -248,6 +248,12 @@ body {
   margin-left: 0.4em;
 }
 
+/* Low-confidence score (rests on <2 lexicon words) — reads as tentative. */
+.mood-weak {
+  opacity: 0.45;
+  font-style: italic;
+}
+
 .nav-link {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;
