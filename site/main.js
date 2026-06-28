@@ -466,10 +466,11 @@ function renderTrend(haikus) {
     const day = Math.round(f * (days - 1));
     cursor.setAttribute("x1", x(day)); cursor.setAttribute("x2", x(day));
     cursor.style.display = "";
-    const rows = ENGINES.map(src => {
-      const v = valAt(src, day);
-      return v == null ? "" : `<div class="tip-row"><span><i style="background:var(--${src}-text)"></i>${src}</span><b>${v > 0 ? "+" : ""}${v.toFixed(2)}</b></div>`;
-    }).join("");
+    const rows = ENGINES.map(src => ({ src, v: valAt(src, day) }))
+      .filter(r => r.v != null)
+      .sort((a, b) => b.v - a.v)   // warmest provider on top
+      .map(r => `<div class="tip-row"><span class="tip-name"><i style="background:var(--${r.src}-text)"></i>${r.src}</span><b>${r.v > 0 ? "+" : ""}${r.v.toFixed(2)}</b></div>`)
+      .join("");
     tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}`;
     tip.hidden = false;
     const body = hot.parentElement.getBoundingClientRect();
