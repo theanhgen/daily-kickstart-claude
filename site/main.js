@@ -167,6 +167,32 @@ function normHaiku(h) {
   return h.lines.map(l => l.toLowerCase().trim()).join(" / ");
 }
 
+// Mood = a curated warm↔cool lean over the corpus's actual imagery. It's a
+// lexical heuristic, not true sentiment — neutral/technical words (code, keys)
+// are unscored, and a haiku's score is net warm/cool words over scored words.
+const MOOD_WARM = new Set(("light dawn spring bloom blooms sun warms warm gold golden bright " +
+  "green coffee wake wakes awakens waking soft softly steam breathes hums opens flows flow " +
+  "fresh glow blossom cherry hope joy clear gentle alive sunlight daylight").split(" "));
+const MOOD_COOL = new Set(("silent silence frost snow cold winter empty bare void dark shadow " +
+  "fade fades falls fall descend descends drift drifts mist night lost alone gray grey still " +
+  "sleeps sleep fading hollow ash dusk frozen freeze chill barren").split(" "));
+
+function moodOf(h) {
+  let net = 0, scored = 0;
+  for (const l of h.lines) for (const w of l.toLowerCase().match(/[a-z']+/g) || []) {
+    if (MOOD_WARM.has(w)) { net++; scored++; }
+    else if (MOOD_COOL.has(w)) { net--; scored++; }
+  }
+  return scored ? net / scored : 0;   // -1 (cool) .. +1 (warm)
+}
+
+function moodAgg(arr) {
+  if (!arr.length) return null;
+  const mean = arr.reduce((s, h) => s + moodOf(h), 0) / arr.length;
+  return { n: arr.length, score: Math.round(mean * 100) / 100,
+    label: mean > 0.15 ? "warm" : mean < -0.15 ? "cool" : "even" };
+}
+
 function computeStats(haikus) {
   const total = haikus.length;
   const all = countWords(haikus);
@@ -212,6 +238,9 @@ function computeStats(haikus) {
     originality,
     ranked: originality.filter(o => o.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.pct - a.pct),
     mostWritten,
+    moodAll: moodAgg(haikus),
+    mood: ENGINES.map(src => ({ src, ...moodAgg(haikus.filter(h => h.source === src)) }))
+      .filter(m => m.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.score - a.score),
   };
 }
 
@@ -232,6 +261,12 @@ function heroLines(s) {
   }
   if (s.mostWritten && s.mostWritten.count >= 3)
     out.push(`One haiku has been written ${s.mostWritten.count} times: “${s.mostWritten.firstLine}…”`);
+  if (s.moodAll)
+    out.push(`Across ${s.total} haikus the mood lands ${s.moodAll.label} (${s.moodAll.score} on a cool-to-warm scale).`);
+  if (s.mood.length >= 2 && s.mood[0].label !== s.mood[s.mood.length - 1].label) {
+    const warm = s.mood[0], cool = s.mood[s.mood.length - 1];
+    out.push(`Their moods split — ${cool.src} writes cool (${cool.score}); ${warm.src} warm (+${warm.score}).`);
+  }
   return out;
 }
 
@@ -261,6 +296,9 @@ function renderInsights(haikus) {
       const warming = s.originality.filter(o => o.n < MIN_ENGINE_HAIKUS);
       cells.push(`originality — ${s.ranked.map(o => `${o.src} ${o.pct}%`).join(" · ")}`
         + (warming.length ? ` (${warming.map(o => `${o.src} ${o.n}`).join(", ")} warming up)` : ""));
+    }
+    if (s.mood.length >= 2) {
+      cells.push(`mood (cool −1…+1 warm) — ${s.mood.map(m => `${m.src} ${m.score > 0 ? "+" : ""}${m.score}`).join(" · ")}`);
     }
     // Only note the basis when some haikus are still unattributed.
     const note = s.dist && s.attributed < s.total
