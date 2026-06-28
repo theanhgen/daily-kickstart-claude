@@ -54,6 +54,14 @@ function haikuLines(h) {
   return h.lines.map(l => `<p>${l}</p>`).join("");
 }
 
+// Provider badge plus this haiku's own warm↔cool mood score (-1..+1).
+function sourceBadge(h) {
+  if (!h.source) return "";
+  const v = moodOf(h);
+  return `<span class="source-badge source-${h.source}">${h.source}</span>`
+    + `<span class="mood">${v > 0 ? "+" : ""}${v.toFixed(1)}</span>`;
+}
+
 function renderMain(haikus) {
   const container = document.getElementById("main-content");
   const first = groupCycle(haikus.slice(0, 3))[0];
@@ -64,7 +72,7 @@ function renderMain(haikus) {
         ${first.haikus.map(h => `
         <div class="pair-col">
           <div class="haiku loaded">${haikuLines(h)}</div>
-          <span class="source-badge source-${h.source}">${h.source}</span>
+          <div class="haiku-meta">${sourceBadge(h)}</div>
         </div>`).join("")}
       </div>
       <div class="haiku-date">${formatDate(first.haikus[0].date)}</div>`;
@@ -73,7 +81,7 @@ function renderMain(haikus) {
     container.innerHTML = `
       <span class="haiku-kicker">${formatDate(h.date)}</span>
       <div class="haiku loaded">${haikuLines(h)}</div>
-      ${h.source ? `<div class="haiku-rule"></div><div class="haiku-meta"><span class="source-badge source-${h.source}">${h.source}</span></div>` : ""}`;
+      ${h.source ? `<div class="haiku-rule"></div><div class="haiku-meta">${sourceBadge(h)}</div>` : ""}`;
   }
 }
 
@@ -99,7 +107,7 @@ function renderArchive(haikus) {
                 ${haikuLines(h)}
                 <div class="entry-meta">
                   <span class="time">${formatDate(h.date)}</span>
-                  <span class="source-badge source-${h.source}">${h.source}</span>
+                  ${sourceBadge(h)}
                 </div>
               </div>`).join("")}
             </div>`;
@@ -110,7 +118,7 @@ function renderArchive(haikus) {
             ${haikuLines(h)}
             <div class="entry-meta">
               <span class="time">${formatDate(h.date)}</span>
-              ${h.source ? `<span class="source-badge source-${h.source}">${h.source}</span>` : ""}
+              ${sourceBadge(h)}
             </div>
           </div>`;
       }).join("");
