@@ -339,50 +339,144 @@ function smooth(series, win) {
   });
 }
 
-// One combined chart: all three engines overlaid on a shared −0.8…+0.8 axis,
-// with a zero baseline and faint ±0.4 gridlines, a legend with each engine's
-// latest value, and start/end date ticks. Uniform scaling (no stretch) keeps
-// dots round and strokes even.
+// Monotone-ish smooth path (Catmull-Rom → cubic bézier), like a recharts
+// type="monotone" line. Dense smoothed data keeps overshoot negligible.
+function smoothPath(pts) {
+  if (pts.length < 2) return "";
+  if (pts.length === 2) return `M${pts[0].px},${pts[0].py} L${pts[1].px},${pts[1].py}`;
+  let d = `M${pts[0].px.toFixed(1)},${pts[0].py.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1.px + (p2.px - p0.px) / 6, c1y = p1.py + (p2.py - p0.py) / 6;
+    const c2x = p2.px - (p3.px - p1.px) / 6, c2y = p2.py - (p3.py - p1.py) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.px.toFixed(1)},${p2.py.toFixed(1)}`;
+  }
+  return d;
+}
+
+// A shadcn/recharts-style card: bordered card, header (title + legend),
+// horizontal-only gridlines, smooth monotone curves in each engine's own
+// colour, month ticks, a hover tooltip, and a footer trend line. All three
+// engines share one −0.8…+0.8 axis so they compare directly.
 function renderTrend(haikus) {
   const el = document.getElementById("archive-trend");
   if (!el) return;
   const days = 90;
   const trend = moodTrend(haikus, days);
-  const W = 600, H = 150, PL = 6, PR = 6, PT = 10, PB = 18, R = 0.8;
+  const anchor = haikus.reduce((m, h) => Math.max(m, tsMs(h.timestamp)), 0);
+  const startMs = anchor - (days - 1) * DAY_MS;
+  const W = 620, H = 170, PL = 8, PR = 8, PT = 12, PB = 22, R = 0.8;
   const x = d => PL + (days < 2 ? 0 : d / (days - 1)) * (W - PL - PR);
   const y = v => PT + (1 - (Math.max(-R, Math.min(R, v)) + R) / (2 * R)) * (H - PT - PB);
 
+  // Horizontal gridlines only (CartesianGrid vertical={false}); zero emphasised.
   let grid = "";
   for (const g of [0.4, 0, -0.4]) {
     grid += `<line x1="${PL}" y1="${y(g).toFixed(1)}" x2="${W - PR}" y2="${y(g).toFixed(1)}" class="${g === 0 ? "spark-zero" : "spark-grid"}"/>`
-      + `<text x="${PL}" y="${(y(g) - 2).toFixed(1)}" class="spark-glabel">${g > 0 ? "+" : ""}${g}</text>`;
+      + `<text x="${PL}" y="${(y(g) - 3).toFixed(1)}" class="spark-glabel">${g > 0 ? "+" : ""}${g}</text>`;
   }
 
+  // Month ticks along the x-axis.
+  let xticks = "";
+  let lastMonth = -1;
+  for (let d = 0; d < days; d++) {
+    const dt = new Date(startMs + d * DAY_MS);
+    if (dt.getMonth() !== lastMonth) {
+      lastMonth = dt.getMonth();
+      if (d > 2 && d < days - 2)
+        xticks += `<text x="${x(d).toFixed(1)}" y="${H - 6}" class="spark-xlabel" text-anchor="middle">${dt.toLocaleDateString("en-US", { month: "short" })}</text>`;
+    }
+  }
+
+  // One smooth line per engine, in its own colour; plus a per-day value lookup
+  // (nearest smoothed point) the hover tooltip reads from.
   let lines = "";
-  const legend = [];
+  const legend = [], lookup = {};
   for (const src of ENGINES) {
     const raw = trend.get(src);
+    const ser = smooth(raw, 3);
+    const arr = new Array(days).fill(null);
+    for (const p of ser) if (p.day >= 0 && p.day < days) arr[p.day] = p.mean;
+    lookup[src] = arr;
     if (!raw.length) continue;
     legend.push({ src, last: raw[raw.length - 1].mean });
-    const ser = smooth(raw, 3);
-    if (ser.length >= 2) {
-      const pts = ser.map(p => `${x(p.day).toFixed(1)},${y(p.mean).toFixed(1)}`).join(" ");
-      lines += `<polyline points="${pts}" fill="none" stroke="var(--${src}-text)" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>`;
-    }
+    if (ser.length >= 2)
+      lines += `<path d="${smoothPath(ser.map(p => ({ px: x(p.day), py: y(p.mean) })))}" fill="none" stroke="var(--${src}-text)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     const lp = ser[ser.length - 1];
     lines += `<circle cx="${x(lp.day).toFixed(1)}" cy="${y(lp.mean).toFixed(1)}" r="2.5" fill="var(--${src}-text)"/>`;
   }
 
   const leg = legend.map(l =>
     `<span class="trend-key"><i style="background:var(--${l.src}-text)"></i>${l.src} ${l.last > 0 ? "+" : ""}${l.last.toFixed(2)}</span>`).join("");
-  const anchor = haikus.reduce((m, h) => Math.max(m, tsMs(h.timestamp)), 0);
+
+  // Footer trend: change in the all-engine daily mean, last 30 vs prior 30 days.
+  const allByDay = new Map();
+  for (const h of haikus) {
+    if (!h.source) continue;
+    const t = tsMs(h.timestamp);
+    if (t < startMs) continue;
+    const d = Math.floor((t - startMs) / DAY_MS);
+    if (!allByDay.has(d)) allByDay.set(d, []);
+    allByDay.get(d).push(moodOf(h));
+  }
+  const dayMean = d => { const a = allByDay.get(d); return a ? a.reduce((s, v) => s + v, 0) / a.length : null; };
+  const windowMean = (lo, hi) => {
+    let s = 0, c = 0;
+    for (let d = lo; d < hi; d++) { const m = dayMean(d); if (m != null) { s += m; c++; } }
+    return c ? s / c : null;
+  };
+  const recent = windowMean(days - 30, days), prior = windowMean(days - 60, days - 30);
+  const delta = recent != null && prior != null ? recent - prior : 0;
+  const up = delta >= 0;
+  const icon = up
+    ? `<svg viewBox="0 0 24 24" class="trend-icon"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`
+    : `<svg viewBox="0 0 24 24" class="trend-icon"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
+  const foot = `Mood ${up ? "warming" : "cooling"} ${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(2)} over the last 30 days ${icon}`;
   const fmt = ms => new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   el.innerHTML =
-    `<div class="trend-head"><span>sentiment · last ${days} days</span><span class="trend-legend">${leg}</span></div>`
-    + `<svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${lines}</svg>`
-    + `<div class="trend-xaxis"><span>${fmt(anchor - (days - 1) * DAY_MS)}</span>`
-    + `<span class="trend-axis">cool below · warm above</span><span>${fmt(anchor)}</span></div>`;
+    `<div class="chart-card">
+      <div class="chart-head">
+        <div><div class="chart-title">Sentiment</div><div class="chart-desc">daily mood · ${fmt(startMs)} – ${fmt(anchor)}</div></div>
+        <div class="trend-legend">${leg}</div>
+      </div>
+      <div class="chart-body">
+        <svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${xticks}${lines}
+          <line class="chart-cursor" x1="0" y1="${PT}" x2="0" y2="${H - PB}" style="display:none"/>
+        </svg>
+        <div class="chart-tip" hidden></div>
+        <div class="chart-hot" style="left:${(PL / W * 100).toFixed(2)}%;right:${(PR / W * 100).toFixed(2)}%"></div>
+      </div>
+      <div class="chart-foot"><div class="chart-foot-main">${foot}</div><div class="chart-foot-sub">cool below the line · warm above · shared −0.8…+0.8 scale</div></div>
+    </div>`;
+
+  // Hover tooltip + cursor.
+  const svg = el.querySelector(".trend-chart");
+  const cursor = el.querySelector(".chart-cursor");
+  const tip = el.querySelector(".chart-tip");
+  const hot = el.querySelector(".chart-hot");
+  const valAt = (src, day) => {
+    const a = lookup[src];
+    for (let r = 0; r <= 5; r++) { if (a[day - r] != null) return a[day - r]; if (a[day + r] != null) return a[day + r]; }
+    return null;
+  };
+  hot.addEventListener("pointermove", e => {
+    const rect = hot.getBoundingClientRect();
+    const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const day = Math.round(f * (days - 1));
+    cursor.setAttribute("x1", x(day)); cursor.setAttribute("x2", x(day));
+    cursor.style.display = "";
+    const rows = ENGINES.map(src => {
+      const v = valAt(src, day);
+      return v == null ? "" : `<div class="tip-row"><span><i style="background:var(--${src}-text)"></i>${src}</span><b>${v > 0 ? "+" : ""}${v.toFixed(2)}</b></div>`;
+    }).join("");
+    tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}`;
+    tip.hidden = false;
+    const body = hot.parentElement.getBoundingClientRect();
+    const tw = tip.offsetWidth;
+    tip.style.left = Math.max(0, Math.min(body.width - tw, e.clientX - body.left - tw / 2)) + "px";
+  });
+  hot.addEventListener("pointerleave", () => { tip.hidden = true; cursor.style.display = "none"; });
 }
 
 function renderInsights(haikus) {

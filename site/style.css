@@ -314,53 +314,70 @@ body {
   opacity: 0.65;
 }
 
-/* ── Sentiment trend sparklines (archive) ── */
+/* ── Sentiment trend chart (archive) — shadcn/recharts-style card ── */
 
 .trend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: -1.25rem 0 2.5rem;
+  margin: -1rem 0 2.5rem;
 }
 .trend:empty {
   display: none;
 }
 
-.trend-head {
+.chart-card {
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--text) 2.5%, var(--bg));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.chart-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem 0.5rem;
+}
+.chart-title {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.chart-desc {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.66rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: var(--muted);
-  margin-bottom: 0.1rem;
-}
-.trend-axis {
-  text-transform: none;
-  opacity: 0.6;
+  margin-top: 0.2rem;
 }
 
 .trend-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.62rem;
+  color: var(--muted);
 }
 .trend-key {
   display: inline-flex;
   align-items: center;
-  gap: 0.3em;
-  text-transform: none;
+  gap: 0.35em;
   letter-spacing: 0.02em;
 }
 .trend-key i {
-  width: 0.55em;
-  height: 0.55em;
+  width: 0.5em;
+  height: 0.5em;
   border-radius: 50%;
   display: inline-block;
 }
 
+.chart-body {
+  position: relative;
+  padding: 0.25rem 1rem 0.5rem;
+}
 .trend-chart {
   width: 100%;
   height: auto;
@@ -371,28 +388,102 @@ body {
   stroke: var(--muted);
   stroke-width: 0.75;
   stroke-dasharray: 3 3;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 .spark-grid {
   stroke: var(--rule);
-  stroke-width: 0.5;
+  stroke-width: 0.75;
 }
 .spark-glabel {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
-  font-size: 7px;
+  font-size: 8px;
   fill: var(--muted);
   opacity: 0.7;
 }
+.spark-xlabel {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 8px;
+  fill: var(--muted);
+}
+.chart-cursor {
+  stroke: var(--muted);
+  stroke-width: 0.75;
+  opacity: 0.5;
+}
 
-.trend-xaxis {
+/* Transparent hover-capture band over the plot area. */
+.chart-hot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  cursor: crosshair;
+}
+
+.chart-tip {
+  position: absolute;
+  top: 0.5rem;
+  pointer-events: none;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 0.4rem 0.55rem;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.62rem;
+  z-index: 2;
+  min-width: 5.5rem;
+}
+.chart-tip[hidden] {
+  display: none;
+}
+.tip-date {
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.03em;
+}
+.tip-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  gap: 0.75rem;
+  color: var(--text);
+}
+.tip-row i {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 0.35em;
+}
+.tip-row b {
+  font-weight: 600;
+}
+
+.chart-foot {
+  padding: 0.6rem 1.25rem 1rem;
+  border-top: 1px solid var(--rule);
+}
+.chart-foot-main {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  color: var(--text);
+}
+.chart-foot-sub {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.62rem;
   color: var(--muted);
-  margin-top: 0.2rem;
+  margin-top: 0.25rem;
+}
+.trend-icon {
+  width: 0.95em;
+  height: 0.95em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* ── Archive page ── */
