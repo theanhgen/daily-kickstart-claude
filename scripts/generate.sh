@@ -68,10 +68,12 @@ case "$ENGINE" in
     codex)
         CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
         [ -n "$CODEX_MODEL" ] && CODEX_ARGS+=(-m "$CODEX_MODEL")
+        [ -n "$CODEX_REASONING" ] && CODEX_ARGS+=(-c "model_reasoning_effort=$CODEX_REASONING")
         CODEX_ARGS+=(-o "$HAIKU_OUTPUT")
+        # < /dev/null: codex exec reads stdin and hangs on an open pipe.
         if ! run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" "${CODEX_ARGS[@]}" \
             "Output only a haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
-            2> "$HAIKU_ERROR"; then
+            < /dev/null 2> "$HAIKU_ERROR"; then
             log "ERROR: Codex CLI failed"
             cat "$HAIKU_ERROR" >&2
             # Distinguish "the CLI is out of date / model unavailable" (needs
