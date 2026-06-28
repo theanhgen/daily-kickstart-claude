@@ -125,6 +125,17 @@ if [ "$LINE_COUNT" -ne 3 ]; then
     log "WARNING: Haiku has $LINE_COUNT lines (expected 3), using anyway"
 fi
 
+# Stamp the engine's CLI version and model in the LOG (not in haiku.txt) so a
+# future mood/sentiment trend can be attributed to model changes over time.
+case "$ENGINE" in
+    claude) VER_BIN="$CLAUDE_BIN"; VER_MODEL="default" ;;
+    codex)  VER_BIN="$CODEX_BIN";  VER_MODEL="${CODEX_MODEL:-default}" ;;
+    agy)    VER_BIN="$AGY_BIN";    VER_MODEL="default" ;;
+    *)      VER_BIN="";            VER_MODEL="" ;;
+esac
+VER_CLI="$("$VER_BIN" --version 2>/dev/null | head -1 || true)"
+log "version engine=$ENGINE cli=\"${VER_CLI:-unknown}\" model=$VER_MODEL"
+
 # Append to haiku.txt with clean format
 {
     echo ""
