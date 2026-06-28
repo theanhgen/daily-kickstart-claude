@@ -13,9 +13,10 @@ HEALTH_STATE_FILE="${HEALTH_STATE_FILE:-$STATE_DIR/healthcheck.env}"
 CLAUDE_BIN="${CLAUDE_BIN:-/home/thevetev/.local/bin/claude}"
 CODEX_BIN="${CODEX_BIN:-/usr/bin/codex}"
 AGY_BIN="${AGY_BIN:-/home/thevetev/.local/bin/agy}"
-# Pin codex to a specific model when its account's default outruns the CLI
-# (leave empty to use the CLI default). Escape hatch for the gpt-5.5 outage.
-CODEX_MODEL="${CODEX_MODEL:-}"
+# Pin codex to a model the account actually has. Codex migrated its config
+# default to gpt-5.5, which this ChatGPT account can't use and the CLI can't
+# run; gpt-5.4 is the account's real model. Override via env if it changes.
+CODEX_MODEL="${CODEX_MODEL:-gpt-5.4}"
 FETCH_TIMEOUT_SECONDS="${FETCH_TIMEOUT_SECONDS:-30}"
 CLAUDE_TIMEOUT_SECONDS="${CLAUDE_TIMEOUT_SECONDS:-180}"
 CODEX_TIMEOUT_SECONDS="${CODEX_TIMEOUT_SECONDS:-180}"
