@@ -240,6 +240,14 @@ body {
   background: transparent;
 }
 
+.mood {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-left: 0.4em;
+}
+
 .nav-link {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;
