@@ -256,6 +256,46 @@ def write_permalink(h, fonts):
     return os.path.exists(png)
 
 
+# ── Atom feed ──
+
+FEED_SIZE = 50
+
+
+def rfc3339(ts):
+    """'YYYY-MM-DD HH:MM:SS UTC' -> 'YYYY-MM-DDTHH:MM:SSZ'."""
+    return ts[:19].replace(" ", "T", 1) + "Z"
+
+
+def build_feed(haikus):
+    entries = []
+    for h in haikus[:FEED_SIZE]:
+        url = f"{SITE_URL}/h/{slug(h)}/"
+        src = h["source"] or "claude"
+        # type="html" content carries escaped HTML: escape each line for the
+        # HTML layer, then escape the whole snippet again for the XML layer.
+        inner = "<br>".join(html.escape(l, quote=True) for l in h["lines"])
+        entries.append(
+            f"<entry>"
+            f"<title>{html.escape(h['lines'][0], quote=True)}</title>"
+            f'<link href="{url}"/>'
+            f"<id>{url}</id>"
+            f"<updated>{rfc3339(h['timestamp'])}</updated>"
+            f"<author><name>{src}</name></author>"
+            f'<content type="html">{html.escape(inner, quote=True)}</content>'
+            f"</entry>")
+    updated = rfc3339(haikus[0]["timestamp"]) if haikus else "1970-01-01T00:00:00Z"
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<feed xmlns="http://www.w3.org/2005/Atom">\n'
+        "<title>Daily Haiku</title>\n"
+        "<subtitle>Three robots, four haikus a day</subtitle>\n"
+        f'<link href="{SITE_URL}/"/>\n'
+        f'<link rel="self" href="{SITE_URL}/feed.xml"/>\n'
+        f"<id>{SITE_URL}/</id>\n"
+        f"<updated>{updated}</updated>\n"
+        + "\n".join(entries) + "\n</feed>\n")
+
+
 # ── Main ──
 
 def set_meta(page, attr, key, value):
@@ -274,6 +314,10 @@ def main():
     with open(MODELS_FILE, "w") as f:
         json.dump(changes, f, separators=(",", ":"))
     print(f"Built {len(changes)} model changes -> {MODELS_FILE}")
+
+    with open(FEED_FILE, "w") as f:
+        f.write(build_feed(haikus))
+    print(f"Built Atom feed ({min(len(haikus), FEED_SIZE)} entries) -> {FEED_FILE}")
 
     fonts = load_fonts()
     if not fonts:
