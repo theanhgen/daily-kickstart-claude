@@ -67,17 +67,25 @@
   }
 }
 
+/* dvh tracks the visible viewport on mobile (100vh is the taller URL-bar-hidden
+   height, which overflows by a sliver and causes scroll/bounce even when the
+   page fits). overscroll-behavior kills the iOS rubber-band. Pages that truly
+   overflow (archive, small screens) still scroll normally. */
+html, body { overscroll-behavior: none; }
+
 body {
   font-family: 'New York', ui-serif, 'Noto Serif', serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ── Main page ── */
 
 .main-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
