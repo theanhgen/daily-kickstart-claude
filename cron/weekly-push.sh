@@ -52,9 +52,15 @@ if ! git rebase "$REMOTE_NAME/$BRANCH_NAME" > /dev/null 2>&1; then
     finish 1 "rebase_failed" "ERROR: Git rebase failed, manual intervention needed"
 fi
 
-# Restore stashed haiku changes
+# Restore stashed haiku changes. A conflicting pop leaves markers in the
+# worktree and slips through '|| true' — never commit those: restore a clean
+# tree (the appends survive in the stash entry) and alert.
 if [ "$STASHED" -eq 1 ]; then
     git stash pop -q 2>/dev/null || true
+    if unmerged_paths_present; then
+        git reset --hard HEAD > /dev/null 2>&1 || true
+        finish 1 "stash_pop_conflict" "ERROR: Stash pop conflict after rebase; appends kept in git stash, run 'git stash pop' manually"
+    fi
 fi
 
 # Check if haiku.txt or model.log has uncommitted changes
