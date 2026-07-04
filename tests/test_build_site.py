@@ -105,5 +105,68 @@ class ComputeInsightTest(unittest.TestCase):
         self.assertIn("50%", text)
 
 
+class ModelChangesTest(unittest.TestCase):
+    @staticmethod
+    def _parse(text):
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as f:
+            f.write(text)
+            path = f.name
+        try:
+            return bs.parse_model_changes(path)
+        finally:
+            os.unlink(path)
+
+    def test_baseline_is_not_a_change(self):
+        out = self._parse(
+            "# comment line\n"
+            "2026-06-28 08:31:51 UTC engine=claude model=claude-haiku-4-5-20251001\n"
+            "2026-06-28 08:31:59 UTC engine=codex model=gpt-5.4\n"
+        )
+        self.assertEqual(out, [])
+
+    def test_change_detected_per_engine(self):
+        out = self._parse(
+            "2026-06-28 08:31:51 UTC engine=claude model=old-model\n"
+            "2026-06-28 08:31:59 UTC engine=codex model=gpt-5.4\n"
+            "2026-06-29 08:31:51 UTC engine=claude model=new-model\n"
+            "2026-06-29 08:31:59 UTC engine=codex model=gpt-5.4\n"
+        )
+        self.assertEqual(out, [{
+            "engine": "claude", "ts": "2026-06-29 08:31:51 UTC",
+            "from": "old-model", "to": "new-model",
+        }])
+
+    def test_missing_file_is_empty(self):
+        self.assertEqual(bs.parse_model_changes("/nonexistent/model.log"), [])
+
+
+class FeedTest(unittest.TestCase):
+    HAIKUS = [
+        {"date": "2026-06-02", "timestamp": "2026-06-02 06:00:09 UTC",
+         "source": "codex", "lines": ["four & <five>", "five", "six"]},
+        {"date": "2026-06-01", "timestamp": "2026-06-01 06:00:01 UTC",
+         "source": "claude", "lines": ["one", "two", "three"]},
+    ]
+
+    def test_feed_is_valid_atom(self):
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(bs.build_feed(self.HAIKUS))
+        ns = {"a": "http://www.w3.org/2005/Atom"}
+        entries = root.findall("a:entry", ns)
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(root.find("a:updated", ns).text, "2026-06-02T06:00:09Z")
+        first = entries[0]
+        self.assertTrue(first.find("a:id", ns).text.endswith("/h/20260602-060009-codex/"))
+        self.assertEqual(first.find("a:title", ns).text, "four & <five>")
+        # type="html" content: XML parse yields the escaped-HTML layer.
+        self.assertEqual(first.find("a:content", ns).text,
+                         "four &amp; &lt;five&gt;<br>five<br>six")
+
+    def test_empty_archive_still_valid(self):
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(bs.build_feed([]))
+        self.assertEqual(len(root.findall("{http://www.w3.org/2005/Atom}entry")), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

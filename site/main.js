@@ -326,6 +326,28 @@ function moodRaw(h) {
 
 function moodOf(h) { return moodRaw(h).score; }
 
+// ── 5-7-5 adherence — do the robots actually argue about syllables? ──
+// Rough English syllable estimate: vowel groups ([aeiouy]+), minus a silent
+// trailing 'e' (kept for consonant+'le' as in "table"), floor 1. A heuristic,
+// so the stat is labelled as estimated.
+function syllables(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return 0;
+  let n = (w.match(/[aeiouy]+/g) || []).length;
+  if (w.length > 2 && w.endsWith("e") && !"aeiouy".includes(w[w.length - 2]) && !w.endsWith("le")) n--;
+  return Math.max(1, n);
+}
+
+function lineSyllables(line) {
+  return (line.match(/[a-zA-Z']+/g) || []).reduce((s, w) => s + syllables(w), 0);
+}
+
+const HAIKU_METER = [5, 7, 5];
+
+function is575(h) {
+  return h.lines.length === 3 && h.lines.every((l, i) => lineSyllables(l) === HAIKU_METER[i]);
+}
+
 // Aggregate with a 95% CI (mean ± 1.96·sd/√n). Label only when the interval
 // clears a small deadband around zero; otherwise the lean isn't significant.
 function moodAgg(arr) {
@@ -385,6 +407,12 @@ function computeStats(haikus) {
     originality,
     ranked: originality.filter(o => o.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.pct - a.pct),
     mostWritten,
+    // Per-engine share of haikus landing exactly 5-7-5 (estimated syllables).
+    syllable: ENGINES.map(src => {
+      const es = haikus.filter(h => h.source === src);
+      return { src, n: es.length,
+               pct: es.length ? Math.round(100 * es.filter(is575).length / es.length) : 0 };
+    }).filter(o => o.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.pct - a.pct),
     moodAll: moodAgg(haikus),
     mood: ENGINES.map(src => ({ src, ...moodAgg(haikus.filter(h => h.source === src)) }))
       .filter(m => m.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.score - a.score),
@@ -408,6 +436,10 @@ function heroLines(s) {
   }
   if (s.mostWritten && s.mostWritten.count >= 3)
     out.push(`One haiku has been written ${s.mostWritten.count} times: “${s.mostWritten.firstLine}…”`);
+  if (s.syllable.length >= 2) {
+    const strict = s.syllable[0], loose = s.syllable[s.syllable.length - 1];
+    out.push(`${strict.src} keeps the 5-7-5 rule ${strict.pct}% of the time; ${loose.src} bends it to ${loose.pct}%.`);
+  }
   if (s.moodAll)
     out.push(`Across ${s.total} haikus the mood lands ${s.moodAll.label} (${s.moodAll.score > 0 ? "+" : ""}${s.moodAll.score} ±${s.moodAll.ci}, cool-to-warm).`);
   if (s.mood.length >= 2) {
@@ -681,6 +713,9 @@ function renderInsights(haikus, modelChanges) {
     if (s.mood.length >= 2) {
       cells.push(`mood (cool −1…+1 warm, 95% CI) — ${s.mood.map(m => `${m.src} ${m.score > 0 ? "+" : ""}${m.score}±${m.ci}`).join(" · ")}`);
     }
+    if (s.syllable.length >= 2) {
+      cells.push(`5-7-5 discipline (estimated) — ${s.syllable.map(o => `${o.src} ${o.pct}%`).join(" · ")}`);
+    }
     // Only note the basis when some haikus are still unattributed.
     const note = s.dist && s.attributed < s.total
       ? `<span class="stat-note">among ${s.attributed} attributed haikus</span>` : "";
@@ -749,7 +784,9 @@ function fitCycles() {
   fitArchive();
 }
 
-(async () => {
+// Bootstrap only in a browser; under node the pure helpers are require()d by
+// tests via the export hook below.
+if (typeof window !== "undefined") (async () => {
   try {
     const [haikus, models] = await Promise.all([loadHaikus(), loadModels()]);
     if (document.getElementById("main-content")) renderMain(haikus);
@@ -765,3 +802,7 @@ function fitCycles() {
     if (el) el.innerHTML = "<p>—</p>";
   }
 })();
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { esc, slugOf, syllables, lineSyllables, is575, moodRaw, shortModel };
+}
