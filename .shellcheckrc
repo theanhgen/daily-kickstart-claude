@@ -2,5 +2,6 @@
 # SC2064: test traps expand "$project_dir" at set-time on purpose — the local
 #         is out of scope by the time EXIT fires.
 # SC2034: PROJECT_DIR/STATE_DIR/etc. are consumed by the sourced lib.sh.
-# SC2329: cleanup() is invoked indirectly via trap.
-disable=SC2046,SC2064,SC2034,SC2329
+# SC2329/SC2317: cleanup() is invoked indirectly via trap (code differs by
+#                shellcheck version).
+disable=SC2046,SC2064,SC2034,SC2329,SC2317
