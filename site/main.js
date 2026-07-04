@@ -401,17 +401,31 @@ function renderTrend(haikus) {
   for (const src of ENGINES) {
     const raw = trend.get(src);
     const ser = smooth(raw, 3);
-    const arr = new Array(days).fill(null);
-    for (const p of ser) if (p.day >= 0 && p.day < days) arr[p.day] = p.mean;
-    lookup[src] = arr;
-    if (!raw.length) continue;
-    legend.push({ src, last: raw[raw.length - 1].mean });
     const segments = [];
     for (const p of ser) {
       const last = segments[segments.length - 1];
       if (last && p.day - last[last.length - 1].day <= GAP_DAYS) last.push(p);
       else segments.push([p]);
     }
+    // Per-day value lookup the tooltip reads from. Fill only within a segment's
+    // coverage — points, plus linear interpolation between consecutive ones —
+    // and leave gap days null, so the tooltip reports a value exactly where a
+    // line/dot is drawn and nothing across a gap.
+    const arr = new Array(days).fill(null);
+    for (const seg of segments) {
+      for (let k = 0; k < seg.length; k++) {
+        const p = seg[k];
+        if (p.day >= 0 && p.day < days) arr[p.day] = p.mean;
+        if (k > 0) {
+          const a = seg[k - 1];
+          for (let d = a.day + 1; d < p.day; d++)
+            if (d >= 0 && d < days) arr[d] = a.mean + (p.mean - a.mean) * (d - a.day) / (p.day - a.day);
+        }
+      }
+    }
+    lookup[src] = arr;
+    if (!raw.length) continue;
+    legend.push({ src, last: raw[raw.length - 1].mean });
     for (const seg of segments) {
       if (seg.length >= 2)
         lines += `<path d="${smoothPath(seg.map(p => ({ px: x(p.day), py: y(p.mean) })))}" fill="none" stroke="var(--${src}-text)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -473,11 +487,9 @@ function renderTrend(haikus) {
   const cursor = el.querySelector(".chart-cursor");
   const tip = el.querySelector(".chart-tip");
   const body = el.querySelector(".chart-body");
-  const valAt = (src, day) => {
-    const a = lookup[src];
-    for (let r = 0; r <= 5; r++) { if (a[day - r] != null) return a[day - r]; if (a[day + r] != null) return a[day + r]; }
-    return null;
-  };
+  // Read the value only where the line/dot is actually drawn (lookup is null
+  // through gaps), so the tooltip never shows an engine that has no data here.
+  const valAt = (src, day) => lookup[src][day];
   body.addEventListener("pointermove", e => {
     const sr = svg.getBoundingClientRect();
     const vbx = (e.clientX - sr.left) / sr.width * W;          // pointer → viewBox x
