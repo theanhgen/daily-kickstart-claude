@@ -105,6 +105,9 @@ case "$mode" in
     null)
         printf 'null\n'
         ;;
+    twolines)
+        printf '%s\n' '{"result":"just two\nlines here","modelUsage":{"claude-stub":{}}}'
+        ;;
     fail)
         printf 'stubbed claude failure\n' >&2
         exit 1
@@ -319,6 +322,27 @@ test_null_output() {
     assert_file_missing "$project_dir/haiku.txt" "null output should not create haiku output"
 }
 
+test_malformed_haiku() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" GENERATE_STUB_MODE=twolines
+    assert_eq "1" "$RUN_STATUS" "non-3-line output should fail"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    assert_file_exists "$status_file" "non-3-line output should write status"
+
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "haiku_malformed" "$LAST_RUN_STATUS" "non-3-line output should record haiku_malformed"
+    assert_eq "ERROR: claude returned 2 lines (expected 3)" "$LAST_RUN_MESSAGE" "non-3-line output should report the line count"
+    assert_file_missing "$project_dir/haiku.txt" "non-3-line output should not create haiku output"
+    assert_file_missing "$project_dir/model.log" "non-3-line output should not record a model.log entry"
+}
+
 test_successful_generation() {
     local project_dir
     local status_file
@@ -451,6 +475,7 @@ main() {
     run_test test_claude_failure
     run_test test_empty_output
     run_test test_null_output
+    run_test test_malformed_haiku
     run_test test_successful_generation
     run_test test_agy_successful_generation
     run_test test_agy_unauthenticated

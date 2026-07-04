@@ -50,8 +50,14 @@ function groupCycle(haikus) {
   return out;
 }
 
+// Haiku text is model output — treat it as untrusted before it hits innerHTML.
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
 function haikuLines(h) {
-  return h.lines.map(l => `<p>${l}</p>`).join("");
+  return h.lines.map(l => `<p>${esc(l)}</p>`).join("");
 }
 
 // Provider badge plus this haiku's own warm↔cool mood score (-1..+1). The score

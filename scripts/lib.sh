@@ -48,7 +48,7 @@ log() {
 }
 
 ensure_project_dir() {
-    cd "$PROJECT_DIR"
+    cd "$PROJECT_DIR" || return 1
 }
 
 ensure_state_dir() {

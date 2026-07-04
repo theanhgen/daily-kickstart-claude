@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell unit tests
+        run: bash tests/run.sh
+
+      - name: Shellcheck
+        run: shellcheck scripts/*.sh cron/*.sh tests/run.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Python unit tests
+        run: python3 tests/test_build_site.py
+
+      # Full-archive parse of the real haiku.txt (no Pillow: pages-only path).
+      - name: Build-site smoke test
+        run: python3 scripts/build-site.py

@@ -32,10 +32,10 @@ if ! acquire_project_lock; then
 fi
 trap release_project_lock EXIT
 
-# Stash uncommitted haiku changes before syncing
+# Stash uncommitted haiku + model-log changes before syncing
 STASHED=0
-if ! git diff --quiet -- haiku.txt 2>/dev/null; then
-    git stash push -q -m "weekly-pre-sync" -- haiku.txt
+if ! git diff --quiet -- haiku.txt model.log 2>/dev/null; then
+    git stash push -q -m "weekly-pre-sync" -- haiku.txt model.log
     STASHED=1
 fi
 
@@ -57,15 +57,16 @@ if [ "$STASHED" -eq 1 ]; then
     git stash pop -q 2>/dev/null || true
 fi
 
-# Check if haiku.txt has uncommitted changes
-if git diff --quiet -- haiku.txt 2>/dev/null; then
+# Check if haiku.txt or model.log has uncommitted changes
+if git diff --quiet -- haiku.txt model.log 2>/dev/null; then
     finish 0 "noop" "No new haikus to commit"
 fi
 
-# Extract date range from new entries
-FIRST_NEW=$(git diff -- haiku.txt | grep -oP '^\+\K[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
-LAST_NEW=$(git diff -- haiku.txt | grep -oP '^\+\K[0-9]{4}-[0-9]{2}-[0-9]{2}' | tail -1)
-NEW_COUNT=$(git diff -- haiku.txt | grep -cP '^\+[0-9]{4}-[0-9]{2}-[0-9]{2}' || true)
+# Extract date range from new entries (POSIX sed/grep: no GNU-only -P)
+NEW_DATES=$(git diff -- haiku.txt | sed -n 's/^+\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\).*/\1/p')
+FIRST_NEW=$(printf '%s\n' "$NEW_DATES" | head -1)
+LAST_NEW=$(printf '%s\n' "$NEW_DATES" | tail -1)
+NEW_COUNT=$(printf '%s\n' "$NEW_DATES" | grep -c . || true)
 
 if [ -n "$FIRST_NEW" ] && [ -n "$LAST_NEW" ]; then
     COMMIT_MSG="Weekly haiku: $FIRST_NEW to $LAST_NEW ($NEW_COUNT new)"
@@ -73,7 +74,7 @@ else
     COMMIT_MSG="Weekly haiku batch ($(date -u '+%Y-%m-%d'))"
 fi
 
-git add haiku.txt
+git add haiku.txt model.log
 if ! git commit -m "$COMMIT_MSG" > /dev/null 2>&1; then
     finish 0 "noop" "Nothing to commit after staging"
 fi
@@ -82,13 +83,13 @@ log "Committed: $COMMIT_MSG"
 
 # Push with retry logic
 log "Pushing to GitHub..."
-for attempt in $(seq 1 $MAX_RETRIES); do
+for attempt in $(seq 1 "$MAX_RETRIES"); do
     if run_with_timeout "$PUSH_TIMEOUT_SECONDS" git push "$REMOTE_NAME" "$BRANCH_NAME" > /dev/null 2>&1; then
         finish 0 "success" "Successfully pushed: $COMMIT_MSG"
     else
-        if [ $attempt -lt $MAX_RETRIES ]; then
+        if [ "$attempt" -lt "$MAX_RETRIES" ]; then
             log "Push failed (attempt $attempt/$MAX_RETRIES), retrying in ${RETRY_DELAY}s..."
-            sleep $RETRY_DELAY
+            sleep "$RETRY_DELAY"
         else
             finish 1 "push_failed" "ERROR: Git push failed after $MAX_RETRIES attempts; commit kept locally"
         fi

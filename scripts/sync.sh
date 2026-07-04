@@ -24,16 +24,14 @@ if ! acquire_project_lock; then
 fi
 trap release_project_lock EXIT
 
-if tracked_changes_present; then
-    finish 1 "sync_tracked_changes" "ERROR: Tracked working tree changes present, refusing to sync"
-fi
-
 log "Fetching latest changes..."
 if ! retry "$FETCH_RETRY_COUNT" "$FETCH_RETRY_DELAY_SECONDS" run_with_timeout "$FETCH_TIMEOUT_SECONDS" git fetch "$REMOTE_NAME" "$BRANCH_NAME" > /dev/null 2>&1; then
     finish 1 "sync_fetch_failed" "ERROR: Git fetch failed after $FETCH_RETRY_COUNT attempts"
 fi
 
-if ! git rebase "$REMOTE_NAME/$BRANCH_NAME" > /dev/null 2>&1; then
+# Uncommitted haiku.txt/model.log appends are the normal mid-week state;
+# --autostash carries them across the rebase instead of refusing to sync.
+if ! git rebase --autostash "$REMOTE_NAME/$BRANCH_NAME" > /dev/null 2>&1; then
     git rebase --abort > /dev/null 2>&1 || true
     finish 1 "sync_rebase_failed" "ERROR: Git rebase failed, manual intervention needed"
 fi
