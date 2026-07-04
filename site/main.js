@@ -99,13 +99,18 @@ function renderArchive(haikus) {
     (byMonth[key] ??= []).push(h);
   }
 
+  // First entry of each day carries an id anchor the dates rail scrolls to.
+  const seenDays = new Set();
   document.getElementById("archive-content").innerHTML = Object.entries(byMonth)
     .map(([monthKey, entries]) => {
       const items = groupCycle(entries);
       const rows = items.map(item => {
+        const date = item.type === "cycle" ? item.haikus[0].date : item.haiku.date;
+        const anchor = seenDays.has(date) ? "" : (seenDays.add(date), ` id="day-${date}"`);
+        const attrs = `data-monthkey="${date.slice(0, 7)}" data-daykey="${date}"`;
         if (item.type === "cycle") {
           return `
-            <div class="haiku-entry haiku-entry-cycle cols-${item.haikus.length}">
+            <div class="haiku-entry haiku-entry-cycle cols-${item.haikus.length}" ${attrs}${anchor}>
               ${item.haikus.map(h => `
               <div class="pair-col">
                 ${haikuLines(h)}
@@ -118,7 +123,7 @@ function renderArchive(haikus) {
         }
         const h = item.haiku;
         return `
-          <div class="haiku-entry">
+          <div class="haiku-entry" ${attrs}${anchor}>
             ${haikuLines(h)}
             <div class="entry-meta">
               <span class="time">${formatDate(h.date)}</span>
@@ -127,12 +132,93 @@ function renderArchive(haikus) {
           </div>`;
       }).join("");
       return `
-        <div class="month-group">
+        <div class="month-group" id="mo-${monthKey}" data-monthkey="${monthKey}">
           <h2 class="month-heading">${formatMonth(monthKey)}</h2>
           <span class="month-count">${entries.length} haiku</span>
           <div class="month-entries">${rows}</div>
         </div>`;
     }).join("");
+}
+
+// Right-margin scroll index: a month·year rail plus a dates rail showing the
+// active month's days. Both track scroll position; clicking a label jumps to it.
+// Desktop-only (CSS hides it under 1024px, where there's no room beside content).
+function renderArchiveRails(haikus) {
+  const rails = document.getElementById("archive-rails");
+  const content = document.getElementById("archive-content");
+  if (!rails || !content || !haikus.length) return;
+
+  const groups = [...content.querySelectorAll(".month-group")];
+  if (!groups.length) return;
+
+  // Unique days per month, in the same newest-first order as the archive.
+  const daysByMonth = {};
+  content.querySelectorAll(".haiku-entry[id]").forEach(e => {
+    (daysByMonth[e.dataset.monthkey] ??= []).push(
+      { day: Number(e.dataset.daykey.slice(8)), id: e.id });
+  });
+
+  const monthLabel = key => {
+    const [y, m] = key.split("-").map(Number);
+    const mo = new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short" });
+    return `<span class="m">${mo}</span><span class="y">${y}</span>`;
+  };
+
+  rails.innerHTML =
+    `<nav class="col rail-months">${groups.map(g =>
+      `<a data-target="${g.id}" data-monthkey="${g.dataset.monthkey}">${monthLabel(g.dataset.monthkey)}</a>`).join("")}</nav>
+     <div class="col rail-dates"></div>`;
+
+  const railMonths = rails.querySelector(".rail-months");
+  const railDates = rails.querySelector(".rail-dates");
+
+  const jump = id => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  railMonths.querySelectorAll("a").forEach(a =>
+    a.addEventListener("click", e => { e.preventDefault(); jump(a.dataset.target); }));
+
+  let datesForKey = null;
+  const buildDates = key => {
+    if (datesForKey === key) return;
+    datesForKey = key;
+    railDates.innerHTML = (daysByMonth[key] || []).map(o =>
+      `<a data-target="${o.id}" data-daykey="${o.id.slice(4)}">${o.day}</a>`).join("");
+    railDates.querySelectorAll("a").forEach(a =>
+      a.addEventListener("click", e => {
+        e.preventDefault();
+        document.getElementById(a.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }));
+  };
+
+  const activeMonthKey = () => {
+    const line = innerHeight * 0.3;
+    let key = groups[0].dataset.monthkey;
+    for (const g of groups) if (g.getBoundingClientRect().top <= line) key = g.dataset.monthkey;
+    return key;
+  };
+  const activeDayKey = () => {
+    const line = innerHeight * 0.35;
+    let dk = null;
+    for (const e of content.querySelectorAll(".haiku-entry")) {
+      if (e.getBoundingClientRect().top <= line) dk = e.dataset.daykey; else break;
+    }
+    return dk;
+  };
+
+  const update = () => {
+    const mk = activeMonthKey();
+    buildDates(mk);
+    railMonths.querySelectorAll("a").forEach(a =>
+      a.classList.toggle("active", a.dataset.monthkey === mk));
+    const dk = activeDayKey();
+    railDates.querySelectorAll("a").forEach(a =>
+      a.classList.toggle("active", a.dataset.daykey === dk));
+  };
+
+  let raf;
+  const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
+  addEventListener("scroll", onScroll, { passive: true });
+  addEventListener("resize", onScroll);
+  update();
 }
 
 // ── Live archive analysis — recomputed from the data on every load ──
@@ -577,16 +663,45 @@ function fitCycle(cycle) {
   }
 }
 
-// Only the side-by-side cycle columns are narrow enough to need fitting.
+// Archive: every haiku gets ONE shared font size, whether the day had one
+// haiku or three. Multi-haiku days sit in narrow side-by-side columns, so find
+// the single worst-case overflow across the whole page (cycle columns are the
+// tightest) and shrink every entry — singles included — to that same size.
+function fitArchive() {
+  const content = document.getElementById("archive-content");
+  if (!content) return;
+  const ps = content.querySelectorAll(".haiku-entry p");
+  if (!ps.length) return;
+  ps.forEach(p => { p.style.fontSize = ""; });          // reset to CSS default
+  let scale = 1;
+  // Measure each line against its own column: a pair-col for multi-haiku days,
+  // the full-width entry for single-haiku days.
+  content.querySelectorAll(".haiku-entry:not(.haiku-entry-cycle), .haiku-entry-cycle .pair-col").forEach(col => {
+    const cs = getComputedStyle(col);
+    const avail = col.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (avail <= 0) return;
+    col.querySelectorAll("p").forEach(p => {
+      if (p.scrollWidth > avail) scale = Math.min(scale, avail / p.scrollWidth);
+    });
+  });
+  if (scale < 1) {
+    const base = parseFloat(getComputedStyle(ps[0]).fontSize);
+    const size = Math.max(9, base * scale * 0.96);
+    ps.forEach(p => { p.style.fontSize = size + "px"; });
+  }
+}
+
+// Main page fits each cycle on its own; the archive fits all days to one size.
 function fitCycles() {
-  document.querySelectorAll(".main-cycle, .haiku-entry-cycle").forEach(fitCycle);
+  document.querySelectorAll(".main-cycle").forEach(fitCycle);
+  fitArchive();
 }
 
 (async () => {
   try {
     const haikus = await loadHaikus();
     if (document.getElementById("main-content")) renderMain(haikus);
-    if (document.getElementById("archive-content")) renderArchive(haikus);
+    if (document.getElementById("archive-content")) { renderArchive(haikus); renderArchiveRails(haikus); }
     renderInsights(haikus);
     fitCycles();
     // Re-fit once web fonts load — first pass measures with fallback metrics.

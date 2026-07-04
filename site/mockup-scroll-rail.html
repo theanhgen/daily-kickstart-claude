@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — scroll rail patterns</title>
+<style>
+  :root{
+    --bg:#faf9f7; --text:#2b2a28; --muted:#6b6862; --rule:#e6e3dd;
+    --accent:#b5613b; --card:#fff;
+    --claude:#b5613b; --codex:#3b6ea5; --agy:#4a8a5c;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .switcher{
+    position:sticky; top:0; z-index:50;
+    display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;
+    padding:.7rem 1rem; background:rgba(250,249,247,.9);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--rule);
+    font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:.72rem;
+  }
+  .switcher b{color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-right:.5rem}
+  .switcher button{
+    font:inherit; cursor:pointer; padding:.35rem .7rem; border-radius:999px;
+    border:1px solid var(--rule); background:var(--card); color:var(--muted);
+  }
+  .switcher button.on{background:var(--text); color:var(--bg); border-color:var(--text)}
+  .switcher .hint{color:var(--muted); margin-left:auto}
+
+  .archive-layout{max-width:740px; margin:0 auto; padding:2.5rem 1.5rem 60vh; position:relative}
+  h1.pg{font-family:ui-monospace,Menlo,monospace; font-size:1rem; font-weight:400;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+    padding-bottom:1.25rem; border-bottom:1px solid var(--rule); margin:0 0 2.5rem}
+
+  .month-group{margin-bottom:4rem}
+  .month-heading{font-family:'DM Serif Display',Georgia,serif; font-size:clamp(1.5rem,4.5vw,2.2rem);
+    font-weight:400; letter-spacing:-.02em; line-height:1.1; color:var(--text); margin:0 0 .3rem}
+  .month-count{font-family:ui-monospace,Menlo,monospace; font-size:.65rem; letter-spacing:.06em;
+    color:var(--muted); display:block; margin-bottom:1.25rem}
+  .month-entries{border-top:1px solid var(--rule)}
+  .haiku-entry{padding:.875rem 0; border-bottom:1px solid var(--rule)}
+  .haiku-entry p{font-size:clamp(.85rem,2.5vw,1.1rem); line-height:1.85; font-style:italic;
+    color:var(--muted); margin:0; white-space:nowrap; overflow:hidden}
+  .entry-meta{display:flex; align-items:center; gap:.5rem; margin-top:.4rem}
+  .time{font-family:ui-monospace,Menlo,monospace; font-size:.72rem; color:var(--muted)}
+  .source-badge{font-family:ui-monospace,Menlo,monospace; font-size:.6rem; text-transform:uppercase;
+    letter-spacing:.08em; padding:.1rem .4rem; border-radius:4px; color:#fff}
+  .source-claude{background:var(--claude)} .source-codex{background:var(--codex)} .source-agy{background:var(--agy)}
+
+  /* ─────────────────────────────────────────────
+     Two-rail index: DATES (inner) + MONTH·YEAR (outer)
+     ───────────────────────────────────────────── */
+  .rails{
+    position:fixed; right:max(16px,calc(50vw - 452px)); top:50%;
+    transform:translateY(-50%); z-index:40;
+    display:flex; gap:1.1rem; align-items:center;
+    font-family:ui-monospace,Menlo,monospace;
+  }
+  .rails .col{display:flex; flex-direction:column; gap:.1rem}
+
+  /* month · year column */
+  .rail-months a{
+    display:block; text-align:center; text-decoration:none; cursor:pointer;
+    padding:.2rem .1rem; opacity:.5; transition:opacity .15s,color .15s;
+  }
+  .rail-months a .m{font-size:.66rem; letter-spacing:.09em; text-transform:uppercase; color:var(--muted)}
+  .rail-months a .y{font-size:.58rem; letter-spacing:.04em; color:var(--muted); opacity:.7; margin-left:.35em}
+  .rail-months a:hover{opacity:.9}
+  .rail-months a.active{opacity:1}
+  .rail-months a.active .m{color:var(--accent); font-weight:600}
+  .rail-months a.active .y{color:var(--accent)}
+
+  /* dates column — only the active month's days, with a hairline guide */
+  .rail-dates{
+    text-align:center;
+    min-width:34px;
+  }
+  .rail-dates a{
+    display:block; text-decoration:none; cursor:pointer;
+    font-size:.6rem; color:var(--muted); opacity:.45; padding:.12rem 0;
+    transition:opacity .15s,color .15s;
+  }
+  .rail-dates a:hover{opacity:.85}
+  .rail-dates a.active{opacity:1; color:var(--accent); font-weight:600}
+
+  @media(max-width:1024px){ .rails{right:12px; gap:.7rem} }
+  @media(max-width:720px){ .rails{display:none} }
+</style>
+</head>
+<body>
+  <div class="switcher">
+    <b>Two-rail index</b>
+    <span class="hint">scroll — dates rail (left) tracks the active month·year (right) →</span>
+  </div>
+
+  <div class="archive-layout" id="root">
+    <h1 class="pg">Archive</h1>
+    <div id="content"></div>
+  </div>
+
+  <div class="rails" id="rails">
+    <nav class="col rail-months" id="railMonths"></nav>
+    <div class="col rail-dates" id="railDates"></div>
+  </div>
+
+<script>
+// ── fake data ──
+const L = [
+  ["Still pond reflects sky","A frog leaps into silence","Ripples carry light"],
+  ["Leaves fall in the wind","Golden colors fill the air","Winter comes too soon"],
+  ["Morning coffee steams","The cursor blinks in the dark","Code compiles at last"],
+  ["Snow settles on pines","A single crow breaks the hush","White on white on white"],
+  ["Rain taps the window","Someone forgot an old song","It hums back at dusk"],
+  ["Bare branch holds the moon","The kettle forgets to sing","Steam writes on cold glass"],
+];
+const ENG = ["claude","codex","agy"];
+const MONTHS = ["January","February","March","April","May","June","July",
+  "August","September","October","November","December"];
+
+// span Sep 2025 → Jul 2026, up to ~16 active days per month, 2–3 haikus/day
+const SPAN = [];
+for(let m=9;m<=12;m++) SPAN.push([2025,m]);
+for(let m=1;m<=7;m++) SPAN.push([2026,m]);
+
+const data = [];
+for(const [y,m] of SPAN){
+  const days = m===7 && y===2026 ? 3 : 10 + (m%7);   // varied density
+  const used = new Set();
+  for(let i=0;i<days;i++){
+    let dd = ((i*3+m)%27)+1; while(used.has(dd)) dd=(dd%27)+1; used.add(dd);
+    const n = 2 + ((i+m)%2);
+    for(let e=0;e<n;e++){
+      data.push({ y, m, d:dd, lines:L[(m+i+e)%L.length], source:ENG[e%3] });
+    }
+  }
+}
+data.sort((a,b)=> b.y-a.y || b.m-a.m || b.d-a.d);
+
+const monthKey = h => `${h.y}-${String(h.m).padStart(2,"0")}`;
+const dayKey   = h => `${monthKey(h)}-${String(h.d).padStart(2,"0")}`;
+
+const byMonth = {};
+for(const h of data){ (byMonth[monthKey(h)] ??= []).push(h); }
+
+const fmtDate = h => new Date(h.y,h.m-1,h.d).toLocaleDateString("en-US",{month:"long",day:"numeric"});
+
+// render archive; first entry of each day carries an id anchor
+const content = document.getElementById("content");
+const seenDay = new Set();
+content.innerHTML = Object.entries(byMonth).map(([key,es])=>{
+  const [y,m] = key.split("-").map(Number);
+  const rows = es.map(h=>{
+    const dk = dayKey(h); let anchor="";
+    if(!seenDay.has(dk)){ seenDay.add(dk); anchor = ` id="day-${dk}"`; }
+    return `
+      <div class="haiku-entry"${anchor} data-daykey="${dk}" data-monthkey="${key}">
+        ${h.lines.map(l=>`<p>${l}</p>`).join("")}
+        <div class="entry-meta">
+          <span class="time">${fmtDate(h)}</span>
+          <span class="source-badge source-${h.source}">${h.source}</span>
+        </div>
+      </div>`;
+  }).join("");
+  return `
+    <div class="month-group" id="mo-${key}" data-monthkey="${key}"
+         data-month="${MONTHS[m-1]}" data-year="${y}">
+      <h2 class="month-heading">${MONTHS[m-1]} ${y}</h2>
+      <span class="month-count">${es.length} haiku</span>
+      <div class="month-entries">${rows}</div>
+    </div>`;
+}).join("");
+
+// ── month·year rail ──
+const railMonths = document.getElementById("railMonths");
+railMonths.innerHTML = Object.keys(byMonth).map(key=>{
+  const [y,m] = key.split("-").map(Number);
+  return `<a data-target="mo-${key}" data-monthkey="${key}">
+            <span class="m">${MONTHS[m-1].slice(0,3)}</span><span class="y">${y}</span>
+          </a>`.replace(/\s+/g," ");
+}).join("");
+railMonths.querySelectorAll("a").forEach(a=>{
+  a.onclick = ev=>{ ev.preventDefault();
+    document.getElementById(a.dataset.target).scrollIntoView({behavior:"smooth",block:"start"}); };
+});
+
+// ── dates rail (rebuilt when active month changes) ──
+const railDates = document.getElementById("railDates");
+// unique days per month, in display (descending) order
+const daysByMonth = {};
+for(const [key,es] of Object.entries(byMonth)){
+  const seen=new Set(); const days=[];
+  for(const h of es){ const dk=dayKey(h); if(!seen.has(dk)){ seen.add(dk); days.push({d:h.d,dk}); } }
+  daysByMonth[key]=days;
+}
+let datesForKey=null;
+function buildDates(key){
+  if(datesForKey===key) return;
+  datesForKey=key;
+  railDates.innerHTML = daysByMonth[key].map(o=>
+        `<a data-target="day-${o.dk}" data-daykey="${o.dk}">${o.d}</a>`).join("");
+  railDates.querySelectorAll("a").forEach(a=>{
+    a.onclick = ev=>{ ev.preventDefault();
+      const t=document.getElementById(a.dataset.target);
+      if(t) t.scrollIntoView({behavior:"smooth",block:"center"}); };
+  });
+}
+
+// ── scroll tracking ──
+function activeMonthKey(){
+  const line = innerHeight*0.3; let key=null;
+  document.querySelectorAll(".month-group").forEach(g=>{
+    if(g.getBoundingClientRect().top<=line) key=g.dataset.monthkey; });
+  return key || document.querySelector(".month-group")?.dataset.monthkey;
+}
+function activeDayKey(){
+  const line = innerHeight*0.35; let dk=null;
+  for(const e of content.querySelectorAll(".haiku-entry")){
+    if(e.getBoundingClientRect().top<=line) dk=e.dataset.daykey; else break; }
+  return dk;
+}
+function update(){
+  const mk = activeMonthKey();
+  if(mk){
+    buildDates(mk);
+    railMonths.querySelectorAll("a").forEach(a=>
+      a.classList.toggle("active", a.dataset.monthkey===mk));
+  }
+  const dk = activeDayKey();
+  railDates.querySelectorAll("a").forEach(a=>
+    a.classList.toggle("active", a.dataset.daykey===dk));
+}
+let raf;
+addEventListener("scroll",()=>{ cancelAnimationFrame(raf); raf=requestAnimationFrame(update); },{passive:true});
+update();
+</script>
+</body>
+</html>

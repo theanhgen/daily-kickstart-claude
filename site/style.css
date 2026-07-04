@@ -91,6 +91,12 @@ body {
   max-width: 640px;
 }
 
+/* A multi-haiku day can't render three readable columns inside 640px, so give
+   the hero room when it shows a cycle. Single-haiku days keep the 640px column. */
+#main-content:has(.main-cycle) {
+  max-width: min(1120px, 92vw);
+}
+
 .haiku {
   text-align: center;
 }
@@ -149,10 +155,7 @@ body {
 }
 
 .main-cycle .pair-col {
-  padding: 0 clamp(1rem, 3vw, 2.5rem);
-}
-.main-cycle .pair-col + .pair-col {
-  border-left: 1px solid var(--rule);
+  padding: 0 clamp(0.75rem, 2vw, 1.5rem);
 }
 
 /* Safety net: columns and their inner blocks never spill past the column,
@@ -291,9 +294,9 @@ body {
 .insight {
   max-width: 30rem;
   text-align: center;
-  font-style: italic;
-  font-size: clamp(0.8rem, 2.5vw, 1rem);
-  line-height: 1.6;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: clamp(0.66rem, 2vw, 0.78rem);
+  line-height: 1.7;
   color: var(--muted);
   padding-top: 1.25rem;
   border-top: 1px solid var(--rule);
@@ -577,7 +580,7 @@ body {
 }
 
 .month-heading {
-  font-family: 'New York', ui-serif, 'Noto Serif', serif;
+  font-family: 'DM Serif Display', 'New York', ui-serif, 'Noto Serif', serif;
   font-size: clamp(1.5rem, 4.5vw, 2.2rem);
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -611,6 +614,79 @@ body {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.72rem;
   color: var(--muted);
+}
+
+/* ── Scroll index rails: month·year + the active month's days ──
+   Fixed in the right margin beside the 740px column; desktop-only. */
+.rails {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+}
+
+.rails .col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.rail-months a {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0.2rem 0.1rem;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.rail-months a .m {
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rail-months a .y {
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-left: 0.35em;
+}
+
+.rail-months a:hover { opacity: 0.9; }
+.rail-months a.active { opacity: 1; }
+.rail-months a.active .m { color: var(--claude-text); font-weight: 600; }
+.rail-months a.active .y { color: var(--claude-text); }
+
+.rail-dates {
+  text-align: center;
+  min-width: 34px;
+}
+
+.rail-dates a {
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 0.6rem;
+  color: var(--muted);
+  opacity: 0.45;
+  padding: 0.12rem 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.rail-dates a:hover { opacity: 0.85; }
+.rail-dates a.active { opacity: 1; color: var(--claude-text); font-weight: 600; }
+
+@media (max-width: 1024px) {
+  .rails { display: none; }
 }
 
 @media (max-width: 480px) {

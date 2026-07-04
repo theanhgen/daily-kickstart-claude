@@ -28,8 +28,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: site/h
-          key: og-images-${{ hashFiles('haiku.txt') }}
-          restore-keys: og-images-
+          key: og-images-v2-${{ hashFiles('haiku.txt') }}
+          restore-keys: og-images-v2-
 
       - uses: actions/setup-python@v5
         with:

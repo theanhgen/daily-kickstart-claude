@@ -67,6 +67,33 @@ def pretty_date(date_str):
     return datetime.strptime(date_str, "%Y-%m-%d").strftime("%B %-d, %Y")
 
 
+# Per-engine originality headline, mirroring the same-named line in main.js's
+# heroLines: the share/most-unique engine vs the most-repetitive one. Only
+# engines with enough haikus are ranked. Returns None if fewer than two qualify.
+ENGINES = ("claude", "codex", "agy")
+MIN_ENGINE_HAIKUS = 25   # matches main.js
+
+
+def _norm_haiku(h):
+    return " / ".join(l.lower().strip() for l in h["lines"])
+
+
+def compute_insight(haikus):
+    ranked = []
+    for src in ENGINES:
+        es = [h for h in haikus if h["source"] == src]
+        if len(es) < MIN_ENGINE_HAIKUS:
+            continue
+        pct = round(100 * len(set(_norm_haiku(h) for h in es)) / len(es))
+        ranked.append((src, pct))
+    if len(ranked) < 2:
+        return None
+    ranked.sort(key=lambda o: o[1], reverse=True)
+    (most, most_pct), (least, least_pct) = ranked[0], ranked[-1]
+    return (f"{most} almost never repeats itself — {most_pct}% of its haikus "
+            f"are unique; {least} returns to its favorites ({least_pct}%).")
+
+
 # ── Preview image (Pillow optional: skip cleanly when unavailable) ──
 
 def _font_path(candidates):
@@ -116,10 +143,7 @@ def render_card(h, path, fonts):
     f = ImageFont.truetype(fonts["italic"], size)
     lh = size * 1.55
     total = lh * 3
-    top = (Hh - total) / 2 + 18
-
-    # Accent rule centered above the haiku.
-    d.rectangle([W / 2 - 34, top - 40, W / 2 + 34, top - 37], fill=accent)
+    top = (Hh - total) / 2
 
     y = top
     for l in h["lines"]:
@@ -127,9 +151,7 @@ def render_card(h, path, fonts):
         d.text(((W - w) / 2, y), l, font=f, fill=fg)
         y += lh
 
-    # Wordmark (top-left) and attribution (bottom-center).
-    fm = ImageFont.truetype(fonts["regular"], 24)
-    d.text((80, 64), "DAILY HAIKU", font=fm, fill=muted)
+    # Attribution (bottom-center).
     label = f"{h['source'] or 'claude'}   ·   {pretty_date(h['date'])}"
     fl = ImageFont.truetype(fonts["regular"], 26)
     lw = d.textlength(label, font=fl)
@@ -220,16 +242,28 @@ for h in haikus:
         rendered += 1
 print(f"Wrote {len(haikus)} permalink pages -> {SHARE_DIR} ({rendered} with images)")
 
-# Inject latest haiku's OG meta into index.html.
+# Inject the latest day's OG meta into index.html. The card image stays the
+# latest haiku; the share DESCRIPTION is the stats insight (falling back to the
+# haiku text early on, before any engine has enough haikus to rank). image:alt
+# still describes the card, so it keeps the haiku text.
 latest = haikus[0]
-og_desc = html.escape(" / ".join(latest["lines"]), quote=True)
+haiku_text = html.escape(" / ".join(latest["lines"]), quote=True)
+og_desc = html.escape(compute_insight(haikus) or " / ".join(latest["lines"]), quote=True)
 og_img = f"{SITE_URL}/h/{slug(latest)}/og.png"
+
+
+def set_meta(page, attr, key, value):
+    return re.sub(r'(<meta ' + attr + r'="' + re.escape(key) + r'" content=")[^"]*(")',
+                  lambda m: m.group(1) + value + m.group(2), page)
+
+
 with open(INDEX_FILE) as f:
     page = f.read()
-page = re.sub(r'(<meta property="og:description" content=")[^"]*(")',
-              lambda m: m.group(1) + og_desc + m.group(2), page)
-page = re.sub(r'(<meta property="og:image" content=")[^"]*(")',
-              lambda m: m.group(1) + og_img + m.group(2), page)
+page = set_meta(page, "property", "og:description", og_desc)
+page = set_meta(page, "name", "twitter:description", og_desc)
+page = set_meta(page, "property", "og:image", og_img)
+page = set_meta(page, "name", "twitter:image", og_img)
+page = set_meta(page, "property", "og:image:alt", haiku_text)
 with open(INDEX_FILE, "w") as f:
     f.write(page)
-print(f"Injected OG: {og_desc[:50]}... image={og_img}")
+print(f"Injected OG: desc={og_desc[:60]}... image={og_img}")
