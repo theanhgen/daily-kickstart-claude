@@ -453,21 +453,28 @@ function heroLines(s) {
 
 const DAY_MS = 86400000;
 
+// Bucket a haiku by its calendar date (UTC midnight of h.date), NOT its exact
+// timestamp. Engines in one cycle land seconds apart and the day is anchored to
+// the newest haiku, so timestamp bucketing pushes same-day haikus written
+// earlier in the day into the previous 24h window — e.g. only the last-running
+// engine (agy) would show on the final day. h.date is the UTC date already.
+const dateMs = h => Date.parse(h.date + "T00:00:00Z");
+
 // Daily mean mood per engine over the last `days`, anchored to the newest
 // haiku so the axis tracks the data even if the page is opened later. Returns
 // src -> [{ day, mean, n }] for the days that engine actually wrote on.
 function moodTrend(haikus, days) {
   const out = new Map(ENGINES.map(src => [src, []]));
   if (!haikus.length) return out;
-  const anchor = haikus.reduce((m, h) => Math.max(m, tsMs(h.timestamp)), 0);
+  const anchor = haikus.reduce((m, h) => Math.max(m, dateMs(h)), 0);
   const start = anchor - (days - 1) * DAY_MS;
   for (const src of ENGINES) {
     const byDay = new Map();
     for (const h of haikus) {
       if (h.source !== src) continue;
-      const t = tsMs(h.timestamp);
+      const t = dateMs(h);
       if (t < start) continue;
-      const day = Math.floor((t - start) / DAY_MS);
+      const day = Math.round((t - start) / DAY_MS);
       if (!byDay.has(day)) byDay.set(day, []);
       byDay.get(day).push(moodOf(h));
     }
@@ -516,7 +523,9 @@ function renderTrend(haikus, modelChanges) {
   if (!el) return;
   const days = 90;
   const trend = moodTrend(haikus, days);
-  const anchor = haikus.reduce((m, h) => Math.max(m, tsMs(h.timestamp)), 0);
+  // Calendar-date anchor (UTC midnight) so startMs aligns day buckets to dates,
+  // matching moodTrend and keeping the footer/marker floor-bucketing correct.
+  const anchor = haikus.reduce((m, h) => Math.max(m, dateMs(h)), 0);
   const startMs = anchor - (days - 1) * DAY_MS;
   const W = 620, H = 170, PL = 8, PR = 8, PT = 12, PB = 22, R = 0.8;
   const x = d => PL + (days < 2 ? 0 : d / (days - 1)) * (W - PL - PR);
