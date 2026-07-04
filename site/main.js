@@ -328,13 +328,14 @@ function moodOf(h) { return moodRaw(h).score; }
 
 // ── 5-7-5 adherence — do the robots actually argue about syllables? ──
 // Rough English syllable estimate: vowel groups ([aeiouy]+), minus a silent
-// trailing 'e' (kept for consonant+'le' as in "table"), floor 1. A heuristic,
-// so the stat is labelled as estimated.
+// trailing 'e' (kept only for consonant+'le' as in "table" — in vowel+'le'
+// words like "smile" the 'e' is silent), floor 1. A heuristic, so the stat
+// is labelled as estimated.
 function syllables(word) {
   const w = word.toLowerCase().replace(/[^a-z]/g, "");
   if (!w) return 0;
   let n = (w.match(/[aeiouy]+/g) || []).length;
-  if (w.length > 2 && w.endsWith("e") && !"aeiouy".includes(w[w.length - 2]) && !w.endsWith("le")) n--;
+  if (w.length > 2 && w.endsWith("e") && !"aeiouy".includes(w[w.length - 2]) && !/[^aeiouy]le$/.test(w)) n--;
   return Math.max(1, n);
 }
 

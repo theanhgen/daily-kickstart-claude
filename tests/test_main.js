@@ -21,6 +21,8 @@ test("syllable estimates", () => {
     moon: 1, light: 1, sky: 1, frog: 1,
     silence: 2, ripples: 2, morning: 2, golden: 2, whisper: 2,
     table: 2, carry: 2,
+    // vowel+'le': the trailing 'e' is silent, unlike consonant+'le' above
+    smile: 1, mile: 1, whole: 1, pale: 1,
   };
   for (const [word, n] of Object.entries(expected)) {
     assert.equal(syllables(word), n, `syllables(${word})`);

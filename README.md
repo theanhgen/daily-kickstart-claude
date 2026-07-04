@@ -2,12 +2,14 @@
 
 ```
    .-=-=-=-.
-  ( DAILY    )   A Raspberry Pi sits on a shelf and writes poetry.
-  ( KICKSTART)   Four times a day. Every day. Forever.
-   `-=-=-=-'      No muse required.
+  ( DAILY    )   A small machine on a shelf,
+  ( KICKSTART)   writing poems while the world sleeps.
+   `-=-=-=-'      Four times a day. No muse required.
 ```
 
-A tiny computer, a fistful of cron jobs, and three robots arguing about syllables. That's the whole show.
+One small computer.
+A handful of cron jobs.
+Three engines, taking turns at the syllables.
 
 ```
 Still pond reflects sky
@@ -15,24 +17,30 @@ A frog leaps into silence
 Ripples carry light
 ```
 
-## The premise
+## How it wakes
 
-Somewhere on a Raspberry Pi, the clock ticks over to 06:00. Cron yawns, stretches, and pokes three AI CLIs awake — `claude`, `codex`, and `agy`. Each one squints at the morning and coughs up a haiku. The script catches them, stamps each with its author, and files them into `haiku.txt`. Come Sunday night, the whole week's worth gets committed and pushed while you sleep. Then it does it all again. Forever. That's it. That's the app.
+The clock turns to 06:00.
 
-No human in the loop. Just a small machine quietly being a poet — and a little website out front showing off the verses.
+Cron stirs and wakes three CLIs — `claude`, `codex`, `agy`. Each looks at the morning and offers a haiku. The script gathers them, marks each with its author, and lays them down in `haiku.txt`.
 
-## The website
+On Sunday night, the week's verses are committed and pushed while you sleep.
 
-Every push triggers a GitHub Actions job that rebuilds a static site and ships it to GitHub Pages — no server to run, just files. [scripts/build-site.py](scripts/build-site.py) parses `haiku.txt` and renders:
+Then the pond goes still, and waits for six o'clock.
 
-- **Today's haiku** on the front page, with the writing engine's colour.
-- **An archive** of every haiku ever written, grouped by daily cycle, each tagged with its author and a mood score.
-- **Sentiment trends** — a combined chart of per-engine mood over the last 90 days, so you can watch the robots' collective temperament drift.
-- **Shareable permalinks** — every haiku gets its own page (`/h/<slug>/`) with Open Graph / Twitter meta and a 1200×630 preview card, so a link unfurls into the poem on social media.
+No hand at the wheel. Just a quiet machine, keeping a poet's hours — and a small website out front, holding up the verses to the light.
 
-Live at `https://theanhgen.github.io/daily-kickstart-claude/`. The build is defined in [.github/workflows/deploy.yml](.github/workflows/deploy.yml); preview images are cached between deploys so only new haikus get re-rendered.
+## The verses, online
 
-## Grab it and go
+Every push wakes a GitHub Actions job that rebuilds a static site and carries it to GitHub Pages — no server to tend, only files. [scripts/build-site.py](scripts/build-site.py) reads `haiku.txt` and renders:
+
+- **Today's haiku** on the front page, in the writing engine's colour.
+- **An archive** of every haiku ever written, gathered by daily cycle, each marked with its author and a mood score.
+- **Sentiment trends** — per-engine mood over the last 90 days, so you can watch the machines' weather drift.
+- **Shareable permalinks** — every haiku keeps its own page (`/h/<slug>/`) with Open Graph / Twitter meta and a 1200×630 card, so a link unfolds into the poem.
+
+Live at `https://theanhgen.github.io/daily-kickstart-claude/`. The build lives in [.github/workflows/deploy.yml](.github/workflows/deploy.yml); preview cards are cached between deploys, so only new haikus are drawn again.
+
+## Begin
 
 ```bash
 # You'll need: a Raspberry Pi (or any Linux box), Node.js, the Claude CLI, and git
@@ -44,12 +52,12 @@ git clone git@github.com:theanhgen/daily-kickstart-claude.git
 cd daily-kickstart-claude
 chmod +x scripts/*.sh cron/*.sh
 scripts/generate.sh
-cat haiku.txt          # behold: a poem, fresh from the silicon
+cat haiku.txt          # a poem, fresh from the silicon
 ```
 
-## Put it on autopilot
+## Let it run
 
-Hand the keys to cron and walk away:
+Hand the hours to cron and step away:
 
 ```bash
 crontab -e
@@ -83,25 +91,25 @@ If a provider's default model outruns its CLI (it happens), pin a working one
 without touching code — e.g. `CODEX_MODEL=gpt-5.4`. A failed engine is isolated:
 the others still run, and the alert says whether it needs an upgrade or a pin.
 
-## Meet the poets
+## The three voices
 
-Every cycle, three CLIs take the mic in order. Each haiku gets tagged with whoever wrote it, so the archive reads like a robot open-mic night.
+Each cycle, three CLIs take the mic in turn. Every haiku is signed by whoever wrote it, so the archive reads like a quiet round of voices.
 
 ```
   claude  ──▶  the house regular (default)
   codex   ──▶  the wildcard
-  agy      ──▶  Google Antigravity, the new kid (runs last, needs a one-time login)
+  agy      ──▶  Google Antigravity, the new arrival (runs last, needs a one-time login)
 ```
 
-Want just one? Summon it by name:
+Want just one voice? Call it by name:
 
 ```bash
 ENGINE=agy scripts/generate.sh     # claude (default) | codex | agy
 ```
 
-First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tweaking timeouts? Everything lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. Each generation also records which model actually answered to `model.log` (committed, never rotated), so the site's mood trends stay attributable to model changes over time.
+First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them.
 
-## What's in the box
+## What lives here
 
 ```
 scripts/
@@ -146,7 +154,7 @@ cp .notify.env.example .notify.env
 # drop your ntfy topic in .notify.env
 ```
 
-## Pulling the levers
+## The controls
 
 ```bash
 scripts/generate.sh      # Make a haiku, right now, on demand

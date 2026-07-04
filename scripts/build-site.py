@@ -269,8 +269,8 @@ def rfc3339(ts):
 def build_feed(haikus):
     entries = []
     for h in haikus[:FEED_SIZE]:
-        url = f"{SITE_URL}/h/{slug(h)}/"
-        src = h["source"] or "claude"
+        url = html.escape(f"{SITE_URL}/h/{slug(h)}/", quote=True)
+        src = html.escape(h["source"] or "claude", quote=True)
         # type="html" content carries escaped HTML: escape each line for the
         # HTML layer, then escape the whole snippet again for the XML layer.
         inner = "<br>".join(html.escape(l, quote=True) for l in h["lines"])
