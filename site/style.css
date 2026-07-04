@@ -419,6 +419,18 @@ body {
   display: block;
   overflow: visible;
 }
+/* Vertical dashed line where an engine's model changed (from model.log). */
+.model-marker {
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.45;
+}
+
+.tip-model b {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.62rem;
+}
+
 .spark-zero {
   stroke: var(--muted);
   stroke-width: 0.75;

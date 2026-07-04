@@ -4,6 +4,18 @@ async function loadHaikus() {
   return res.json();
 }
 
+// Model-change events from model.log (via models.json) — optional: the chart
+// renders without markers when the file is missing or unreadable.
+async function loadModels() {
+  try {
+    const res = await fetch("models.json");
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
@@ -457,11 +469,16 @@ function smoothPath(pts) {
   return d;
 }
 
+// Model ids get long (claude-haiku-4-5-20251001); show the memorable middle.
+function shortModel(engine, id) {
+  return id.replace(new RegExp(`^${engine}-`), "").replace(/-20\d{6}$/, "");
+}
+
 // A shadcn/recharts-style card: bordered card, header (title + legend),
 // horizontal-only gridlines, smooth monotone curves in each engine's own
 // colour, month ticks, a hover tooltip, and a footer trend line. All three
 // engines share one −0.8…+0.8 axis so they compare directly.
-function renderTrend(haikus) {
+function renderTrend(haikus, modelChanges) {
   const el = document.getElementById("archive-trend");
   if (!el) return;
   const days = 90;
@@ -539,6 +556,21 @@ function renderTrend(haikus) {
     lines += `<circle cx="${x(lp.day).toFixed(1)}" cy="${y(lp.mean).toFixed(1)}" r="2.5" fill="var(--${src}-text)"/>`;
   }
 
+  // Model-change markers — model.log's whole purpose: attribute mood shifts
+  // to model swaps. A dashed vertical line in the engine's colour on the day
+  // its model changed; details land in the hover tooltip for that day.
+  let markers = "";
+  const markerByDay = {};
+  for (const c of modelChanges || []) {
+    if (!ENGINES.includes(c.engine)) continue;
+    const t = tsMs(c.ts);
+    if (t < startMs || t > anchor + DAY_MS) continue;
+    const day = Math.max(0, Math.min(days - 1, Math.floor((t - startMs) / DAY_MS)));
+    (markerByDay[day] ??= []).push(c);
+    const mx = x(day).toFixed(1);
+    markers += `<line x1="${mx}" y1="${PT}" x2="${mx}" y2="${H - PB}" class="model-marker" stroke="var(--${c.engine}-text)"/>`;
+  }
+
   const leg = legend.map(l =>
     `<span class="trend-key"><i style="background:var(--${l.src}-text)"></i>${l.src} ${l.last > 0 ? "+" : ""}${l.last.toFixed(2)}</span>`).join("");
 
@@ -574,7 +606,7 @@ function renderTrend(haikus) {
         <div class="trend-legend">${leg}</div>
       </div>
       <div class="chart-body">
-        <svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${xticks}${lines}
+        <svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${xticks}${markers}${lines}
           <line class="chart-cursor" x1="0" y1="${PT}" x2="0" y2="${H - PB}" style="display:none"/>
         </svg>
         <div class="chart-tip" hidden></div>
@@ -606,7 +638,10 @@ function renderTrend(haikus) {
       .sort((a, b) => b.v - a.v)   // warmest provider on top
       .map(r => `<div class="tip-row"><span class="tip-name"><i style="background:var(--${r.src}-text)"></i>${r.src}</span><b>${r.v > 0 ? "+" : ""}${r.v.toFixed(2)}</b></div>`)
       .join("");
-    tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}`;
+    const marks = (markerByDay[day] || [])
+      .map(c => `<div class="tip-row tip-model"><span class="tip-name"><i style="background:var(--${c.engine}-text)"></i>${c.engine}</span><b>${esc(shortModel(c.engine, c.from))} → ${esc(shortModel(c.engine, c.to))}</b></div>`)
+      .join("");
+    tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}${marks}`;
     tip.hidden = false;
     const br = body.getBoundingClientRect();
     const tw = tip.offsetWidth;
@@ -616,7 +651,7 @@ function renderTrend(haikus) {
   body.addEventListener("pointerleave", () => { tip.hidden = true; cursor.style.display = "none"; });
 }
 
-function renderInsights(haikus) {
+function renderInsights(haikus, modelChanges) {
   if (!haikus.length) return;
   const s = computeStats(haikus);
 
@@ -652,7 +687,7 @@ function renderInsights(haikus) {
     strip.innerHTML = cells.map(c => `<span class="stat-cell">${c}</span>`).join("") + note;
   }
 
-  renderTrend(haikus);
+  renderTrend(haikus, modelChanges);
 }
 
 // Fit a whole cycle to ONE shared font size so every haiku in it matches.
@@ -716,10 +751,10 @@ function fitCycles() {
 
 (async () => {
   try {
-    const haikus = await loadHaikus();
+    const [haikus, models] = await Promise.all([loadHaikus(), loadModels()]);
     if (document.getElementById("main-content")) renderMain(haikus);
     if (document.getElementById("archive-content")) { renderArchive(haikus); renderArchiveRails(haikus); }
-    renderInsights(haikus);
+    renderInsights(haikus, models);
     fitCycles();
     // Re-fit once web fonts load — first pass measures with fallback metrics.
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCycles);

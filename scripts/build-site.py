@@ -16,8 +16,11 @@ from datetime import datetime
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HAIKU_FILE = os.path.join(PROJECT_DIR, "haiku.txt")
+MODEL_LOG_FILE = os.path.join(PROJECT_DIR, "model.log")
 SITE_DIR = os.path.join(PROJECT_DIR, "site")
 OUTPUT_FILE = os.path.join(SITE_DIR, "haiku.json")
+MODELS_FILE = os.path.join(SITE_DIR, "models.json")
+FEED_FILE = os.path.join(SITE_DIR, "feed.xml")
 INDEX_FILE = os.path.join(SITE_DIR, "index.html")
 SHARE_DIR = os.path.join(SITE_DIR, "h")
 
@@ -59,6 +62,31 @@ def parse_haikus():
         i = j
     out.reverse()
     return out
+
+
+MODEL_LOG_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC engine=(\S+) model=(\S+)$")
+
+
+def parse_model_changes(path=MODEL_LOG_FILE):
+    """Model-change events from model.log, so the sentiment chart can mark
+    where an engine's model swapped. An engine's first sighting is its
+    baseline, not a change; comment lines are skipped."""
+    if not os.path.isfile(path):
+        return []
+    last, changes = {}, []
+    with open(path) as f:
+        for line in f:
+            m = MODEL_LOG_RE.match(line.strip())
+            if not m:
+                continue
+            ts, engine, model = m.groups()
+            prev = last.get(engine)
+            if prev is not None and prev != model:
+                changes.append({"engine": engine, "ts": f"{ts} UTC",
+                                "from": prev, "to": model})
+            last[engine] = model
+    return changes
 
 
 def slug(h):
@@ -241,6 +269,11 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(haikus, f, separators=(",", ":"))
     print(f"Built {len(haikus)} haikus -> {OUTPUT_FILE}")
+
+    changes = parse_model_changes()
+    with open(MODELS_FILE, "w") as f:
+        json.dump(changes, f, separators=(",", ":"))
+    print(f"Built {len(changes)} model changes -> {MODELS_FILE}")
 
     fonts = load_fonts()
     if not fonts:
