@@ -4,6 +4,18 @@ async function loadHaikus() {
   return res.json();
 }
 
+// Model-change events from model.log (via models.json) — optional: the chart
+// renders without markers when the file is missing or unreadable.
+async function loadModels() {
+  try {
+    const res = await fetch("models.json");
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
@@ -60,6 +72,17 @@ function haikuLines(h) {
   return h.lines.map(l => `<p>${esc(l)}</p>`).join("");
 }
 
+// Stable permalink id: YYYYMMDD-HHMMSS-engine — mirrors slug() in
+// scripts/build-site.py, which renders the /h/<slug>/ pages this links to.
+function slugOf(h) {
+  const stamp = h.timestamp.slice(0, 19).replace(/-/g, "").replace(/:/g, "").replace(" ", "-");
+  return `${stamp}-${h.source || "claude"}`;
+}
+
+function permalink(h) {
+  return `<a class="permalink" href="h/${slugOf(h)}/" title="Permalink">#</a>`;
+}
+
 // Provider badge plus this haiku's own warm↔cool mood score (-1..+1). The score
 // is faded when it rests on fewer than two lexicon words — low confidence, so it
 // should read as tentative rather than as a precise measurement.
@@ -82,7 +105,7 @@ function renderMain(haikus) {
         ${first.haikus.map(h => `
         <div class="pair-col">
           <div class="haiku loaded">${haikuLines(h)}</div>
-          <div class="haiku-meta">${sourceBadge(h)}</div>
+          <div class="haiku-meta">${sourceBadge(h)}${permalink(h)}</div>
         </div>`).join("")}
       </div>
       <div class="haiku-date">${formatDate(first.haikus[0].date)}</div>`;
@@ -91,7 +114,7 @@ function renderMain(haikus) {
     container.innerHTML = `
       <span class="haiku-kicker">${formatDate(h.date)}</span>
       <div class="haiku loaded">${haikuLines(h)}</div>
-      ${h.source ? `<div class="haiku-rule"></div><div class="haiku-meta">${sourceBadge(h)}</div>` : ""}`;
+      <div class="haiku-rule"></div><div class="haiku-meta">${sourceBadge(h)}${permalink(h)}</div>`;
   }
 }
 
@@ -122,7 +145,7 @@ function renderArchive(haikus) {
                 ${haikuLines(h)}
                 <div class="entry-meta">
                   <span class="time">${formatDate(h.date)}</span>
-                  ${sourceBadge(h)}
+                  ${sourceBadge(h)}${permalink(h)}
                 </div>
               </div>`).join("")}
             </div>`;
@@ -133,7 +156,7 @@ function renderArchive(haikus) {
             ${haikuLines(h)}
             <div class="entry-meta">
               <span class="time">${formatDate(h.date)}</span>
-              ${sourceBadge(h)}
+              ${sourceBadge(h)}${permalink(h)}
             </div>
           </div>`;
       }).join("");
@@ -303,6 +326,29 @@ function moodRaw(h) {
 
 function moodOf(h) { return moodRaw(h).score; }
 
+// ── 5-7-5 adherence — do the robots actually argue about syllables? ──
+// Rough English syllable estimate: vowel groups ([aeiouy]+), minus a silent
+// trailing 'e' (kept only for consonant+'le' as in "table" — in vowel+'le'
+// words like "smile" the 'e' is silent), floor 1. A heuristic, so the stat
+// is labelled as estimated.
+function syllables(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return 0;
+  let n = (w.match(/[aeiouy]+/g) || []).length;
+  if (w.length > 2 && w.endsWith("e") && !"aeiouy".includes(w[w.length - 2]) && !/[^aeiouy]le$/.test(w)) n--;
+  return Math.max(1, n);
+}
+
+function lineSyllables(line) {
+  return (line.match(/[a-zA-Z']+/g) || []).reduce((s, w) => s + syllables(w), 0);
+}
+
+const HAIKU_METER = [5, 7, 5];
+
+function is575(h) {
+  return h.lines.length === 3 && h.lines.every((l, i) => lineSyllables(l) === HAIKU_METER[i]);
+}
+
 // Aggregate with a 95% CI (mean ± 1.96·sd/√n). Label only when the interval
 // clears a small deadband around zero; otherwise the lean isn't significant.
 function moodAgg(arr) {
@@ -362,6 +408,12 @@ function computeStats(haikus) {
     originality,
     ranked: originality.filter(o => o.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.pct - a.pct),
     mostWritten,
+    // Per-engine share of haikus landing exactly 5-7-5 (estimated syllables).
+    syllable: ENGINES.map(src => {
+      const es = haikus.filter(h => h.source === src);
+      return { src, n: es.length,
+               pct: es.length ? Math.round(100 * es.filter(is575).length / es.length) : 0 };
+    }).filter(o => o.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.pct - a.pct),
     moodAll: moodAgg(haikus),
     mood: ENGINES.map(src => ({ src, ...moodAgg(haikus.filter(h => h.source === src)) }))
       .filter(m => m.n >= MIN_ENGINE_HAIKUS).sort((a, b) => b.score - a.score),
@@ -385,6 +437,10 @@ function heroLines(s) {
   }
   if (s.mostWritten && s.mostWritten.count >= 3)
     out.push(`One haiku has been written ${s.mostWritten.count} times: “${s.mostWritten.firstLine}…”`);
+  if (s.syllable.length >= 2) {
+    const strict = s.syllable[0], loose = s.syllable[s.syllable.length - 1];
+    out.push(`${strict.src} keeps the 5-7-5 rule ${strict.pct}% of the time; ${loose.src} bends it to ${loose.pct}%.`);
+  }
   if (s.moodAll)
     out.push(`Across ${s.total} haikus the mood lands ${s.moodAll.label} (${s.moodAll.score > 0 ? "+" : ""}${s.moodAll.score} ±${s.moodAll.ci}, cool-to-warm).`);
   if (s.mood.length >= 2) {
@@ -446,11 +502,16 @@ function smoothPath(pts) {
   return d;
 }
 
+// Model ids get long (claude-haiku-4-5-20251001); show the memorable middle.
+function shortModel(engine, id) {
+  return id.replace(new RegExp(`^${engine}-`), "").replace(/-20\d{6}$/, "");
+}
+
 // A shadcn/recharts-style card: bordered card, header (title + legend),
 // horizontal-only gridlines, smooth monotone curves in each engine's own
 // colour, month ticks, a hover tooltip, and a footer trend line. All three
 // engines share one −0.8…+0.8 axis so they compare directly.
-function renderTrend(haikus) {
+function renderTrend(haikus, modelChanges) {
   const el = document.getElementById("archive-trend");
   if (!el) return;
   const days = 90;
@@ -528,6 +589,21 @@ function renderTrend(haikus) {
     lines += `<circle cx="${x(lp.day).toFixed(1)}" cy="${y(lp.mean).toFixed(1)}" r="2.5" fill="var(--${src}-text)"/>`;
   }
 
+  // Model-change markers — model.log's whole purpose: attribute mood shifts
+  // to model swaps. A dashed vertical line in the engine's colour on the day
+  // its model changed; details land in the hover tooltip for that day.
+  let markers = "";
+  const markerByDay = {};
+  for (const c of modelChanges || []) {
+    if (!ENGINES.includes(c.engine)) continue;
+    const t = tsMs(c.ts);
+    if (t < startMs || t > anchor + DAY_MS) continue;
+    const day = Math.max(0, Math.min(days - 1, Math.floor((t - startMs) / DAY_MS)));
+    (markerByDay[day] ??= []).push(c);
+    const mx = x(day).toFixed(1);
+    markers += `<line x1="${mx}" y1="${PT}" x2="${mx}" y2="${H - PB}" class="model-marker" stroke="var(--${c.engine}-text)"/>`;
+  }
+
   const leg = legend.map(l =>
     `<span class="trend-key"><i style="background:var(--${l.src}-text)"></i>${l.src} ${l.last > 0 ? "+" : ""}${l.last.toFixed(2)}</span>`).join("");
 
@@ -563,7 +639,7 @@ function renderTrend(haikus) {
         <div class="trend-legend">${leg}</div>
       </div>
       <div class="chart-body">
-        <svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${xticks}${lines}
+        <svg viewBox="0 0 ${W} ${H}" class="trend-chart">${grid}${xticks}${markers}${lines}
           <line class="chart-cursor" x1="0" y1="${PT}" x2="0" y2="${H - PB}" style="display:none"/>
         </svg>
         <div class="chart-tip" hidden></div>
@@ -595,7 +671,10 @@ function renderTrend(haikus) {
       .sort((a, b) => b.v - a.v)   // warmest provider on top
       .map(r => `<div class="tip-row"><span class="tip-name"><i style="background:var(--${r.src}-text)"></i>${r.src}</span><b>${r.v > 0 ? "+" : ""}${r.v.toFixed(2)}</b></div>`)
       .join("");
-    tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}`;
+    const marks = (markerByDay[day] || [])
+      .map(c => `<div class="tip-row tip-model"><span class="tip-name"><i style="background:var(--${c.engine}-text)"></i>${c.engine}</span><b>${esc(shortModel(c.engine, c.from))} → ${esc(shortModel(c.engine, c.to))}</b></div>`)
+      .join("");
+    tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}${marks}`;
     tip.hidden = false;
     const br = body.getBoundingClientRect();
     const tw = tip.offsetWidth;
@@ -605,7 +684,7 @@ function renderTrend(haikus) {
   body.addEventListener("pointerleave", () => { tip.hidden = true; cursor.style.display = "none"; });
 }
 
-function renderInsights(haikus) {
+function renderInsights(haikus, modelChanges) {
   if (!haikus.length) return;
   const s = computeStats(haikus);
 
@@ -635,13 +714,16 @@ function renderInsights(haikus) {
     if (s.mood.length >= 2) {
       cells.push(`mood (cool −1…+1 warm, 95% CI) — ${s.mood.map(m => `${m.src} ${m.score > 0 ? "+" : ""}${m.score}±${m.ci}`).join(" · ")}`);
     }
+    if (s.syllable.length >= 2) {
+      cells.push(`5-7-5 discipline (estimated) — ${s.syllable.map(o => `${o.src} ${o.pct}%`).join(" · ")}`);
+    }
     // Only note the basis when some haikus are still unattributed.
     const note = s.dist && s.attributed < s.total
       ? `<span class="stat-note">among ${s.attributed} attributed haikus</span>` : "";
     strip.innerHTML = cells.map(c => `<span class="stat-cell">${c}</span>`).join("") + note;
   }
 
-  renderTrend(haikus);
+  renderTrend(haikus, modelChanges);
 }
 
 // Fit a whole cycle to ONE shared font size so every haiku in it matches.
@@ -703,12 +785,14 @@ function fitCycles() {
   fitArchive();
 }
 
-(async () => {
+// Bootstrap only in a browser; under node the pure helpers are require()d by
+// tests via the export hook below.
+if (typeof window !== "undefined") (async () => {
   try {
-    const haikus = await loadHaikus();
+    const [haikus, models] = await Promise.all([loadHaikus(), loadModels()]);
     if (document.getElementById("main-content")) renderMain(haikus);
     if (document.getElementById("archive-content")) { renderArchive(haikus); renderArchiveRails(haikus); }
-    renderInsights(haikus);
+    renderInsights(haikus, models);
     fitCycles();
     // Re-fit once web fonts load — first pass measures with fallback metrics.
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCycles);
@@ -719,3 +803,7 @@ function fitCycles() {
     if (el) el.innerHTML = "<p>—</p>";
   }
 })();
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { esc, slugOf, syllables, lineSyllables, is575, moodRaw, shortModel };
+}

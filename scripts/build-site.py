@@ -16,8 +16,11 @@ from datetime import datetime
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HAIKU_FILE = os.path.join(PROJECT_DIR, "haiku.txt")
+MODEL_LOG_FILE = os.path.join(PROJECT_DIR, "model.log")
 SITE_DIR = os.path.join(PROJECT_DIR, "site")
 OUTPUT_FILE = os.path.join(SITE_DIR, "haiku.json")
+MODELS_FILE = os.path.join(SITE_DIR, "models.json")
+FEED_FILE = os.path.join(SITE_DIR, "feed.xml")
 INDEX_FILE = os.path.join(SITE_DIR, "index.html")
 SHARE_DIR = os.path.join(SITE_DIR, "h")
 
@@ -59,6 +62,31 @@ def parse_haikus():
         i = j
     out.reverse()
     return out
+
+
+MODEL_LOG_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC engine=(\S+) model=(\S+)$")
+
+
+def parse_model_changes(path=MODEL_LOG_FILE):
+    """Model-change events from model.log, so the sentiment chart can mark
+    where an engine's model swapped. An engine's first sighting is its
+    baseline, not a change; comment lines are skipped."""
+    if not os.path.isfile(path):
+        return []
+    last, changes = {}, []
+    with open(path) as f:
+        for line in f:
+            m = MODEL_LOG_RE.match(line.strip())
+            if not m:
+                continue
+            ts, engine, model = m.groups()
+            prev = last.get(engine)
+            if prev is not None and prev != model:
+                changes.append({"engine": engine, "ts": f"{ts} UTC",
+                                "from": prev, "to": model})
+            last[engine] = model
+    return changes
 
 
 def slug(h):
@@ -228,6 +256,46 @@ def write_permalink(h, fonts):
     return os.path.exists(png)
 
 
+# ── Atom feed ──
+
+FEED_SIZE = 50
+
+
+def rfc3339(ts):
+    """'YYYY-MM-DD HH:MM:SS UTC' -> 'YYYY-MM-DDTHH:MM:SSZ'."""
+    return ts[:19].replace(" ", "T", 1) + "Z"
+
+
+def build_feed(haikus):
+    entries = []
+    for h in haikus[:FEED_SIZE]:
+        url = html.escape(f"{SITE_URL}/h/{slug(h)}/", quote=True)
+        src = html.escape(h["source"] or "claude", quote=True)
+        # type="html" content carries escaped HTML: escape each line for the
+        # HTML layer, then escape the whole snippet again for the XML layer.
+        inner = "<br>".join(html.escape(l, quote=True) for l in h["lines"])
+        entries.append(
+            f"<entry>"
+            f"<title>{html.escape(h['lines'][0], quote=True)}</title>"
+            f'<link href="{url}"/>'
+            f"<id>{url}</id>"
+            f"<updated>{rfc3339(h['timestamp'])}</updated>"
+            f"<author><name>{src}</name></author>"
+            f'<content type="html">{html.escape(inner, quote=True)}</content>'
+            f"</entry>")
+    updated = rfc3339(haikus[0]["timestamp"]) if haikus else "1970-01-01T00:00:00Z"
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<feed xmlns="http://www.w3.org/2005/Atom">\n'
+        "<title>Daily Haiku</title>\n"
+        "<subtitle>Three robots, four haikus a day</subtitle>\n"
+        f'<link href="{SITE_URL}/"/>\n'
+        f'<link rel="self" href="{SITE_URL}/feed.xml"/>\n'
+        f"<id>{SITE_URL}/</id>\n"
+        f"<updated>{updated}</updated>\n"
+        + "\n".join(entries) + "\n</feed>\n")
+
+
 # ── Main ──
 
 def set_meta(page, attr, key, value):
@@ -241,6 +309,15 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(haikus, f, separators=(",", ":"))
     print(f"Built {len(haikus)} haikus -> {OUTPUT_FILE}")
+
+    changes = parse_model_changes()
+    with open(MODELS_FILE, "w") as f:
+        json.dump(changes, f, separators=(",", ":"))
+    print(f"Built {len(changes)} model changes -> {MODELS_FILE}")
+
+    with open(FEED_FILE, "w") as f:
+        f.write(build_feed(haikus))
+    print(f"Built Atom feed ({min(len(haikus), FEED_SIZE)} entries) -> {FEED_FILE}")
 
     fonts = load_fonts()
     if not fonts:
