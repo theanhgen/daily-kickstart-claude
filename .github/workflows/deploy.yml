@@ -47,5 +47,23 @@ jobs:
         with:
           path: site/
 
+      # GitHub Pages' publish step intermittently returns "Deployment failed,
+      # try again later" — a transient backend error unrelated to the build.
+      # Try once, wait, then retry so a hiccup doesn't need a manual re-run.
       - uses: actions/deploy-pages@v4
         id: deployment
+        continue-on-error: true
+        with:
+          timeout: 600000
+          error_count: 15
+
+      - name: Wait before retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+
+      - uses: actions/deploy-pages@v4
+        id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
+        with:
+          timeout: 600000
+          error_count: 15
