@@ -274,6 +274,21 @@ body {
   font-style: italic;
 }
 
+/* Quiet per-haiku anchor to its /h/<slug>/ share page. */
+.permalink {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+
+.permalink:hover,
+.permalink:focus-visible {
+  opacity: 1;
+}
+
 .nav-link {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;

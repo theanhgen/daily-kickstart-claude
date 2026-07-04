@@ -60,6 +60,17 @@ function haikuLines(h) {
   return h.lines.map(l => `<p>${esc(l)}</p>`).join("");
 }
 
+// Stable permalink id: YYYYMMDD-HHMMSS-engine — mirrors slug() in
+// scripts/build-site.py, which renders the /h/<slug>/ pages this links to.
+function slugOf(h) {
+  const stamp = h.timestamp.slice(0, 19).replace(/-/g, "").replace(/:/g, "").replace(" ", "-");
+  return `${stamp}-${h.source || "claude"}`;
+}
+
+function permalink(h) {
+  return `<a class="permalink" href="h/${slugOf(h)}/" title="Permalink">#</a>`;
+}
+
 // Provider badge plus this haiku's own warm↔cool mood score (-1..+1). The score
 // is faded when it rests on fewer than two lexicon words — low confidence, so it
 // should read as tentative rather than as a precise measurement.
@@ -82,7 +93,7 @@ function renderMain(haikus) {
         ${first.haikus.map(h => `
         <div class="pair-col">
           <div class="haiku loaded">${haikuLines(h)}</div>
-          <div class="haiku-meta">${sourceBadge(h)}</div>
+          <div class="haiku-meta">${sourceBadge(h)}${permalink(h)}</div>
         </div>`).join("")}
       </div>
       <div class="haiku-date">${formatDate(first.haikus[0].date)}</div>`;
@@ -91,7 +102,7 @@ function renderMain(haikus) {
     container.innerHTML = `
       <span class="haiku-kicker">${formatDate(h.date)}</span>
       <div class="haiku loaded">${haikuLines(h)}</div>
-      ${h.source ? `<div class="haiku-rule"></div><div class="haiku-meta">${sourceBadge(h)}</div>` : ""}`;
+      <div class="haiku-rule"></div><div class="haiku-meta">${sourceBadge(h)}${permalink(h)}</div>`;
   }
 }
 
@@ -122,7 +133,7 @@ function renderArchive(haikus) {
                 ${haikuLines(h)}
                 <div class="entry-meta">
                   <span class="time">${formatDate(h.date)}</span>
-                  ${sourceBadge(h)}
+                  ${sourceBadge(h)}${permalink(h)}
                 </div>
               </div>`).join("")}
             </div>`;
@@ -133,7 +144,7 @@ function renderArchive(haikus) {
             ${haikuLines(h)}
             <div class="entry-meta">
               <span class="time">${formatDate(h.date)}</span>
-              ${sourceBadge(h)}
+              ${sourceBadge(h)}${permalink(h)}
             </div>
           </div>`;
       }).join("");
