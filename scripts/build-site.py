@@ -46,6 +46,10 @@ def parse_haikus():
         body, j = [], i + 1
         while j < len(lines) and len(body) < 3:
             l = lines[j].strip()
+            # Next entry's header: a short (malformed) entry must not swallow
+            # it — leave it for the outer loop and drop the short entry alone.
+            if TIMESTAMP_RE.match(l):
+                break
             if l:
                 body.append(l)
             j += 1
@@ -226,44 +230,48 @@ def write_permalink(h, fonts):
 
 # ── Main ──
 
-haikus = parse_haikus()
-
-with open(OUTPUT_FILE, "w") as f:
-    json.dump(haikus, f, separators=(",", ":"))
-print(f"Built {len(haikus)} haikus -> {OUTPUT_FILE}")
-
-fonts = load_fonts()
-if not fonts:
-    print("WARNING: Pillow/serif font unavailable — skipping preview images (pages still emitted)")
-
-rendered = 0
-for h in haikus:
-    if write_permalink(h, fonts):
-        rendered += 1
-print(f"Wrote {len(haikus)} permalink pages -> {SHARE_DIR} ({rendered} with images)")
-
-# Inject the latest day's OG meta into index.html. The card image stays the
-# latest haiku; the share DESCRIPTION is the stats insight (falling back to the
-# haiku text early on, before any engine has enough haikus to rank). image:alt
-# still describes the card, so it keeps the haiku text.
-latest = haikus[0]
-haiku_text = html.escape(" / ".join(latest["lines"]), quote=True)
-og_desc = html.escape(compute_insight(haikus) or " / ".join(latest["lines"]), quote=True)
-og_img = f"{SITE_URL}/h/{slug(latest)}/og.png"
-
-
 def set_meta(page, attr, key, value):
     return re.sub(r'(<meta ' + attr + r'="' + re.escape(key) + r'" content=")[^"]*(")',
                   lambda m: m.group(1) + value + m.group(2), page)
 
 
-with open(INDEX_FILE) as f:
-    page = f.read()
-page = set_meta(page, "property", "og:description", og_desc)
-page = set_meta(page, "name", "twitter:description", og_desc)
-page = set_meta(page, "property", "og:image", og_img)
-page = set_meta(page, "name", "twitter:image", og_img)
-page = set_meta(page, "property", "og:image:alt", haiku_text)
-with open(INDEX_FILE, "w") as f:
-    f.write(page)
-print(f"Injected OG: desc={og_desc[:60]}... image={og_img}")
+def main():
+    haikus = parse_haikus()
+
+    with open(OUTPUT_FILE, "w") as f:
+        json.dump(haikus, f, separators=(",", ":"))
+    print(f"Built {len(haikus)} haikus -> {OUTPUT_FILE}")
+
+    fonts = load_fonts()
+    if not fonts:
+        print("WARNING: Pillow/serif font unavailable — skipping preview images (pages still emitted)")
+
+    rendered = 0
+    for h in haikus:
+        if write_permalink(h, fonts):
+            rendered += 1
+    print(f"Wrote {len(haikus)} permalink pages -> {SHARE_DIR} ({rendered} with images)")
+
+    # Inject the latest day's OG meta into index.html. The card image stays the
+    # latest haiku; the share DESCRIPTION is the stats insight (falling back to the
+    # haiku text early on, before any engine has enough haikus to rank). image:alt
+    # still describes the card, so it keeps the haiku text.
+    latest = haikus[0]
+    haiku_text = html.escape(" / ".join(latest["lines"]), quote=True)
+    og_desc = html.escape(compute_insight(haikus) or " / ".join(latest["lines"]), quote=True)
+    og_img = f"{SITE_URL}/h/{slug(latest)}/og.png"
+
+    with open(INDEX_FILE) as f:
+        page = f.read()
+    page = set_meta(page, "property", "og:description", og_desc)
+    page = set_meta(page, "name", "twitter:description", og_desc)
+    page = set_meta(page, "property", "og:image", og_img)
+    page = set_meta(page, "name", "twitter:image", og_img)
+    page = set_meta(page, "property", "og:image:alt", haiku_text)
+    with open(INDEX_FILE, "w") as f:
+        f.write(page)
+    print(f"Injected OG: desc={og_desc[:60]}... image={og_img}")
+
+
+if __name__ == "__main__":
+    main()

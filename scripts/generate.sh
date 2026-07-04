@@ -129,8 +129,12 @@ if [ -z "$HAIKU" ] || [ "$HAIKU" = "null" ]; then
     finish 1 "haiku_empty" "ERROR: $ENGINE returned empty or null output"
 fi
 
+# A non-3-line entry corrupts haiku.txt parsing downstream (build-site.py
+# reads exactly three body lines per entry) — better to lose one cycle.
 if [ "$LINE_COUNT" -ne 3 ]; then
-    log "WARNING: Haiku has $LINE_COUNT lines (expected 3), using anyway"
+    log "ERROR: $ENGINE returned $LINE_COUNT lines (expected 3)"
+    cat "$HAIKU_OUTPUT" >&2
+    finish 1 "haiku_malformed" "ERROR: $ENGINE returned $LINE_COUNT lines (expected 3)"
 fi
 
 # Record which model wrote this haiku in the persistent model.log (never

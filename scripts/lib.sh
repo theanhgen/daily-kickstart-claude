@@ -48,7 +48,7 @@ log() {
 }
 
 ensure_project_dir() {
-    cd "$PROJECT_DIR"
+    cd "$PROJECT_DIR" || return 1
 }
 
 ensure_state_dir() {
@@ -129,6 +129,12 @@ release_project_lock() {
 
 tracked_changes_present() {
     [ -n "$(git status --porcelain --untracked-files=no)" ]
+}
+
+# A conflicted stash apply/pop leaves unmerged index entries (and conflict
+# markers in the worktree) while the surrounding command can still exit 0.
+unmerged_paths_present() {
+    [ -n "$(git ls-files -u)" ]
 }
 
 write_status() {

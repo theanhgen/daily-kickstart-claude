@@ -8,7 +8,7 @@
 # (sometimes even the latest CLI lags a new server model); generate.sh still
 # fails such an engine cleanly and the others keep running.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 
 # shellcheck source=/dev/null
 . scripts/lib.sh
