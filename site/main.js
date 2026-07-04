@@ -389,7 +389,13 @@ function renderTrend(haikus) {
   }
 
   // One smooth line per engine, in its own colour; plus a per-day value lookup
-  // (nearest smoothed point) the hover tooltip reads from.
+  // (nearest smoothed point) the hover tooltip reads from. When an engine goes
+  // silent for a stretch, break the line rather than bridging the gap with a
+  // fabricated segment — a run of points more than GAP_DAYS apart (the ±3
+  // smoothing window: points never blended together shouldn't be joined) starts
+  // a new segment. Isolated points render as a dot so mid-gap islands stay
+  // visible instead of vanishing.
+  const GAP_DAYS = 3;
   let lines = "";
   const legend = [], lookup = {};
   for (const src of ENGINES) {
@@ -400,8 +406,18 @@ function renderTrend(haikus) {
     lookup[src] = arr;
     if (!raw.length) continue;
     legend.push({ src, last: raw[raw.length - 1].mean });
-    if (ser.length >= 2)
-      lines += `<path d="${smoothPath(ser.map(p => ({ px: x(p.day), py: y(p.mean) })))}" fill="none" stroke="var(--${src}-text)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const segments = [];
+    for (const p of ser) {
+      const last = segments[segments.length - 1];
+      if (last && p.day - last[last.length - 1].day <= GAP_DAYS) last.push(p);
+      else segments.push([p]);
+    }
+    for (const seg of segments) {
+      if (seg.length >= 2)
+        lines += `<path d="${smoothPath(seg.map(p => ({ px: x(p.day), py: y(p.mean) })))}" fill="none" stroke="var(--${src}-text)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      else
+        lines += `<circle cx="${x(seg[0].day).toFixed(1)}" cy="${y(seg[0].mean).toFixed(1)}" r="2" fill="var(--${src}-text)"/>`;
+    }
     const lp = ser[ser.length - 1];
     lines += `<circle cx="${x(lp.day).toFixed(1)}" cy="${y(lp.mean).toFixed(1)}" r="2.5" fill="var(--${src}-text)"/>`;
   }
