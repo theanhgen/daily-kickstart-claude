@@ -73,12 +73,25 @@
    overflow (archive, small screens) still scroll normally. */
 html, body { overscroll-behavior: none; }
 
+/* The main page fits the viewport, so lock the root to it and hide overflow:
+   this is what actually stops iOS Safari's document rubber-band bounce
+   (overscroll-behavior alone is ignored for the top-level document there).
+   Scoped to the main page via :has() — archive.html (.archive-layout) must
+   still scroll normally. */
+html:has(.main-layout), body:has(.main-layout) {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 body {
   font-family: 'New York', ui-serif, 'Noto Serif', serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ── Main page ── */
@@ -126,6 +139,12 @@ body {
 .haiku p:nth-child(1) { animation-delay: 0.12s; }
 .haiku p:nth-child(2) { animation-delay: 0.28s; }
 .haiku p:nth-child(3) { animation-delay: 0.44s; }
+
+/* Reduced motion: keep a gentle staggered fade, drop the translateY movement. */
+@keyframes haiku-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .haiku p { animation-name: haiku-fade; }
+}
 
 .haiku-kicker {
   display: block;
@@ -284,17 +303,27 @@ body {
 
 /* Quiet per-haiku anchor to its /h/<slug>/ share page. */
 .permalink {
+  position: relative;
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.7rem;
   color: var(--muted);
   text-decoration: none;
   opacity: 0.35;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, scale 0.15s ease-out;
 }
+/* Expand the tap target past the small glyph without shifting layout. */
+.permalink::after {
+  content: "";
+  position: absolute;
+  inset: -12px -10px;
+}
+.permalink:active { scale: 0.96; }
+.permalink:focus-visible { opacity: 1; }
 
-.permalink:hover,
-.permalink:focus-visible {
-  opacity: 1;
+/* Gate hover behind a real pointer — on touch, tap fires :hover and the faded
+   glyph would stick "on" after navigating back. */
+@media (hover: hover) and (pointer: fine) {
+  .permalink:hover { opacity: 1; }
 }
 
 .nav-link {
@@ -304,12 +333,14 @@ body {
   text-decoration: none;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 0.5rem 0;
+  padding: 0.75rem 0.9rem;   /* clears the 40px minimum tap target */
   display: inline-block;
+  transition: color 0.15s, scale 0.15s ease-out;
 }
+.nav-link:active { scale: 0.97; }
 
-.nav-link:hover {
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover { color: var(--text); }
 }
 
 /* ── Live insights ── */
@@ -321,6 +352,7 @@ body {
   font-size: clamp(0.66rem, 2vw, 0.78rem);
   line-height: 1.7;
   color: var(--muted);
+  text-wrap: pretty;
   padding-top: 1.25rem;
   border-top: 1px solid var(--rule);
 }
@@ -369,7 +401,7 @@ body {
   border: 1px solid var(--rule);
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--text) 2.5%, var(--bg));
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 1px rgba(30, 27, 24, 0.04), 0 3px 8px rgba(30, 27, 24, 0.05);
   overflow: hidden;
 }
 
@@ -386,6 +418,7 @@ body {
   font-size: 0.82rem;
   letter-spacing: 0.04em;
   color: var(--text);
+  text-wrap: balance;
 }
 .chart-desc {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
@@ -393,6 +426,7 @@ body {
   letter-spacing: 0.03em;
   color: var(--muted);
   margin-top: 0.2rem;
+  text-wrap: pretty;
 }
 
 .trend-legend {
@@ -473,7 +507,7 @@ body {
   background: var(--bg);
   border: 1px solid var(--rule);
   border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(30, 27, 24, 0.06), 0 6px 16px rgba(30, 27, 24, 0.12);
   padding: 0.4rem 0.55rem;
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.62rem;
@@ -515,6 +549,7 @@ body {
 .chart-foot {
   padding: 0.6rem 1.25rem 1rem;
   border-top: 1px solid var(--rule);
+  text-wrap: pretty;
 }
 .chart-foot-main {
   display: flex;
@@ -576,6 +611,7 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
+  text-wrap: balance;
 }
 
 .date-group {
@@ -623,6 +659,7 @@ body {
   color: var(--text);
   margin-bottom: 0.3rem;
   font-style: normal;
+  text-wrap: balance;
 }
 
 .month-count {
