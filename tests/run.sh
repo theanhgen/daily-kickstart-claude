@@ -112,6 +112,12 @@ case "$mode" in
         printf 'stubbed claude failure\n' >&2
         exit 1
         ;;
+    authfail)
+        # Mirrors the real CLI's auth-failure shape: empty stderr, the
+        # actual reason buried in the JSON on stdout.
+        printf '%s\n' '{"is_error":true,"result":"OAuth token has expired. Please run claude login to reauthenticate."}'
+        exit 1
+        ;;
     *)
         printf '%s\n' "$mode"
         ;;
@@ -280,6 +286,25 @@ test_claude_failure() {
     assert_eq "ERROR: Claude CLI failed or timed out" "$LAST_RUN_MESSAGE" "Claude failure should record the timeout/error message"
     assert_match 'stubbed claude failure' "$RUN_OUTPUT" "Claude failure should surface stderr from the stub"
     assert_file_missing "$project_dir/haiku.txt" "CLI failure should not create haiku output"
+}
+
+test_claude_auth_failure() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" GENERATE_STUB_MODE=authfail
+    assert_eq "1" "$RUN_STATUS" "auth failure should fail the run"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "claude_auth_failed" "$LAST_RUN_STATUS" "auth failure should record claude_auth_failed"
+    assert_eq "ERROR: Claude CLI authentication failed — run 'claude /login'" "$LAST_RUN_MESSAGE" "auth failure should record an actionable message"
+    assert_match 'OAuth token has expired' "$RUN_OUTPUT" "auth failure should surface the reason from stdout"
+    assert_file_missing "$project_dir/haiku.txt" "auth failure should not create haiku output"
 }
 
 test_empty_output() {
@@ -473,6 +498,7 @@ main() {
     run_test test_missing_prompt_file
     run_test test_invalid_engine
     run_test test_claude_failure
+    run_test test_claude_auth_failure
     run_test test_empty_output
     run_test test_null_output
     run_test test_malformed_haiku

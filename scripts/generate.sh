@@ -67,6 +67,13 @@ case "$ENGINE" in
             "$USER_PROMPT" > "$HAIKU_RAW" 2> "$HAIKU_ERROR"; then
             log "ERROR: Claude CLI failed"
             cat "$HAIKU_ERROR" >&2
+            # Auth/session failures often exit non-zero with empty stderr and
+            # the real reason buried in the JSON on stdout instead — surface
+            # it too so cron logs are actually diagnosable.
+            cat "$HAIKU_RAW" >&2
+            if grep -qiE 'OAuth token has expired|invalid_grant|not authenticated|Please run.*login|Invalid API key|authentication_error|Unauthorized' "$HAIKU_ERROR" "$HAIKU_RAW"; then
+                finish 1 "claude_auth_failed" "ERROR: Claude CLI authentication failed — run 'claude /login'"
+            fi
             finish 1 "claude_failed" "ERROR: Claude CLI failed or timed out"
         fi
         node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write((JSON.parse(d).result||"")+"\n")}catch{}})' < "$HAIKU_RAW" > "$HAIKU_OUTPUT" 2>/dev/null

@@ -31,6 +31,10 @@ HEALTH_FETCH_TIMEOUT_SECONDS="${HEALTH_FETCH_TIMEOUT_SECONDS:-30}"
 FETCH_RETRY_COUNT="${FETCH_RETRY_COUNT:-3}"
 FETCH_RETRY_DELAY_SECONDS="${FETCH_RETRY_DELAY_SECONDS:-5}"
 HEALTH_MAX_HAIKU_AGE_HOURS="${HEALTH_MAX_HAIKU_AGE_HOURS:-18}"
+# Engines run every 6h; 13h tolerates one missed/retried cycle without
+# alarming, but catches a silently-dead engine masked by the others still
+# succeeding (haiku.txt itself stays "fresh" even if one engine is down).
+HEALTH_MAX_ENGINE_AGE_HOURS="${HEALTH_MAX_ENGINE_AGE_HOURS:-13}"
 NOTIFY_CONFIG_FILE="${NOTIFY_CONFIG_FILE:-$PROJECT_DIR/.notify.env}"
 # Persistent, never-rotated, committed log of which model wrote each haiku —
 # so mood/sentiment trends stay attributable to model changes over time.
@@ -196,4 +200,25 @@ last_haiku_age_seconds() {
 
 git_divergence_counts() {
     git rev-list --left-right --count "$REMOTE_NAME/$BRANCH_NAME"...HEAD
+}
+
+last_engine_timestamp() {
+    local engine="$1"
+    grep "engine=$engine " "$MODEL_LOG" 2> /dev/null \
+        | tail -1 \
+        | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC'
+}
+
+last_engine_age_seconds() {
+    local engine="$1"
+    local last_timestamp
+    local last_epoch
+    local now_epoch
+
+    last_timestamp="$(last_engine_timestamp "$engine")"
+    [ -n "$last_timestamp" ] || return 1
+    last_epoch="$(date -u -d "$last_timestamp" +%s)"
+    now_epoch="$(date -u +%s)"
+
+    echo $((now_epoch - last_epoch))
 }

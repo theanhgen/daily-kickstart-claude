@@ -48,6 +48,16 @@ else
     errors+=("could not determine last haiku timestamp")
 fi
 
+for engine in claude codex agy; do
+    if ENGINE_AGE_SECONDS="$(last_engine_age_seconds "$engine" 2> /dev/null)"; then
+        if [ "$ENGINE_AGE_SECONDS" -gt $((HEALTH_MAX_ENGINE_AGE_HOURS * 3600)) ]; then
+            errors+=("$engine engine stalled: last success $((ENGINE_AGE_SECONDS / 3600))h ago (threshold ${HEALTH_MAX_ENGINE_AGE_HOURS}h)")
+        fi
+    else
+        errors+=("could not determine last $engine engine timestamp")
+    fi
+done
+
 if [ -f "$STATUS_FILE" ]; then
     unset LAST_RUN_TIMESTAMP LAST_RUN_STATUS LAST_RUN_CONTEXT LAST_RUN_MESSAGE LAST_RUN_COMMIT
     load_status_file "$STATUS_FILE"
