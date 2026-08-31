@@ -209,6 +209,7 @@ PAGE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
+<meta name="description" content="{desc}">
 <link rel="icon" href="{site}/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="{site}/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="{site}/apple-touch-icon.png">
@@ -225,6 +226,9 @@ PAGE = """<!DOCTYPE html>
 <meta name="twitter:title" content="{title}">
 <meta name="twitter:description" content="{desc}">
 <meta name="twitter:image" content="{img}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital@0;1&amp;display=swap">
 <link rel="stylesheet" href="{site}/style.css">
 <style>.haiku p{{white-space:normal}}</style>
 </head>
