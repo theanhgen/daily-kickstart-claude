@@ -11,6 +11,8 @@ One small computer.
 A handful of cron jobs.
 Three engines, taking turns at the syllables.
 
+**Read them here → <https://theanhgen.github.io/daily-kickstart-claude/>**
+
 ```
 Still pond reflects sky
 A frog leaps into silence
@@ -38,7 +40,7 @@ Every push wakes a GitHub Actions job that rebuilds a static site and carries it
 - **Sentiment trends** — per-engine mood over the last 90 days, so you can watch the machines' weather drift.
 - **Shareable permalinks** — every haiku keeps its own page (`/h/<slug>/`) with Open Graph / Twitter meta and a 1200×630 card, so a link unfolds into the poem.
 
-Live at `https://theanhgen.github.io/daily-kickstart-claude/`. The build lives in [.github/workflows/deploy.yml](.github/workflows/deploy.yml); preview cards are cached between deploys, so only new haikus are drawn again.
+Live at **<https://theanhgen.github.io/daily-kickstart-claude/>**. The build lives in [.github/workflows/deploy.yml](.github/workflows/deploy.yml); preview cards are cached between deploys, so only new haikus are drawn again.
 
 ## Begin
 
@@ -107,7 +109,7 @@ Want just one voice? Call it by name:
 ENGINE=agy scripts/generate.sh     # claude (default) | codex | agy
 ```
 
-First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them.
+First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them. `claude` and `codex` each name the model they used, and that name is what gets written down — so when a provider quietly rolls its default under an unpinned run (`gpt-5.4` → `gpt-5.5`, say), the swap surfaces as a dashed marker on the trend chart. `agy` doesn't say, so it reads `unknown`: an honest blank, rather than a placeholder that pretends to be a model and never changes.
 
 ## What lives here
 
@@ -133,7 +135,10 @@ cron/                   Thin wrappers that log everything and call scripts/
 site/                   The static site (index, archive, main.js, style.css, fonts,
                         favicons). haiku.json and h/ are build artifacts, not committed.
 .github/workflows/      deploy.yml — builds site/ and publishes to GitHub Pages on push
-tests/run.sh            Stubbed unit tests for generate.sh + lib.sh
+tests/
+  run.sh                  Stubbed unit tests for generate.sh, lib.sh, and sync.sh's safety gate
+  test_build_site.py      Parsing, the Atom feed, and model-change detection
+  test_main.js            Front-end helpers — syllables, mood, trend copy
 haiku.txt               The ever-growing book of verses
 model.log               Which model wrote each haiku (committed, never rotated)
 .notify.env.example     Notification config template
@@ -165,6 +170,13 @@ scripts/build-site.py    # Rebuild the site locally (needs Python; Pillow for ca
 tests/run.sh             # Run the unit tests
 tail -f kickstart.log    # Watch the poems roll in, live
 ```
+
+One footnote on `build-site.py`: it injects fresh Open Graph meta into `site/index.html`,
+which *is* tracked — so a local run leaves that file modified. Harmless, but run
+`git checkout -- site/index.html` before you commit, or the day's stats ride along in your
+diff. On the machine running the cron jobs, don't run it at all: `sync.sh` refuses to sync a
+tree carrying unexpected tracked changes, so a stray rebuild quietly jams the daily pull until
+someone notices. The site is GitHub's job.
 
 ## License
 
