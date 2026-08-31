@@ -1,7 +1,7 @@
 // Unit tests for site/main.js pure helpers (node --test tests/test_main.js).
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { esc, slugOf, syllables, lineSyllables, is575, shortModel } = require("../site/main.js");
+const { esc, slugOf, syllables, lineSyllables, is575, shortModel, trendFoot } = require("../site/main.js");
 
 test("esc neutralizes HTML in haiku content", () => {
   assert.equal(esc("<img src=x onerror=alert(1)>"), "&lt;img src=x onerror=alert(1)&gt;");
@@ -45,5 +45,26 @@ test("is575 rejects off-meter and short entries", () => {
 test("shortModel strips engine prefix and date suffix", () => {
   assert.equal(shortModel("claude", "claude-haiku-4-5-20251001"), "haiku-4-5");
   assert.equal(shortModel("codex", "gpt-5.4"), "gpt-5.4");
-  assert.equal(shortModel("agy", "default"), "default");
+  assert.equal(shortModel("agy", "unknown"), "unknown");
+});
+
+// A fork younger than ~60 days has no prior 30-day window; the footer used to
+// read "Mood warming +0.00 over the last 30 days ↗" off that missing window.
+test("trendFoot withholds a direction when a window has no data", () => {
+  for (const [recent, prior] of [[0.26, null], [null, 0.06], [null, null]]) {
+    const foot = trendFoot(recent, prior);
+    assert.match(foot, /Not enough history/);
+    assert.doesNotMatch(foot, /warming|cooling/);
+    assert.doesNotMatch(foot, /trend-icon/);       // no arrow to imply one
+  }
+});
+
+test("trendFoot reports the direction when both windows have data", () => {
+  const warm = trendFoot(0.221, 0.063);
+  assert.match(warm, /Mood warming \+0\.16 over the last 30 days/);
+  assert.match(warm, /trend-icon/);
+  const cool = trendFoot(0.063, 0.221);
+  assert.match(cool, /Mood cooling −0\.16 over the last 30 days/);
+  // A genuine zero delta is still a measurement, not missing history.
+  assert.match(trendFoot(0.1, 0.1), /Mood warming \+0\.00 over the last 30 days/);
 });

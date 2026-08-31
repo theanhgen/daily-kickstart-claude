@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Unit tests for scripts/build-site.py (parser, slug, insight)."""
+import contextlib
 import importlib.util
+import io
+import json
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -166,6 +170,115 @@ class FeedTest(unittest.TestCase):
         import xml.etree.ElementTree as ET
         root = ET.fromstring(bs.build_feed([]))
         self.assertEqual(len(root.findall("{http://www.w3.org/2005/Atom}entry")), 0)
+
+
+class MainEmptyArchiveTest(unittest.TestCase):
+    """main() must not crash on an archive that parses to zero haikus."""
+
+    INDEX = ('<meta property="og:description" content="untouched">\n'
+             '<meta name="twitter:description" content="untouched">\n'
+             '<meta property="og:image" content="untouched">\n'
+             '<meta name="twitter:image" content="untouched">\n'
+             '<meta property="og:image:alt" content="untouched">\n')
+
+    def setUp(self):
+        # main() writes through module-level paths, so redirect every one of
+        # them into a temp dir: haiku.txt is production data, never truncate it.
+        self.tmp = tempfile.mkdtemp()
+        self._orig = {k: getattr(bs, k) for k in (
+            "HAIKU_FILE", "MODEL_LOG_FILE", "SITE_DIR", "OUTPUT_FILE",
+            "MODELS_FILE", "FEED_FILE", "INDEX_FILE", "SHARE_DIR")}
+        bs.HAIKU_FILE = os.path.join(self.tmp, "haiku.txt")
+        bs.MODEL_LOG_FILE = os.path.join(self.tmp, "model.log")
+        bs.SITE_DIR = os.path.join(self.tmp, "site")
+        bs.OUTPUT_FILE = os.path.join(bs.SITE_DIR, "haiku.json")
+        bs.MODELS_FILE = os.path.join(bs.SITE_DIR, "models.json")
+        bs.FEED_FILE = os.path.join(bs.SITE_DIR, "feed.xml")
+        bs.INDEX_FILE = os.path.join(bs.SITE_DIR, "index.html")
+        bs.SHARE_DIR = os.path.join(bs.SITE_DIR, "h")
+        os.makedirs(bs.SITE_DIR)
+        with open(bs.INDEX_FILE, "w") as f:
+            f.write(self.INDEX)
+
+    def tearDown(self):
+        for k, v in self._orig.items():
+            setattr(bs, k, v)
+        shutil.rmtree(self.tmp)
+
+    def _run_main(self, haiku_text):
+        with open(bs.HAIKU_FILE, "w") as f:
+            f.write(haiku_text)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            bs.main()
+        return out.getvalue()
+
+    def test_empty_archive_exits_cleanly(self):
+        out = self._run_main("")                             # no IndexError
+        self.assertIn("No haikus parsed", out)
+        with open(bs.OUTPUT_FILE) as f:
+            self.assertEqual(json.load(f), [])
+        self.assertTrue(os.path.isfile(bs.FEED_FILE))        # feed still written
+        with open(bs.INDEX_FILE) as f:
+            self.assertEqual(f.read(), self.INDEX)           # OG left untouched
+
+    def test_unparseable_non_empty_archive_fails_loudly(self):
+        # Content that yields no haikus means a broken parse, not a fresh fork.
+        with self.assertRaises(SystemExit) as cm:
+            self._run_main("not a timestamp header\nnor this\n")
+        self.assertIn("parsed to 0 haikus", str(cm.exception))
+
+    def test_full_archive_injects_og(self):
+        out = self._run_main(
+            "2026-06-01 06:00:01 UTC [claude]\n"
+            "one\ntwo\nthree\n"
+        )
+        self.assertIn("Injected OG", out)
+        with open(bs.INDEX_FILE) as f:
+            self.assertIn("20260601-060001-claude/og.png", f.read())
+
+
+class ModelChangePlaceholderTest(unittest.TestCase):
+    """Placeholder model ids ("default", "unknown") are not readings, so they
+    must never produce a model-change marker — otherwise merely renaming the
+    placeholder fabricates a swap on the sentiment chart."""
+
+    def _changes(self, body):
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as f:
+            f.write(body)
+            path = f.name
+        try:
+            return bs.parse_model_changes(path)
+        finally:
+            os.unlink(path)
+
+    def test_placeholder_rename_is_not_a_change(self):
+        # The exact regression: agy's historic "default" lines followed by the
+        # new "unknown" spelling must stay silent.
+        self.assertEqual(self._changes(
+            "2026-06-01 06:00:00 UTC engine=agy model=default\n"
+            "2026-06-02 06:00:00 UTC engine=agy model=unknown\n"
+        ), [])
+
+    def test_placeholder_is_not_a_baseline(self):
+        # A placeholder between two runs of the same real id is a gap in the
+        # record, not a swap out and back.
+        self.assertEqual(self._changes(
+            "2026-06-01 06:00:00 UTC engine=codex model=gpt-5.4\n"
+            "2026-06-02 06:00:00 UTC engine=codex model=unknown\n"
+            "2026-06-03 06:00:00 UTC engine=codex model=gpt-5.4\n"
+        ), [])
+
+    def test_real_model_swap_still_reported(self):
+        # Guard against over-suppressing: a genuine roll must still fire, even
+        # across an intervening placeholder.
+        changes = self._changes(
+            "2026-06-01 06:00:00 UTC engine=codex model=gpt-5.4\n"
+            "2026-06-02 06:00:00 UTC engine=codex model=unknown\n"
+            "2026-06-03 06:00:00 UTC engine=codex model=gpt-5.5\n"
+        )
+        self.assertEqual(len(changes), 1)
+        self.assertEqual((changes[0]["from"], changes[0]["to"]), ("gpt-5.4", "gpt-5.5"))
 
 
 if __name__ == "__main__":

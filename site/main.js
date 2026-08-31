@@ -514,6 +514,22 @@ function shortModel(engine, id) {
   return id.replace(new RegExp(`^${engine}-`), "").replace(/-20\d{6}$/, "");
 }
 
+// Footer trend copy: the change in the all-engine daily mean, last 30 vs prior
+// 30 days. Either window is null when no day in it carries a haiku — on an
+// archive younger than ~60 days the prior window always is — and a missing
+// comparison is not a zero one, so withhold the direction and the arrow rather
+// than rendering a measured-looking "warming +0.00 ↗". Same house rule as
+// moodAgg, which withholds a lean until its CI clears the deadband.
+function trendFoot(recent, prior) {
+  if (recent == null || prior == null) return "Not enough history yet to compare 30-day windows";
+  const delta = recent - prior;
+  const up = delta >= 0;
+  const icon = up
+    ? `<svg viewBox="0 0 24 24" class="trend-icon"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`
+    : `<svg viewBox="0 0 24 24" class="trend-icon"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
+  return `Mood ${up ? "warming" : "cooling"} ${up ? "+" : "−"}${Math.abs(delta).toFixed(2)} over the last 30 days ${icon}`;
+}
+
 // A shadcn/recharts-style card: bordered card, header (title + legend),
 // horizontal-only gridlines, smooth monotone curves in each engine's own
 // colour, month ticks, a hover tooltip, and a footer trend line. All three
@@ -633,12 +649,7 @@ function renderTrend(haikus, modelChanges) {
     return c ? s / c : null;
   };
   const recent = windowMean(days - 30, days), prior = windowMean(days - 60, days - 30);
-  const delta = recent != null && prior != null ? recent - prior : 0;
-  const up = delta >= 0;
-  const icon = up
-    ? `<svg viewBox="0 0 24 24" class="trend-icon"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>`
-    : `<svg viewBox="0 0 24 24" class="trend-icon"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>`;
-  const foot = `Mood ${up ? "warming" : "cooling"} ${delta >= 0 ? "+" : "−"}${Math.abs(delta).toFixed(2)} over the last 30 days ${icon}`;
+  const foot = trendFoot(recent, prior);
   const fmt = ms => new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   el.innerHTML =
@@ -814,5 +825,5 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, slugOf, syllables, lineSyllables, is575, moodRaw, shortModel };
+  module.exports = { esc, slugOf, syllables, lineSyllables, is575, moodRaw, shortModel, trendFoot };
 }

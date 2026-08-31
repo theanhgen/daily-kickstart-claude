@@ -15,7 +15,9 @@ ENGINE="${ENGINE:-claude}"
 HAIKU_OUTPUT=""
 HAIKU_ERROR=""
 HAIKU_RAW=""
-HAIKU_MODEL="default"
+# "unknown" (never "default") is the honest record when an engine does not
+# report the model it used — see the codex/agy branches below.
+HAIKU_MODEL="unknown"
 
 cleanup() {
     [ -n "$HAIKU_OUTPUT" ] && rm -f "$HAIKU_OUTPUT"
@@ -98,7 +100,14 @@ case "$ENGINE" in
             fi
             finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
         fi
-        HAIKU_MODEL="${CODEX_MODEL:-default}"
+        # codex exec prints a startup banner to stderr ("model: gpt-5.4")
+        # naming the model that actually answered. Record that, not the
+        # configured pin: an unpinned run silently rolls to the provider
+        # default (verified: gpt-5.5), and catching that roll is the whole
+        # reason model.log exists. Fall back to the pin, then to "unknown" —
+        # never "default", which would imply a reading we did not take.
+        HAIKU_MODEL="$(awk '/^model:/ { print $2; exit }' "$HAIKU_ERROR" 2>/dev/null || true)"
+        HAIKU_MODEL="${HAIKU_MODEL:-${CODEX_MODEL:-unknown}}"
         ;;
     agy)
         # agy -p reads stdin until EOF; without </dev/null it hangs on the
@@ -120,15 +129,22 @@ case "$ENGINE" in
             cat "$HAIKU_OUTPUT" >&2
             finish 1 "agy_unauthenticated" "ERROR: Antigravity CLI not authenticated (run 'agy -p test' to log in)"
         fi
+        # agy reports no model id either: --output-format json returns only
+        # conversation_id/status/response/usage, so record it as unreported
+        # rather than letting the log imply a reading we never took.
+        HAIKU_MODEL="unknown"
         ;;
     *)
         finish 1 "invalid_engine" "ERROR: Unknown ENGINE=$ENGINE (use claude, codex, or agy)"
         ;;
 esac
 
-# Extract and validate haiku (exactly 3 non-empty lines)
-HAIKU=$(sed '/^$/d' "$HAIKU_OUTPUT" | tail -3)
-LINE_COUNT=$(printf '%s' "$HAIKU" | awk 'NF { count++ } END { print count + 0 }')
+# Extract and validate haiku (exactly 3 non-empty lines). Take *every*
+# non-empty line: slicing here (the old `tail -3`) silently dropped the
+# haiku's first line whenever an engine added a sign-off, and committed the
+# prose in its place — the count stayed 3, so the guard below never fired.
+HAIKU=$(awk 'NF' "$HAIKU_OUTPUT")
+LINE_COUNT=$(printf '%s\n' "$HAIKU" | awk 'NF { count++ } END { print count + 0 }')
 
 if [ -z "$HAIKU" ] || [ "$HAIKU" = "null" ]; then
     log "ERROR: $ENGINE returned empty or null output"

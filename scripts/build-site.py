@@ -68,10 +68,17 @@ MODEL_LOG_RE = re.compile(
     r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC engine=(\S+) model=(\S+)$")
 
 
+# An engine that does not report the model it used logs a placeholder, not a
+# reading. "default" is the historic spelling, "unknown" the current one.
+UNREPORTED_MODELS = {"default", "unknown"}
+
+
 def parse_model_changes(path=MODEL_LOG_FILE):
     """Model-change events from model.log, so the sentiment chart can mark
     where an engine's model swapped. An engine's first sighting is its
-    baseline, not a change; comment lines are skipped."""
+    baseline, not a change; comment lines are skipped. Placeholder entries are
+    neither a change nor a baseline — they carry the last real id forward, so
+    renaming the placeholder never fabricates a swap."""
     if not os.path.isfile(path):
         return []
     last, changes = {}, []
@@ -81,6 +88,8 @@ def parse_model_changes(path=MODEL_LOG_FILE):
             if not m:
                 continue
             ts, engine, model = m.groups()
+            if model in UNREPORTED_MODELS:
+                continue
             prev = last.get(engine)
             if prev is not None and prev != model:
                 changes.append({"engine": engine, "ts": f"{ts} UTC",
@@ -318,6 +327,21 @@ def main():
     with open(FEED_FILE, "w") as f:
         f.write(build_feed(haikus))
     print(f"Built Atom feed ({min(len(haikus), FEED_SIZE)} entries) -> {FEED_FILE}")
+
+    # An empty archive is legitimate — a fresh fork or a clone before the first
+    # run has no haikus yet — and the JSON/feed written above are already valid
+    # when empty (build_feed guards haikus[0] the same way), so stop cleanly
+    # instead of crashing on haikus[0] below. But a haiku.txt that HAS content
+    # and still parses to nothing is a broken parse, not an empty archive: fail
+    # loudly there, so a parser regression cannot quietly publish a blank site
+    # over a real one. (A truncated 0-byte haiku.txt is indistinguishable from
+    # a fresh fork and still exits 0 — it is git-tracked, so that is remote.)
+    if not haikus:
+        print("No haikus parsed — skipping permalinks and OG injection")
+        with open(HAIKU_FILE) as f:
+            if f.read().strip():
+                raise SystemExit(f"ERROR: {HAIKU_FILE} has content but parsed to 0 haikus")
+        return
 
     fonts = load_fonts()
     if not fonts:

@@ -27,7 +27,16 @@ trap release_project_lock EXIT
 # Only the automation outputs may be dirty here. Anything else means a human
 # is mid-edit (or something unexpected wrote to the tree) — refuse rather than
 # let --autostash carry unrelated changes across an unattended rebase.
-FOREIGN_DIRTY="$(git status --porcelain --untracked-files=no | grep -vE '(haiku\.txt|model\.log)$' || true)"
+# Exclude the two outputs with pathspecs (as cron/weekly-push.sh does) rather
+# than by grepping the porcelain output: a regex over those lines also swallows
+# lookalike paths (notes/my_haiku.txt, test_model.log) and rename lines ending
+# in the same names, so a human's mid-edit would slip through the gate.
+# A failing git status (corrupt .git, dubious ownership) must not abort under
+# `set -e` before finish() writes a status — healthcheck would then read the
+# previous run's stale LAST_RUN_STATUS and report healthy.
+if ! FOREIGN_DIRTY="$(git status --porcelain --untracked-files=no -- ':(exclude)haiku.txt' ':(exclude)model.log')"; then
+    finish 1 "sync_status_failed" "ERROR: git status failed, cannot verify the worktree is clean"
+fi
 if [ -n "$FOREIGN_DIRTY" ]; then
     finish 1 "sync_foreign_changes" "ERROR: Tracked changes beyond haiku.txt/model.log present, refusing to sync"
 fi
