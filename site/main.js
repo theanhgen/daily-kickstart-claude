@@ -23,6 +23,15 @@ function formatDate(dateStr) {
   });
 }
 
+// Archive rows sit under a month heading and, in a cycle, inside a ~215px
+// column — the long form ("September 27, 2026") wraps to two lines there.
+function formatDateShort(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric",
+  });
+}
+
 function formatMonth(monthKey) {
   const [y, m] = monthKey.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("en-US", {
@@ -144,7 +153,7 @@ function renderArchive(haikus) {
               <div class="pair-col">
                 ${haikuLines(h)}
                 <div class="entry-meta">
-                  <span class="time">${formatDate(h.date)}</span>
+                  <span class="time">${formatDateShort(h.date)}</span>
                   ${sourceBadge(h)}${permalink(h)}
                 </div>
               </div>`).join("")}
@@ -155,7 +164,7 @@ function renderArchive(haikus) {
           <div class="haiku-entry" ${attrs}${anchor}>
             ${haikuLines(h)}
             <div class="entry-meta">
-              <span class="time">${formatDate(h.date)}</span>
+              <span class="time">${formatDateShort(h.date)}</span>
               ${sourceBadge(h)}${permalink(h)}
             </div>
           </div>`;
@@ -825,5 +834,5 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, slugOf, syllables, lineSyllables, is575, moodRaw, shortModel, trendFoot };
+  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, shortModel, trendFoot };
 }

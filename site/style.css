@@ -635,7 +635,7 @@ body {
 .haiku-entry p,
 .haiku-entry-cycle p {
   font-size: clamp(0.85rem, 2.5vw, 1.1rem);
-  line-height: 1.85;
+  line-height: 1.2;
   font-style: italic;
   color: var(--muted);
   white-space: nowrap;
@@ -674,14 +674,18 @@ body {
 .entry-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.4rem;
+  margin-top: 0.6rem;
 }
 
+/* Never split the date across lines — if the row runs out of room the badge
+   group wraps under it instead. */
 .haiku-entry .time {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.72rem;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 /* ── Scroll index rails: month·year + the active month's days ──
