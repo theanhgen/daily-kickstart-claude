@@ -144,6 +144,14 @@ done
 
 mode="${GENERATE_STUB_MODE:-success}"
 
+# The real codex exec prints a startup banner to stderr naming the model that
+# answered; generate.sh parses it back out of $HAIKU_ERROR. Set the variable
+# to the empty string to simulate a CLI that prints no banner.
+banner_model="${CODEX_STUB_BANNER_MODEL-gpt-stub-banner}"
+if [ -n "$banner_model" ]; then
+    printf 'model: %s\nreasoning effort: xhigh\n' "$banner_model" >&2
+fi
+
 case "$mode" in
     success)
         printf '%s\n' \
@@ -182,6 +190,16 @@ case "$mode" in
             'day opens its hands'
         ;;
     empty)
+        ;;
+    trailingprose)
+        # A valid haiku followed by a sign-off: 4 non-empty lines, which the
+        # old `tail -3` reshaped into a well-formed-looking 3-line entry.
+        printf '%s\n' \
+            'morning sparrow sings' \
+            'rooftops warming into gold' \
+            'day opens its hands' \
+            '' \
+            '(Hope you like it!)'
         ;;
     unauth)
         # agy exits 0 but prints a login blob when not authenticated.
@@ -436,6 +454,73 @@ test_agy_unauthenticated() {
     assert_file_missing "$project_dir/haiku.txt" "unauthenticated agy should not create haiku output"
 }
 
+test_trailing_prose_rejected() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=agy GENERATE_STUB_MODE=trailingprose
+    assert_eq "1" "$RUN_STATUS" "a sign-off after the haiku should fail the cycle"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "haiku_malformed" "$LAST_RUN_STATUS" "trailing prose should record haiku_malformed"
+    assert_eq "ERROR: agy returned 4 lines (expected 3)" "$LAST_RUN_MESSAGE" "trailing prose should report all 4 non-empty lines, not the sliced 3"
+    # The regression: tail -3 dropped line 1 and committed the sign-off.
+    assert_file_missing "$project_dir/haiku.txt" "trailing prose should not commit a shifted haiku"
+    assert_file_missing "$project_dir/model.log" "trailing prose should not record a model.log entry"
+}
+
+test_agy_records_unknown_model() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=agy
+    assert_eq "0" "$RUN_STATUS" "agy generation should exit cleanly"
+
+    # agy reports no model id, so the log must say so rather than logging the
+    # literal "default", which reads as a model that never changes.
+    assert_file_exists "$project_dir/model.log" "agy generation should record a model.log entry"
+    assert_file_contains "$project_dir/model.log" "engine=agy model=unknown" "agy should record an unreported model as unknown"
+}
+
+test_codex_records_model_that_answered() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # The pin and the model that actually answered deliberately disagree: an
+    # unpinned or silently-rolled run is exactly the event model.log exists to
+    # catch, so the banner must win over the configured pin.
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-pin \
+        CODEX_STUB_BANNER_MODEL=gpt-stub-actual
+    assert_eq "0" "$RUN_STATUS" "codex generation should exit cleanly"
+
+    assert_file_exists "$project_dir/model.log" "codex generation should record a model.log entry"
+    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-actual" "codex should record the model from the banner, not the pin"
+}
+
+test_codex_falls_back_to_pin_without_banner() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # No banner (an older CLI, or a changed banner format): the pin is the
+    # best remaining record — but still never the literal "default".
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-pin \
+        CODEX_STUB_BANNER_MODEL=
+    assert_eq "0" "$RUN_STATUS" "codex generation should exit cleanly"
+
+    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-pin" "codex should fall back to the configured pin"
+}
+
 test_write_status_round_trips_values() {
     local project_dir
 
@@ -484,6 +569,116 @@ test_write_health_state_round_trips_values() {
     assert_match 'UTC$' "$LAST_HEALTH_TIMESTAMP" "write_health_state should record a UTC timestamp"
 }
 
+setup_sync_repo() {
+    local project_dir
+    project_dir="$(mktemp -d)"
+
+    mkdir -p "$project_dir/scripts" "$project_dir/notes"
+    cp "$REPO_DIR/scripts/sync.sh" "$project_dir/scripts/sync.sh"
+    cp "$REPO_DIR/scripts/lib.sh" "$project_dir/scripts/lib.sh"
+
+    git -C "$project_dir" init -q
+    git -C "$project_dir" config user.email "tests@example.invalid"
+    git -C "$project_dir" config user.name "sync tests"
+
+    printf 'haiku\n' > "$project_dir/haiku.txt"
+    printf 'model\n' > "$project_dir/model.log"
+    # Tracked paths that merely *end* in the automation's output names. The
+    # dirty-worktree gate must treat these as a human's files, not its own.
+    printf 'human notes\n' > "$project_dir/notes/my_haiku.txt"
+    printf 'human log\n' > "$project_dir/test_model.log"
+    printf 'unrelated\n' > "$project_dir/old.txt"
+    git -C "$project_dir" add -A > /dev/null
+    git -C "$project_dir" commit -qm "init" > /dev/null
+
+    printf '%s\n' "$project_dir"
+}
+
+run_sync() {
+    local project_dir="$1"
+
+    set +e
+    RUN_OUTPUT="$(
+        env \
+            PROJECT_DIR="$project_dir" \
+            STATE_DIR="$project_dir/.runtime" \
+            STATUS_FILE="$project_dir/.runtime/last_run.env" \
+            LOCK_FILE="$project_dir/.runtime/kickstart.lock" \
+            FETCH_RETRY_COUNT=1 \
+            FETCH_RETRY_DELAY_SECONDS=0 \
+            bash "$project_dir/scripts/sync.sh" 2>&1
+    )"
+    RUN_STATUS=$?
+    set -e
+}
+
+test_sync_refuses_lookalike_dirty_path() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_sync_repo)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # A human mid-edit on their own file. The gate used to match the porcelain
+    # lines with an end-anchored regex, so notes/my_haiku.txt was filtered out
+    # as if it were the automation's haiku.txt and --autostash carried the edit
+    # across the unattended rebase.
+    printf 'HUMAN EDIT\n' >> "$project_dir/notes/my_haiku.txt"
+
+    run_sync "$project_dir"
+    assert_eq "1" "$RUN_STATUS" "a dirty lookalike path should stop the sync"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    assert_file_exists "$status_file" "a refused sync should write status"
+
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "sync_foreign_changes" "$LAST_RUN_STATUS" "notes/my_haiku.txt should trip the foreign-changes gate"
+}
+
+test_sync_refuses_lookalike_rename() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_sync_repo)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # Rename lines carry two paths, so the end-anchored regex matched on the
+    # destination and swallowed the whole line. (A rename onto the real
+    # top-level haiku.txt trips the gate too: its deleted source still shows.)
+    git -C "$project_dir" mv old.txt src_haiku.txt
+
+    run_sync "$project_dir"
+    assert_eq "1" "$RUN_STATUS" "a staged rename to a lookalike path should stop the sync"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "sync_foreign_changes" "$LAST_RUN_STATUS" "a rename ending in haiku.txt should trip the foreign-changes gate"
+}
+
+test_sync_allows_dirty_outputs() {
+    local project_dir
+    local status_file
+
+    project_dir="$(setup_sync_repo)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # The normal mid-week state: only the automation's own outputs are dirty.
+    # The gate must let this through (the run then stops at the fetch, since
+    # the throwaway repo has no remote) — otherwise the daily sync never runs.
+    printf 'more haiku\n' >> "$project_dir/haiku.txt"
+    printf 'more model\n' >> "$project_dir/model.log"
+
+    run_sync "$project_dir"
+    assert_eq "1" "$RUN_STATUS" "the remote-less test repo should fail at the fetch"
+
+    status_file="$project_dir/.runtime/last_run.env"
+    # shellcheck source=/dev/null
+    . "$status_file"
+    assert_eq "sync_fetch_failed" "$LAST_RUN_STATUS" "dirty haiku.txt/model.log alone must pass the foreign-changes gate"
+}
+
 run_test() {
     local name="$1"
 
@@ -505,8 +700,15 @@ main() {
     run_test test_successful_generation
     run_test test_agy_successful_generation
     run_test test_agy_unauthenticated
+    run_test test_trailing_prose_rejected
+    run_test test_agy_records_unknown_model
+    run_test test_codex_records_model_that_answered
+    run_test test_codex_falls_back_to_pin_without_banner
     run_test test_write_status_round_trips_values
     run_test test_write_health_state_round_trips_values
+    run_test test_sync_refuses_lookalike_dirty_path
+    run_test test_sync_refuses_lookalike_rename
+    run_test test_sync_allows_dirty_outputs
 
     printf '\n%d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
 
