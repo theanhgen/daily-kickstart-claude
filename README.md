@@ -90,7 +90,7 @@ CRON_TZ=Europe/Prague
 ```
 
 If a provider's default model outruns its CLI (it happens), pin a working one
-without touching code — e.g. `CODEX_MODEL=gpt-5.4`. A failed engine is isolated:
+without touching code — e.g. `CODEX_MODEL=gpt-5.6-sol`. A failed engine is isolated:
 the others still run, and the alert says whether it needs an upgrade or a pin.
 
 ## The three voices
