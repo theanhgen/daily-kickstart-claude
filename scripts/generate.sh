@@ -95,12 +95,12 @@ case "$ENGINE" in
             # Distinguish "the CLI is out of date / model unavailable" (needs
             # an upgrade or a CODEX_MODEL pin) from a plain timeout, so the
             # operator alert is actionable.
-            if grep -qiE 'requires a newer version|not supported|please upgrade' "$HAIKU_ERROR"; then
+            if grep -qiE 'requires a newer version|not supported|please upgrade|does not exist or you do not have access' "$HAIKU_ERROR"; then
                 finish 1 "codex_needs_upgrade" "ERROR: Codex CLI out of date or model unavailable — run 'codex update' or set CODEX_MODEL"
             fi
             finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
         fi
-        # codex exec prints a startup banner to stderr ("model: gpt-5.4")
+        # codex exec prints a startup banner to stderr ("model: gpt-5.6-sol")
         # naming the model that actually answered. Record that, not the
         # configured pin: an unpinned run silently rolls to the provider
         # default (verified: gpt-5.5), and catching that roll is the whole

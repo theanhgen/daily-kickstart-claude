@@ -15,10 +15,12 @@ CLAUDE_BIN="${CLAUDE_BIN:-/home/thevetev/.local/bin/claude}"
 # stale root /usr/bin/codex which is pinned old and can't update without a TTY.
 CODEX_BIN="${CODEX_BIN:-/home/thevetev/.npm-global/bin/codex}"
 AGY_BIN="${AGY_BIN:-/home/thevetev/.local/bin/agy}"
-# Pin codex to a model the account actually has. Codex migrated its config
-# default to gpt-5.5, which this ChatGPT account can't use and the CLI can't
-# run; gpt-5.4 is the account's real model. Override via env if it changes.
-CODEX_MODEL="${CODEX_MODEL:-gpt-5.4}"
+# Pin codex to a model the account actually has. This has moved twice: the
+# config default rolled to gpt-5.5 (which 404s for this ChatGPT account), and
+# the old gpt-5.4 pin was retired server-side on 2026-09-04 ("not supported
+# when using Codex with a ChatGPT account"). gpt-5.6-sol is what the account
+# can run today. Override via env if it changes again.
+CODEX_MODEL="${CODEX_MODEL:-gpt-5.6-sol}"
 # Keep codex generation fast: the config default is xhigh reasoning, which
 # makes a current codex grind for minutes over a haiku. Low is plenty here.
 CODEX_REASONING="${CODEX_REASONING:-low}"
