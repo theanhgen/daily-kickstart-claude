@@ -9,12 +9,12 @@ RUN_OUTPUT=""
 RUN_STATUS=0
 
 pass() {
-    printf 'ok - %s\n' "$1"
+    printf 'PASS: %s\n' "$1"
     PASS_COUNT=$((PASS_COUNT + 1))
 }
 
 fail() {
-    printf 'not ok - %s\n' "$1"
+    printf 'FAIL: %s\n' "$1"
     FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
@@ -182,8 +182,23 @@ set -euo pipefail
 # agy -p prints the haiku as plain text to stdout (no JSON wrapper).
 mode="${GENERATE_STUB_MODE:-success}"
 
+has_model=0
+for arg in "$@"; do
+    [ "$arg" = "--model" ] && has_model=1
+done
+
 case "$mode" in
     success)
+        printf '%s\n' \
+            'morning sparrow sings' \
+            'rooftops warming into gold' \
+            'day opens its hands'
+        ;;
+    fallback)
+        if [ "$has_model" -eq 0 ]; then
+            printf 'default model unavailable\n' >&2
+            exit 1
+        fi
         printf '%s\n' \
             'morning sparrow sings' \
             'rooftops warming into gold' \
@@ -406,7 +421,8 @@ test_successful_generation() {
     assert_eq "Haiku [claude] appended to haiku.txt" "$LAST_RUN_MESSAGE" "successful generation should record a success message"
 
     assert_file_exists "$project_dir/haiku.txt" "successful generation should create haiku.txt"
-    mapfile -t lines < "$project_dir/haiku.txt"
+    lines=()
+    while IFS= read -r line; do lines+=("$line"); done < "$project_dir/haiku.txt"
     assert_eq "" "${lines[0]}" "successful generation should keep the blank separator line"
     assert_match '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC \[claude\]$' "${lines[1]}" "successful generation should write a timestamped engine header"
     assert_eq "morning sparrow sings" "${lines[2]}" "successful generation should write the first haiku line"
@@ -432,9 +448,42 @@ test_agy_successful_generation() {
     assert_eq "Haiku [agy] appended to haiku.txt" "$LAST_RUN_MESSAGE" "agy generation should record a success message"
 
     assert_file_exists "$project_dir/haiku.txt" "agy generation should create haiku.txt"
-    mapfile -t lines < "$project_dir/haiku.txt"
+    lines=()
+    while IFS= read -r line; do lines+=("$line"); done < "$project_dir/haiku.txt"
     assert_match '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC \[agy\]$' "${lines[1]}" "agy generation should write a timestamped engine header"
     assert_eq "morning sparrow sings" "${lines[2]}" "agy generation should write the first haiku line"
+}
+
+test_agy_random_model_fallback() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=agy GENERATE_STUB_MODE=fallback \
+        AGY_FALLBACK_MODELS="gemini-test-one"
+    assert_eq "0" "$RUN_STATUS" "agy should retry with a fallback model"
+    assert_file_contains "$project_dir/model.log" \
+        "engine=agy model=gemini-test-one" \
+        "agy should record the selected fallback model"
+}
+
+test_run_with_timeout_without_gnu_timeout() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+    ln -s /bin/sleep "$project_dir/bin/sleep"
+
+    set +e
+    # The inner script must receive $1 from bash -c, not expand it here.
+    # shellcheck disable=SC2016
+    RUN_OUTPUT="$(env PATH="$(dirname "$project_dir/bin/claude")" \
+        /bin/bash -c '. "$1/scripts/lib.sh"; run_with_timeout 1 /bin/sleep 5' \
+        bash "$project_dir" 2>&1)"
+    RUN_STATUS=$?
+    set -e
+    assert_eq "124" "$RUN_STATUS" "portable timeout should stop a hanging child"
 }
 
 test_agy_unauthenticated() {
@@ -681,11 +730,13 @@ test_sync_allows_dirty_outputs() {
 
 run_test() {
     local name="$1"
+    local label="${name#test_}"
+    label="${label//_/ }"
 
     if ( "$name" ); then
-        pass "$name"
+        pass "$label"
     else
-        fail "$name"
+        fail "$label"
     fi
 }
 
@@ -699,6 +750,7 @@ main() {
     run_test test_malformed_haiku
     run_test test_successful_generation
     run_test test_agy_successful_generation
+    run_test test_agy_random_model_fallback
     run_test test_agy_unauthenticated
     run_test test_trailing_prose_rejected
     run_test test_agy_records_unknown_model
@@ -709,8 +761,9 @@ main() {
     run_test test_sync_refuses_lookalike_dirty_path
     run_test test_sync_refuses_lookalike_rename
     run_test test_sync_allows_dirty_outputs
+    run_test test_run_with_timeout_without_gnu_timeout
 
-    printf '\n%d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
+    printf '\nTest summary: %d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
 
     if [ "$FAIL_COUNT" -ne 0 ]; then
         exit 1

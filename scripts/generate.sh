@@ -15,6 +15,7 @@ ENGINE="${ENGINE:-claude}"
 HAIKU_OUTPUT=""
 HAIKU_ERROR=""
 HAIKU_RAW=""
+AGY_ERROR_HISTORY=""
 # "unknown" (never "default") is the honest record when an engine does not
 # report the model it used — see the codex/agy branches below.
 HAIKU_MODEL="unknown"
@@ -23,6 +24,7 @@ cleanup() {
     [ -n "$HAIKU_OUTPUT" ] && rm -f "$HAIKU_OUTPUT"
     [ -n "$HAIKU_ERROR" ] && rm -f "$HAIKU_ERROR"
     [ -n "$HAIKU_RAW" ] && rm -f "$HAIKU_RAW"
+    [ -n "$AGY_ERROR_HISTORY" ] && rm -f "$AGY_ERROR_HISTORY"
     release_project_lock
 }
 trap cleanup EXIT
@@ -52,6 +54,7 @@ log "Generating haiku at $TIMESTAMP..."
 HAIKU_OUTPUT=$(mktemp)
 HAIKU_ERROR=$(mktemp)
 HAIKU_RAW=$(mktemp)
+AGY_ERROR_HISTORY=$(mktemp)
 
 # Read user prompt
 PROMPT_FILE="$SCRIPT_DIR/session_prompt.txt"
@@ -121,7 +124,18 @@ case "$ENGINE" in
         # Claude before GPT-OSS (or vice versa).
         _shuffled_fallbacks=""
         if [ -n "$AGY_FALLBACK_MODELS" ]; then
-            _shuffled_fallbacks="$(printf '%s\n' $AGY_FALLBACK_MODELS | shuf | tr '\n' ' ')"
+            _fallback_models=()
+            read -r -a _fallback_models <<< "$AGY_FALLBACK_MODELS"
+            while [ "${#_fallback_models[@]}" -gt 0 ]; do
+                _fallback_index=$((RANDOM % ${#_fallback_models[@]}))
+                if [ "${_fallback_models[$_fallback_index]}" != "$AGY_MODEL" ]; then
+                    _shuffled_fallbacks="$_shuffled_fallbacks ${_fallback_models[$_fallback_index]}"
+                fi
+                _fallback_models=(
+                    "${_fallback_models[@]:0:_fallback_index}"
+                    "${_fallback_models[@]:_fallback_index+1}"
+                )
+            done
         fi
         AGY_MODEL_QUEUE="${AGY_MODEL:-__default__} $_shuffled_fallbacks"
 
@@ -130,29 +144,33 @@ case "$ENGINE" in
         for _model in $AGY_MODEL_QUEUE; do
             # Build --model flag; omit it entirely for the agy default so we
             # don't pin to whatever "gemini-3.8-flash" is called today.
-            _model_args=()
+            _agy_args=(--dangerously-skip-permissions)
             _model_label="default"
             if [ "$_model" != "__default__" ]; then
-                _model_args=(--model "$_model")
+                _agy_args+=(--model "$_model")
                 _model_label="$_model"
             fi
+            _agy_args+=(-p "Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT")
 
             log "Trying agy model: $_model_label"
             # Reset temp files for each attempt.
             : > "$HAIKU_OUTPUT"; : > "$HAIKU_ERROR"
 
             if run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" \
-                    --dangerously-skip-permissions \
-                    "${_model_args[@]}" \
-                    -p "Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
+                    "${_agy_args[@]}" \
                     < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
                 AGY_SUCCESS=1
-                HAIKU_MODEL="$_model_label"
+                if [ "$_model" = "__default__" ]; then
+                    HAIKU_MODEL="unknown"
+                else
+                    HAIKU_MODEL="$_model_label"
+                fi
                 break
             fi
 
             # Surface the error for diagnostics.
             cat "$HAIKU_ERROR" >&2
+            cat "$HAIKU_ERROR" >> "$AGY_ERROR_HISTORY"
 
             # Check for hard errors that mean fallback won't help.
             if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$HAIKU_ERROR"; then
@@ -171,6 +189,9 @@ case "$ENGINE" in
         done
 
         if [ "$AGY_SUCCESS" -eq 0 ]; then
+            if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$AGY_ERROR_HISTORY"; then
+                finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
+            fi
             log "ERROR: All agy models exhausted (tried: $AGY_MODEL_QUEUE)"
             finish 1 "agy_all_models_failed" "ERROR: All agy models exhausted — check quotas"
         fi
