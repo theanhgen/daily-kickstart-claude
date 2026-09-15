@@ -84,17 +84,32 @@ run_with_timeout() {
     elif command -v gtimeout > /dev/null 2>&1; then
         gtimeout --foreground "${seconds}s" "$@"
     else
-        # macOS does not ship timeout. Run the child in the background and
-        # enforce the deadline here so cron cannot wait forever for a CLI.
-        "$@" &
+        # macOS does not ship timeout. Run the child in its own process group
+        # when setsid is available, then enforce the deadline here so cron
+        # cannot wait forever for a CLI or one of its descendants.
+        local process_group=0
+        if command -v setsid > /dev/null 2>&1; then
+            setsid "$@" &
+            process_group=1
+        else
+            "$@" &
+        fi
         local pid=$!
         local deadline=$((SECONDS + seconds))
 
         while kill -0 "$pid" 2> /dev/null; do
             if [ "$SECONDS" -ge "$deadline" ]; then
-                kill -TERM "$pid" 2> /dev/null || true
+                if [ "$process_group" -eq 1 ]; then
+                    kill -TERM "-$pid" 2> /dev/null || true
+                else
+                    kill -TERM "$pid" 2> /dev/null || true
+                fi
                 sleep 1
-                kill -KILL "$pid" 2> /dev/null || true
+                if [ "$process_group" -eq 1 ]; then
+                    kill -KILL "-$pid" 2> /dev/null || true
+                else
+                    kill -KILL "$pid" 2> /dev/null || true
+                fi
                 wait "$pid" 2> /dev/null || true
                 return 124
             fi
