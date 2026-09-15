@@ -15,6 +15,11 @@ CLAUDE_BIN="${CLAUDE_BIN:-/home/thevetev/.local/bin/claude}"
 # stale root /usr/bin/codex which is pinned old and can't update without a TTY.
 CODEX_BIN="${CODEX_BIN:-/home/thevetev/.npm-global/bin/codex}"
 AGY_BIN="${AGY_BIN:-/home/thevetev/.local/bin/agy}"
+# Leave agy on its configured default first. If that fails, retry with one
+# randomly selected model from this list; override it when the provider's
+# available models change.
+AGY_MODEL="${AGY_MODEL:-}"
+AGY_MODEL_FALLBACKS="${AGY_MODEL_FALLBACKS:-gemini-3.8-flash-low gemini-3.7-flash-low gemini-3.6-flash-low}"
 # Pin codex to a model the account actually has. Codex migrated its config
 # default to gpt-5.5, which this ChatGPT account can't use and the CLI can't
 # run; gpt-5.4 is the account's real model. Override via env if it changes.
@@ -72,8 +77,27 @@ run_with_timeout() {
 
     if command -v timeout > /dev/null 2>&1; then
         timeout --foreground "${seconds}s" "$@"
+    elif command -v gtimeout > /dev/null 2>&1; then
+        gtimeout --foreground "${seconds}s" "$@"
     else
-        "$@"
+        # macOS does not ship timeout. Run the child in the background and
+        # enforce the deadline here so cron cannot wait forever for a CLI.
+        "$@" &
+        local pid=$!
+        local deadline=$((SECONDS + seconds))
+
+        while kill -0 "$pid" 2> /dev/null; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+                kill -TERM "$pid" 2> /dev/null || true
+                sleep 1
+                kill -KILL "$pid" 2> /dev/null || true
+                wait "$pid" 2> /dev/null || true
+                return 124
+            fi
+            sleep 1
+        done
+
+        wait "$pid"
     fi
 }
 

@@ -19,6 +19,16 @@ HAIKU_RAW=""
 # report the model it used — see the codex/agy branches below.
 HAIKU_MODEL="unknown"
 
+random_agy_fallback_model() {
+    local -a models
+    local count
+
+    read -r -a models <<< "$AGY_MODEL_FALLBACKS"
+    count="${#models[@]}"
+    [ "$count" -gt 0 ] || return 1
+    printf '%s' "${models[$((RANDOM % count))]}"
+}
+
 cleanup() {
     [ -n "$HAIKU_OUTPUT" ] && rm -f "$HAIKU_OUTPUT"
     [ -n "$HAIKU_ERROR" ] && rm -f "$HAIKU_ERROR"
@@ -112,15 +122,33 @@ case "$ENGINE" in
     agy)
         # agy -p reads stdin until EOF; without </dev/null it hangs on the
         # inherited pipe under cron until the timeout fires.
-        if ! run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" -p \
-            "Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
+        AGY_PROMPT="Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT"
+        AGY_ARGS=(-p "$AGY_PROMPT")
+        if [ -n "$AGY_MODEL" ]; then
+            AGY_ARGS=(--model "$AGY_MODEL" "${AGY_ARGS[@]}")
+            HAIKU_MODEL="$AGY_MODEL"
+        fi
+        if ! run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" "${AGY_ARGS[@]}" \
             < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
-            log "ERROR: Antigravity CLI failed"
-            cat "$HAIKU_ERROR" >&2
-            if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$HAIKU_ERROR"; then
-                finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
+            FALLBACK_MODEL="$(random_agy_fallback_model || true)"
+            if [ -n "$FALLBACK_MODEL" ] && [ "$FALLBACK_MODEL" != "$AGY_MODEL" ]; then
+                log "agy default failed; retrying with model $FALLBACK_MODEL"
+                : > "$HAIKU_OUTPUT"
+                : > "$HAIKU_ERROR"
+                if run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" \
+                    --model "$FALLBACK_MODEL" -p "$AGY_PROMPT" \
+                    < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
+                    HAIKU_MODEL="$FALLBACK_MODEL"
+                else
+                    log "ERROR: Antigravity CLI fallback failed"
+                    cat "$HAIKU_ERROR" >&2
+                    finish 1 "agy_failed" "ERROR: Antigravity CLI failed or timed out (fallback: $FALLBACK_MODEL)"
+                fi
+            else
+                log "ERROR: Antigravity CLI failed"
+                cat "$HAIKU_ERROR" >&2
+                finish 1 "agy_failed" "ERROR: Antigravity CLI failed or timed out"
             fi
-            finish 1 "agy_failed" "ERROR: Antigravity CLI failed or timed out"
         fi
         # agy prints an OAuth login blob to stdout and still exits 0 when
         # unauthenticated; guard so we never append that to haiku.txt.
@@ -129,10 +157,9 @@ case "$ENGINE" in
             cat "$HAIKU_OUTPUT" >&2
             finish 1 "agy_unauthenticated" "ERROR: Antigravity CLI not authenticated (run 'agy -p test' to log in)"
         fi
-        # agy reports no model id either: --output-format json returns only
-        # conversation_id/status/response/usage, so record it as unreported
-        # rather than letting the log imply a reading we never took.
-        HAIKU_MODEL="unknown"
+        # A default model is not exposed in print mode. Explicit fallback
+        # retries are recorded; the default remains honestly unknown.
+        HAIKU_MODEL="${HAIKU_MODEL:-unknown}"
         ;;
     *)
         finish 1 "invalid_engine" "ERROR: Unknown ENGINE=$ENGINE (use claude, codex, or agy)"
