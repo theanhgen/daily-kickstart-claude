@@ -18,6 +18,9 @@ Thumbs.db
 # ...but keep the persistent model-attribution log (committed, never rotated)
 !model.log
 
+# Python bytecode
+__pycache__/
+
 # Temporary files
 *.tmp
 .cache/

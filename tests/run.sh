@@ -461,7 +461,7 @@ test_agy_random_model_fallback() {
     trap "rm -rf '$project_dir'" EXIT
 
     run_generate "$project_dir" ENGINE=agy GENERATE_STUB_MODE=fallback \
-        AGY_MODEL_FALLBACKS="gemini-test-one"
+        AGY_FALLBACK_MODELS="gemini-test-one"
     assert_eq "0" "$RUN_STATUS" "agy should retry with a fallback model"
     assert_file_contains "$project_dir/model.log" \
         "engine=agy model=gemini-test-one" \
