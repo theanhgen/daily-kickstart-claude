@@ -476,6 +476,8 @@ test_run_with_timeout_without_gnu_timeout() {
     ln -s /bin/sleep "$project_dir/bin/sleep"
 
     set +e
+    # The inner script must receive $1 from bash -c, not expand it here.
+    # shellcheck disable=SC2016
     RUN_OUTPUT="$(env PATH="$(dirname "$project_dir/bin/claude")" \
         /bin/bash -c '. "$1/scripts/lib.sh"; run_with_timeout 1 /bin/sleep 5' \
         bash "$project_dir" 2>&1)"
