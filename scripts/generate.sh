@@ -112,16 +112,69 @@ case "$ENGINE" in
     agy)
         # agy -p reads stdin until EOF; without </dev/null it hangs on the
         # inherited pipe under cron until the timeout fires.
-        if ! run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" -p \
-            "Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
-            < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
-            log "ERROR: Antigravity CLI failed"
+        # --dangerously-skip-permissions: since v1.1.28, agy asks before
+        # fetching URLs or calling tools — a permission prompt blocks forever
+        # without a TTY. Safe here because the task is a one-line haiku prompt.
+
+        # Build model list: primary first, then fallbacks in random order so
+        # quota pressure is spread across providers rather than always hitting
+        # Claude before GPT-OSS (or vice versa).
+        _shuffled_fallbacks=""
+        if [ -n "$AGY_FALLBACK_MODELS" ]; then
+            _shuffled_fallbacks="$(printf '%s\n' $AGY_FALLBACK_MODELS | shuf | tr '\n' ' ')"
+        fi
+        AGY_MODEL_QUEUE="${AGY_MODEL:-__default__} $_shuffled_fallbacks"
+
+        AGY_SUCCESS=0
+        HAIKU_MODEL="unknown"
+        for _model in $AGY_MODEL_QUEUE; do
+            # Build --model flag; omit it entirely for the agy default so we
+            # don't pin to whatever "gemini-3.8-flash" is called today.
+            _model_args=()
+            _model_label="default"
+            if [ "$_model" != "__default__" ]; then
+                _model_args=(--model "$_model")
+                _model_label="$_model"
+            fi
+
+            log "Trying agy model: $_model_label"
+            # Reset temp files for each attempt.
+            : > "$HAIKU_OUTPUT"; : > "$HAIKU_ERROR"
+
+            if run_with_timeout "$AGY_TIMEOUT_SECONDS" "$AGY_BIN" \
+                    --dangerously-skip-permissions \
+                    "${_model_args[@]}" \
+                    -p "Output only the haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
+                    < /dev/null > "$HAIKU_OUTPUT" 2> "$HAIKU_ERROR"; then
+                AGY_SUCCESS=1
+                HAIKU_MODEL="$_model_label"
+                break
+            fi
+
+            # Surface the error for diagnostics.
             cat "$HAIKU_ERROR" >&2
+
+            # Check for hard errors that mean fallback won't help.
             if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$HAIKU_ERROR"; then
                 finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
             fi
+
+            # Check for quota / availability errors that warrant trying the next model.
+            if grep -qiE 'quota|rate.?limit|resource.?exhausted|429|503|unavailable|model.*not.*available|no model' "$HAIKU_ERROR"; then
+                log "WARNING: agy model $_model_label quota/availability error — trying next fallback"
+                continue
+            fi
+
+            # Any other error (timeout / auth / unknown): stop immediately, no fallback.
+            log "ERROR: Antigravity CLI failed on model $_model_label (non-quota error)"
             finish 1 "agy_failed" "ERROR: Antigravity CLI failed or timed out"
+        done
+
+        if [ "$AGY_SUCCESS" -eq 0 ]; then
+            log "ERROR: All agy models exhausted (tried: $AGY_MODEL_QUEUE)"
+            finish 1 "agy_all_models_failed" "ERROR: All agy models exhausted — check quotas"
         fi
+
         # agy prints an OAuth login blob to stdout and still exits 0 when
         # unauthenticated; guard so we never append that to haiku.txt.
         if grep -qiE 'Authentication required|authentication timed out' "$HAIKU_OUTPUT"; then
@@ -129,11 +182,11 @@ case "$ENGINE" in
             cat "$HAIKU_OUTPUT" >&2
             finish 1 "agy_unauthenticated" "ERROR: Antigravity CLI not authenticated (run 'agy -p test' to log in)"
         fi
-        # agy reports no model id either: --output-format json returns only
-        # conversation_id/status/response/usage, so record it as unreported
-        # rather than letting the log imply a reading we never took.
-        HAIKU_MODEL="unknown"
+        # agy JSON output (conversation_id/status/response/usage) does not expose
+        # the model id, so we record whatever model we pinned — or "unknown" for
+        # the agy default — rather than implying a reading we never took.
         ;;
+
     *)
         finish 1 "invalid_engine" "ERROR: Unknown ENGINE=$ENGINE (use claude, codex, or agy)"
         ;;

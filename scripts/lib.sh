@@ -15,6 +15,13 @@ CLAUDE_BIN="${CLAUDE_BIN:-/home/thevetev/.local/bin/claude}"
 # stale root /usr/bin/codex which is pinned old and can't update without a TTY.
 CODEX_BIN="${CODEX_BIN:-/home/thevetev/.npm-global/bin/codex}"
 AGY_BIN="${AGY_BIN:-/home/thevetev/.local/bin/agy}"
+# Primary agy model (empty = agy's own default, currently gemini-3.8-flash).
+# Override via env to pin a specific model id (see: agy models).
+AGY_MODEL="${AGY_MODEL:-}"
+# Fallback model chain tried in order when the primary model returns a quota /
+# availability error. Claude and GPT-OSS cover the case where Gemini quota is
+# exhausted. Set to "" to disable fallback entirely.
+AGY_FALLBACK_MODELS="${AGY_FALLBACK_MODELS:-claude-sonnet-4-6 gpt-oss-120b-medium}"
 # Pin codex to a model the account actually has. This has moved twice: the
 # config default rolled to gpt-5.5 (which 404s for this ChatGPT account), and
 # the old gpt-5.4 pin was retired server-side on 2026-09-04 ("not supported
