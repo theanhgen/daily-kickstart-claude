@@ -31,7 +31,9 @@ jobs:
           python-version: '3.x'
 
       - name: Python unit tests
-        run: python3 tests/test_build_site.py
+        run: |
+          python3 tests/test_build_site.py
+          python3 tests/test_omniroute_haiku.py
 
       - name: JS unit tests
         run: node --test tests/test_main.js
