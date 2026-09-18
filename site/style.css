@@ -877,6 +877,9 @@ body {
   padding: 1rem 0;
   border-top: 1px solid var(--rule);
 }
+.bench-fold + .bench-fold {
+  margin-top: -4rem;   /* .month-group's bottom margin; consecutive folds read as one list */
+}
 .bench-fold > summary::-webkit-details-marker {
   display: none;
 }

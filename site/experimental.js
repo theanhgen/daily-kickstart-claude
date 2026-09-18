@@ -105,7 +105,7 @@ function renderLatest(data) {
       ${h.lines.map(l => `<p>${esc(l)}</p>`).join("")}
       <div class="entry-meta">${badges(h)}</div>
     </div>`).join("");
-  // Folded by default: the word cloud is the page, the run's haikus are the detail.
+  // Folded by default: the word cloud is the page, the run's haikus are detail.
   return `
     <details class="month-group bench-fold">
       <summary><span class="bench-fold-title">Latest run</span>
@@ -130,10 +130,11 @@ function renderModels(data) {
       <summary>${silent.length} more listed model${silent.length === 1 ? "" : "s"} never answered</summary>
       <p>${silent.map(m => esc(m.model)).join(" · ")}</p>
     </details>` : "";
+  // Folded like the latest run: the word cloud is the page.
   return `
-    <div class="month-group">
-      <h2 class="month-heading">Models</h2>
-      <span class="month-count">last ${data.window_days} days · ${data.runs_in_window} runs · answered/asked</span>
+    <details class="month-group bench-fold">
+      <summary><span class="bench-fold-title">Models</span>
+        <span class="month-count">${answered.length} answered · last ${data.window_days} days · ${data.runs_in_window} runs</span></summary>
       <div class="bench-table-wrap">
         <table class="bench-table">
           <thead><tr><th>Model</th><th>Provider</th><th>Effort</th><th class="num">Answered</th><th>Last answer</th></tr></thead>
@@ -141,7 +142,7 @@ function renderModels(data) {
         </table>
       </div>
       ${dead}
-    </div>`;
+    </details>`;
 }
 
 function renderBench(data) {
