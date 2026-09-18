@@ -122,9 +122,9 @@ answer in a local SQLite database, `omniroute-haiku.db` (gitignored, never pushe
 touches `haiku.txt`, `model.log`, the archive or its stats. A daily export feeds its own page,
 **[Experimental](https://theanhgen.github.io/daily-kickstart-claude/experimental.html)**,
 linked under Archive: a word cloud of the free models' 80 most-used words over 14 days (sized
-by uses; coloured gemini / mistral / qwen when that family leans on a word, grey for any other
-family, ink when everyone shares it), then, folded away, the latest run's haikus and a per-model
-answered table.
+by uses and packed on a spiral, the most-used in the centre; coloured gemini / mistral / llama
+when that family leans on a word, grey for any other family, ink when everyone shares it), then,
+folded away, the latest run's haikus and a per-model answered table.
 
 - **Which models:** the multireview runner's `roster` subcommand decides what counts as free,
   so there is one cost table, not two. Around 120 models across 15 providers today.

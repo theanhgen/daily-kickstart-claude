@@ -34,21 +34,15 @@ function badges(item) {
 // its colour when the families reshuffle. Three is the most a cloud can carry:
 // every colour sits next to every other, and past three the categorical palette
 // stops separating for colour-blind readers. Any other family's words are grey.
-const CLOUD_FAMILIES = ["gemini", "mistral", "qwen"];
+// Picked as the three that lean on the most words (Sep 2026: gemini 18, llama 8,
+// mistral 6, qwen 0); revisit by hand if that changes, never automatically.
+const CLOUD_FAMILIES = ["gemini", "mistral", "llama"];
 const CLOUD_MIN_REM = 0.85;
-const CLOUD_MAX_REM = 2.6;
+const CLOUD_MAX_REM = 3.2;
 
 function familyClass(owner) {
   if (!owner) return "shared";
   return CLOUD_FAMILIES.includes(owner) ? owner : "other";
-}
-
-// Stable scatter: order words by a string hash, so big and small interleave the
-// same way on every load instead of reading as a sorted list.
-function wordHash(w) {
-  let h = 2166136261;
-  for (const c of w) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
-  return h;
 }
 
 // Area, not height, should track uses: size by the square root.
@@ -64,11 +58,71 @@ function wordDetail(w) {
   return `${w.word}: ${w.uses} uses by ${models} (${fams})${lean}`;
 }
 
+// ── Packed layout ──
+// The Wordle layout: biggest word first, each one placed at the first clear spot
+// on a spiral out from the centre, so the heavy words gather in the middle. Pure
+// over measured boxes so node can test it; layoutCloud measures the spans, packs
+// them and positions them absolutely.
+const PACK_GAP = 3;        // px of clear space between two words
+const PACK_PITCH = 1.4;    // px the spiral's radius grows per radian, ~9px a turn
+const PACK_STEP = 4;       // px along the spiral between tries
+const PACK_TRIES = 30000;
+
+// boxes: [{w, h}] in placement order. Returns [{x0, x1, y0, y1}] around a (0, 0)
+// centre, every box inside [-width/2, width/2].
+function packCloud(boxes, width) {
+  const half = width / 2;
+  // Wide screens pack an oval, phones a round cloud that grows downward.
+  const stretch = Math.min(2, Math.max(1, width / 360));
+  const placed = [];
+  const clear = r => placed.every(p => r.x1 + PACK_GAP <= p.x0 || p.x1 + PACK_GAP <= r.x0
+    || r.y1 + PACK_GAP <= p.y0 || p.y1 + PACK_GAP <= r.y0);
+  for (const { w, h } of boxes) {
+    const room = Math.max(0, half - w / 2);
+    let rect = null;
+    for (let i = 0, t = 0; i < PACK_TRIES && !rect; i++) {
+      const r = PACK_PITCH * t;
+      const x = r * Math.cos(t) * stretch, y = r * Math.sin(t);
+      if (Math.abs(x) <= room) {
+        const c = { x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 };
+        if (clear(c)) rect = c;
+      }
+      t += PACK_STEP / Math.max(r, PACK_STEP);
+    }
+    // Wider than the screen, or no room found: a row of its own under the rest.
+    if (!rect) {
+      const bottom = placed.length ? Math.max(...placed.map(p => p.y1)) + PACK_GAP : 0;
+      rect = { x0: -w / 2, x1: w / 2, y0: bottom, y1: bottom + h };
+    }
+    placed.push(rect);
+  }
+  return placed;
+}
+
+function layoutCloud(box) {
+  const width = box.clientWidth;
+  if (!width) return;
+  box.classList.add("packed");
+  const spans = [...box.querySelectorAll(".cloud-word")];
+  const rects = packCloud(spans.map(s => {
+    const b = s.getBoundingClientRect();
+    return { w: b.width, h: b.height };
+  }), width);
+  const top = Math.min(...rects.map(r => r.y0));
+  spans.forEach((s, i) => {
+    s.style.left = `${(width / 2 + rects[i].x0).toFixed(1)}px`;
+    s.style.top = `${(rects[i].y0 - top).toFixed(1)}px`;
+  });
+  box.style.height = `${Math.ceil(Math.max(...rects.map(r => r.y1)) - top)}px`;
+  box.dataset.width = String(width);
+}
+
 function renderCloud(cloud) {
   if (!cloud || !cloud.words.length) return "";
   const uses = cloud.words.map(w => w.uses);
   const min = Math.min(...uses), max = Math.max(...uses);
-  const words = [...cloud.words].sort((a, b) => wordHash(a.word) - wordHash(b.word) || (a.word < b.word ? -1 : 1));
+  // Most-used first: the order they are packed in, and the reading order.
+  const words = [...cloud.words].sort((a, b) => b.uses - a.uses || (a.word < b.word ? -1 : 1));
   const spans = words.map(w => `<span class="cloud-word fam-${familyClass(w.owner)}" tabindex="0"`
     + ` style="font-size:${cloudSize(w.uses, min, max).toFixed(2)}rem"`
     + ` title="${esc(wordDetail(w))}" data-detail="${esc(wordDetail(w))}">${esc(w.word)}</span>`).join(" ");
@@ -167,6 +221,22 @@ if (typeof window !== "undefined") (async () => {
       if (w && detail) detail.textContent = w.dataset.detail;
     };
     for (const ev of ["mouseover", "focusin", "click"]) el.addEventListener(ev, show);
+    // Pack once the font is in (its widths decide the layout), and again whenever the
+    // column changes width. Until then the words sit in a plain wrapped row.
+    const box = el.querySelector(".bench-cloud");
+    if (box) {
+      const pack = () => layoutCloud(box);
+      pack();
+      if (document.fonts) {
+        document.fonts.ready.then(pack);
+        document.fonts.addEventListener("loadingdone", pack);
+      }
+      if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(() => {
+          if (box.clientWidth && String(box.clientWidth) !== box.dataset.width) pack();
+        }).observe(box);
+      }
+    }
     const count = document.getElementById("bench-count");
     if (count) count.textContent = `${data.models.filter(m => m.ok > 0).length} models`;
   } catch {
@@ -175,5 +245,5 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, benchName, fmtUtc, renderBench, familyClass, cloudSize, wordDetail, renderCloud };
+  module.exports = { esc, benchName, fmtUtc, renderBench, familyClass, cloudSize, wordDetail, renderCloud, packCloud };
 }
