@@ -65,36 +65,51 @@ def parse_haikus():
 
 
 MODEL_LOG_RE = re.compile(
-    r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC engine=(\S+) model=(\S+)$")
+    r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC engine=(\S+) model=(\S+)(?: effort=(\S+))?$")
 
 
 # An engine that does not report the model it used logs a placeholder, not a
 # reading. "default" is the historic spelling, "unknown" the current one.
 UNREPORTED_MODELS = {"default", "unknown"}
 
+# Effort joined model.log on 2026-09-18, so older lines carry none; "unknown" is
+# not a reading either. Both carry the last known effort forward, the same way
+# placeholder models do. ("default" IS a reading: no effort was requested.)
+UNREPORTED_EFFORTS = {None, "unknown"}
+
 
 def parse_model_changes(path=MODEL_LOG_FILE):
     """Model-change events from model.log, so the sentiment chart can mark
-    where an engine's model swapped. An engine's first sighting is its
-    baseline, not a change; comment lines are skipped. Placeholder entries are
-    neither a change nor a baseline — they carry the last real id forward, so
-    renaming the placeholder never fabricates a swap."""
+    where an engine's model or reasoning effort swapped. An engine's first
+    sighting is its baseline, not a change; comment lines are skipped.
+    Placeholder entries are neither a change nor a baseline — they carry the
+    last real id forward, so renaming the placeholder never fabricates a swap.
+    Effort follows the same rule, so the first line that carries one is not a
+    change from the lines before it that had none."""
     if not os.path.isfile(path):
         return []
-    last, changes = {}, []
+    last, last_effort, changes = {}, {}, []
     with open(path) as f:
         for line in f:
             m = MODEL_LOG_RE.match(line.strip())
             if not m:
                 continue
-            ts, engine, model = m.groups()
+            ts, engine, model, effort = m.groups()
             if model in UNREPORTED_MODELS:
                 continue
-            prev = last.get(engine)
-            if prev is not None and prev != model:
-                changes.append({"engine": engine, "ts": f"{ts} UTC",
-                                "from": prev, "to": model})
+            prev, prev_effort = last.get(engine), last_effort.get(engine)
+            known = effort not in UNREPORTED_EFFORTS
+            effort_moved = known and prev_effort is not None and prev_effort != effort
+            if prev is not None and (prev != model or effort_moved):
+                change = {"engine": engine, "ts": f"{ts} UTC", "from": prev, "to": model}
+                if prev_effort is not None:
+                    change["from_effort"] = prev_effort
+                if known:
+                    change["to_effort"] = effort
+                changes.append(change)
             last[engine] = model
+            if known:
+                last_effort[engine] = effort
     return changes
 
 

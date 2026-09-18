@@ -19,6 +19,9 @@ AGY_ERROR_HISTORY=""
 # "unknown" (never "default") is the honest record when an engine does not
 # report the model it used — see the codex/agy branches below.
 HAIKU_MODEL="unknown"
+# Reasoning effort, recorded next to the model. "default" means none was
+# requested (the provider's default applied); "unknown" means we cannot say.
+HAIKU_EFFORT="unknown"
 
 cleanup() {
     [ -n "$HAIKU_OUTPUT" ] && rm -f "$HAIKU_OUTPUT"
@@ -83,6 +86,8 @@ case "$ENGINE" in
         fi
         node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write((JSON.parse(d).result||"")+"\n")}catch{}})' < "$HAIKU_RAW" > "$HAIKU_OUTPUT" 2>/dev/null
         HAIKU_MODEL="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(Object.keys(JSON.parse(d).modelUsage||{})[0]||"unknown")}catch{process.stdout.write("unknown")}})' < "$HAIKU_RAW" 2>/dev/null || echo unknown)"
+        # No --effort is passed, so the CLI's default applies.
+        HAIKU_EFFORT="default"
         ;;
     codex)
         CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
@@ -111,6 +116,10 @@ case "$ENGINE" in
         # never "default", which would imply a reading we did not take.
         HAIKU_MODEL="$(awk '/^model:/ { print $2; exit }' "$HAIKU_ERROR" 2>/dev/null || true)"
         HAIKU_MODEL="${HAIKU_MODEL:-${CODEX_MODEL:-unknown}}"
+        # Same banner, same rule: "reasoning effort: low" is what ran, the
+        # configured CODEX_REASONING only the fallback.
+        HAIKU_EFFORT="$(awk '/^reasoning effort:/ { print $3; exit }' "$HAIKU_ERROR" 2>/dev/null || true)"
+        HAIKU_EFFORT="${HAIKU_EFFORT:-${CODEX_REASONING:-unknown}}"
         ;;
     agy)
         # agy -p reads stdin until EOF; without </dev/null it hangs on the
@@ -162,8 +171,11 @@ case "$ENGINE" in
                 AGY_SUCCESS=1
                 if [ "$_model" = "__default__" ]; then
                     HAIKU_MODEL="unknown"
+                    HAIKU_EFFORT="unknown"
                 else
                     HAIKU_MODEL="$_model_label"
+                    # agy takes no --effort here; a pinned id may name one.
+                    HAIKU_EFFORT="$(effort_from_id "$_model_label")"
                 fi
                 break
             fi
@@ -237,7 +249,8 @@ fi
 # Record which model wrote this haiku in the persistent model.log (never
 # rotated, not in haiku.txt) so a future mood/sentiment trend can be
 # attributed to model changes over time.
-printf '%s engine=%s model=%s\n' "$TIMESTAMP" "$ENGINE" "${HAIKU_MODEL:-unknown}" >> "$MODEL_LOG"
+printf '%s engine=%s model=%s effort=%s\n' "$TIMESTAMP" "$ENGINE" "${HAIKU_MODEL:-unknown}" \
+    "${HAIKU_EFFORT:-unknown}" >> "$MODEL_LOG"
 
 # Append to haiku.txt with clean format
 {

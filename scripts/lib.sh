@@ -52,6 +52,16 @@ MODEL_LOG="${MODEL_LOG:-$PROJECT_DIR/model.log}"
 LOCK_BACKEND=""
 LOCK_FD=""
 
+# Reasoning effort named by an id's suffix ("gpt-oss-120b-medium" -> medium),
+# else "default": no effort was requested, so the provider's default applied.
+effort_from_id() {
+    if [[ "$1" =~ -(xhigh|high|medium|low|minimal|none)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+    else
+        echo "default"
+    fi
+}
+
 timestamp_utc() {
     date -u '+%Y-%m-%d %H:%M:%S UTC'
 }

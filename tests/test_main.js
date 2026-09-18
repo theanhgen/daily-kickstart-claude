@@ -1,7 +1,7 @@
 // Unit tests for site/main.js pure helpers (node --test tests/test_main.js).
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { esc, slugOf, syllables, lineSyllables, is575, shortModel, trendFoot } = require("../site/main.js");
+const { esc, slugOf, syllables, lineSyllables, is575, shortModel, modelLabel, trendFoot } = require("../site/main.js");
 
 test("esc neutralizes HTML in haiku content", () => {
   assert.equal(esc("<img src=x onerror=alert(1)>"), "&lt;img src=x onerror=alert(1)&gt;");
@@ -67,4 +67,9 @@ test("trendFoot reports the direction when both windows have data", () => {
   assert.match(cool, /Mood cooling −0\.16 over the last 30 days/);
   // A genuine zero delta is still a measurement, not missing history.
   assert.match(trendFoot(0.1, 0.1), /Mood warming \+0\.00 over the last 30 days/);
+});
+
+test("modelLabel adds the effort only when model.log recorded one", () => {
+  assert.equal(modelLabel("codex", "gpt-5.6-sol", "low"), "gpt-5.6-sol · low");
+  assert.equal(modelLabel("claude", "claude-haiku-4-5-20251001", undefined), "haiku-4-5");
 });

@@ -464,7 +464,7 @@ test_agy_random_model_fallback() {
         AGY_FALLBACK_MODELS="gemini-test-one"
     assert_eq "0" "$RUN_STATUS" "agy should retry with a fallback model"
     assert_file_contains "$project_dir/model.log" \
-        "engine=agy model=gemini-test-one" \
+        "engine=agy model=gemini-test-one effort=default" \
         "agy should record the selected fallback model"
 }
 
@@ -535,7 +535,7 @@ test_agy_records_unknown_model() {
     # agy reports no model id, so the log must say so rather than logging the
     # literal "default", which reads as a model that never changes.
     assert_file_exists "$project_dir/model.log" "agy generation should record a model.log entry"
-    assert_file_contains "$project_dir/model.log" "engine=agy model=unknown" "agy should record an unreported model as unknown"
+    assert_file_contains "$project_dir/model.log" "engine=agy model=unknown effort=unknown" "agy should record an unreported model as unknown"
 }
 
 test_codex_records_model_that_answered() {
@@ -552,7 +552,7 @@ test_codex_records_model_that_answered() {
     assert_eq "0" "$RUN_STATUS" "codex generation should exit cleanly"
 
     assert_file_exists "$project_dir/model.log" "codex generation should record a model.log entry"
-    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-actual" "codex should record the model from the banner, not the pin"
+    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-actual effort=xhigh" "codex should record the model and effort from the banner, not the pin"
 }
 
 test_codex_falls_back_to_pin_without_banner() {
@@ -564,10 +564,30 @@ test_codex_falls_back_to_pin_without_banner() {
     # No banner (an older CLI, or a changed banner format): the pin is the
     # best remaining record — but still never the literal "default".
     run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-pin \
-        CODEX_STUB_BANNER_MODEL=
+        CODEX_STUB_BANNER_MODEL= CODEX_REASONING=low
     assert_eq "0" "$RUN_STATUS" "codex generation should exit cleanly"
 
-    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-pin" "codex should fall back to the configured pin"
+    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-pin effort=low" "codex should fall back to the configured pin and effort"
+}
+
+test_claude_records_default_effort() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=claude
+    assert_eq "0" "$RUN_STATUS" "claude generation should exit cleanly"
+    assert_file_contains "$project_dir/model.log" "engine=claude model=claude-stub effort=default" "claude passes no --effort, so it should record default"
+}
+
+test_effort_from_id() {
+    # shellcheck source=/dev/null
+    . "$REPO_DIR/scripts/lib.sh"
+    assert_eq "medium" "$(effort_from_id gpt-oss-120b-medium)" "a -medium suffix names the effort"
+    assert_eq "xhigh" "$(effort_from_id gemini-3.8-flash-xhigh)" "xhigh must not read as high"
+    assert_eq "default" "$(effort_from_id claude-sonnet-4-6)" "no suffix means no effort was requested"
+    assert_eq "default" "$(effort_from_id gemini-3.7-flash-tiered)" "only effort words count as a suffix"
 }
 
 test_write_status_round_trips_values() {
@@ -756,6 +776,8 @@ main() {
     run_test test_agy_records_unknown_model
     run_test test_codex_records_model_that_answered
     run_test test_codex_falls_back_to_pin_without_banner
+    run_test test_claude_records_default_effort
+    run_test test_effort_from_id
     run_test test_write_status_round_trips_values
     run_test test_write_health_state_round_trips_values
     run_test test_sync_refuses_lookalike_dirty_path

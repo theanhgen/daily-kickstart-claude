@@ -281,5 +281,33 @@ class ModelChangePlaceholderTest(unittest.TestCase):
         self.assertEqual((changes[0]["from"], changes[0]["to"]), ("gpt-5.4", "gpt-5.5"))
 
 
+class ModelChangeEffortTest(ModelChangePlaceholderTest):
+    """Effort joined model.log later than the model did."""
+
+    def test_first_effort_is_not_a_change(self):
+        self.assertEqual(self._changes(
+            "2026-09-17 06:00:00 UTC engine=codex model=gpt-5.6-sol\n"
+            "2026-09-18 06:00:00 UTC engine=codex model=gpt-5.6-sol effort=low\n"
+        ), [])
+
+    def test_effort_swap_is_a_change(self):
+        changes = self._changes(
+            "2026-09-18 06:00:00 UTC engine=codex model=gpt-5.6-sol effort=low\n"
+            "2026-09-18 11:00:00 UTC engine=codex model=gpt-5.6-sol effort=unknown\n"
+            "2026-09-19 06:00:00 UTC engine=codex model=gpt-5.6-sol effort=medium\n"
+        )
+        self.assertEqual(changes, [{"engine": "codex", "ts": "2026-09-19 06:00:00 UTC",
+                                    "from": "gpt-5.6-sol", "to": "gpt-5.6-sol",
+                                    "from_effort": "low", "to_effort": "medium"}])
+
+    def test_model_swap_carries_effort(self):
+        changes = self._changes(
+            "2026-09-18 06:00:00 UTC engine=codex model=gpt-5.6-sol effort=low\n"
+            "2026-09-19 06:00:00 UTC engine=codex model=gpt-6-astra effort=low\n"
+        )
+        self.assertEqual([(c["from"], c["to"], c["from_effort"], c["to_effort"]) for c in changes],
+                         [("gpt-5.6-sol", "gpt-6-astra", "low", "low")])
+
+
 if __name__ == "__main__":
     unittest.main()

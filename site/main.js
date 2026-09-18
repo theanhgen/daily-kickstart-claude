@@ -523,6 +523,12 @@ function shortModel(engine, id) {
   return id.replace(new RegExp(`^${engine}-`), "").replace(/-20\d{6}$/, "");
 }
 
+// A model-change label with its reasoning effort when model.log recorded one:
+// "gpt-5.6-sol · low". An effort-only change reads "gpt-5.6-sol · low → gpt-5.6-sol · medium".
+function modelLabel(engine, id, effort) {
+  return shortModel(engine, id) + (effort ? ` · ${effort}` : "");
+}
+
 // Footer trend copy: the change in the all-engine daily mean, last 30 vs prior
 // 30 days. Either window is null when no day in it carries a haiku — on an
 // archive younger than ~60 days the prior window always is — and a missing
@@ -701,7 +707,7 @@ function renderTrend(haikus, modelChanges) {
       .map(r => `<div class="tip-row"><span class="tip-name"><i style="background:var(--${r.src}-text)"></i>${r.src}</span><b>${r.v > 0 ? "+" : ""}${r.v.toFixed(2)}</b></div>`)
       .join("");
     const marks = (markerByDay[day] || [])
-      .map(c => `<div class="tip-row tip-model"><span class="tip-name"><i style="background:var(--${c.engine}-text)"></i>${c.engine}</span><b>${esc(shortModel(c.engine, c.from))} → ${esc(shortModel(c.engine, c.to))}</b></div>`)
+      .map(c => `<div class="tip-row tip-model"><span class="tip-name"><i style="background:var(--${c.engine}-text)"></i>${c.engine}</span><b>${esc(modelLabel(c.engine, c.from, c.from_effort))} → ${esc(modelLabel(c.engine, c.to, c.to_effort))}</b></div>`)
       .join("");
     tip.innerHTML = `<div class="tip-date">${fmt(startMs + day * DAY_MS)}</div>${rows}${marks}`;
     tip.hidden = false;
@@ -834,5 +840,5 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, shortModel, trendFoot };
+  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, shortModel, modelLabel, trendFoot };
 }
