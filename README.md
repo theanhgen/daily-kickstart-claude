@@ -121,7 +121,9 @@ OmniRoute can reach at that moment** for a haiku, at the same four times, and fi
 answer in a local SQLite database, `omniroute-haiku.db` (gitignored, never pushed). Nothing
 touches `haiku.txt`, `model.log`, the archive or its stats. A daily export feeds its own page,
 **[Experimental](https://theanhgen.github.io/daily-kickstart-claude/experimental.html)**,
-linked under Archive.
+linked under Archive: a word cloud of the free models' 80 most-used words over 14 days (sized
+by uses; coloured gemini / mistral / qwen when that family leans on a word, grey for any other
+family, ink when everyone shares it), the latest run's haikus, and a per-model answered table.
 
 - **Which models:** the multireview runner's `roster` subcommand decides what counts as free,
   so there is one cost table, not two. Around 120 models across 15 providers today.

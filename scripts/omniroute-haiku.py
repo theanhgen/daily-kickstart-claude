@@ -88,6 +88,21 @@ PUBLISH_REPO = os.environ.get("OMNIROUTE_HAIKU_PUBLISH_REPO", os.path.expanduser
     "~/Library/Caches/daily-kickstart-bench.git"))
 EXPORT_WINDOW_DAYS = 14
 
+# Word cloud on experimental.html. Same tokenizer and stop words as the archive's
+# stats in site/main.js (tokens(), STOP), so "a word" means one thing on both pages.
+CLOUD_STOP = set(("the a an and or but of to in on at by for with from into as is are was "
+                  "be it its his her their our your my this that these those then than so no "
+                  "not all each").split())
+CLOUD_WORD = re.compile(r"[a-z']+")
+CLOUD_SIZE = 80          # words shown
+CLOUD_MIN_USES = 3       # below this a word is noise, not part of anyone's world
+# A family "owns" a word when it writes at least OWN_SHARE of the word's uses AND
+# uses it OWN_LIFT times more than its share of all words predicts. The lift is what
+# stops the biggest family from owning every common word just by writing the most (a
+# family writing over 2/3 of all words could own nothing; gemini writes about 1/4).
+OWN_SHARE = 0.4
+OWN_LIFT = 1.5
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY,
@@ -391,6 +406,9 @@ def export(db, now=None, window_days=EXPORT_WINDOW_DAYS, listed=None):
             if listed is None or r["model"] in listed]
         runs = db.execute("SELECT COUNT(*) FROM runs WHERE started_utc >= ? AND error IS NULL",
                           (since,)).fetchone()[0]
+        window_haikus = [(r["model"], r["lineage"], r["haiku"].split("\n")) for r in db.execute(
+            "SELECT model, lineage, haiku FROM attempts WHERE status = 'ok' AND created_utc >= ?",
+            (since,))]
     finally:
         db.row_factory = None
     return {
@@ -402,7 +420,41 @@ def export(db, now=None, window_days=EXPORT_WINDOW_DAYS, listed=None):
             "skipped": latest["skipped"] or 0, "ok": latest["ok"], "failed": latest["failed"]},
         "haikus": haikus,
         "models": models,
+        "cloud": {"haikus": len(window_haikus), "words": word_cloud(window_haikus)},
     }
+
+
+def cloud_words(lines):
+    return [w for line in lines for w in CLOUD_WORD.findall(line.lower())
+            if len(w) > 2 and w not in CLOUD_STOP]
+
+
+def word_cloud(haikus):
+    """[(word, uses, owner family or None, [[family, uses], ...], distinct models)] for the
+    CLOUD_SIZE most-used words. `haikus` is (model, family, lines) triples."""
+    uses, by_family, by_model, family_total = {}, {}, {}, {}
+    for model, family, lines in haikus:
+        family = family or "other"
+        for w in cloud_words(lines):
+            uses[w] = uses.get(w, 0) + 1
+            by_family.setdefault(w, {}).setdefault(family, 0)
+            by_family[w][family] += 1
+            by_model.setdefault(w, set()).add(model)
+            family_total[family] = family_total.get(family, 0) + 1
+    total = sum(family_total.values())
+    top = sorted((w for w in uses if uses[w] >= CLOUD_MIN_USES), key=lambda w: (-uses[w], w))
+    out = []
+    for w in top[:CLOUD_SIZE]:
+        fams = sorted(by_family[w].items(), key=lambda kv: (-kv[1], kv[0]))
+        owner = None
+        for family, n in fams:
+            expected = uses[w] * family_total[family] / total
+            if n / uses[w] >= OWN_SHARE and n / expected >= OWN_LIFT:
+                owner = family
+                break
+        out.append({"word": w, "uses": uses[w], "owner": owner,
+                    "families": [list(kv) for kv in fams[:3]], "models": len(by_model[w])})
+    return out
 
 
 def git(args, stdin=None, cwd=None):

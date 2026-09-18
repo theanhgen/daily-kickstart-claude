@@ -242,6 +242,7 @@ class ExportPublishTest(unittest.TestCase):
         self.assertEqual([(m["model"], m["asked"], m["ok"]) for m in data["models"]],
                          [("agy/m-high", 1, 1), ("b/dead", 1, 0)])
         self.assertEqual(data["runs_in_window"], 1)
+        self.assertEqual(data["cloud"]["haikus"], 1)
         # Only models still in the roster, when the caller knows the roster.
         self.assertEqual([m["model"] for m in oh.export(self.db, now=self.NOW, listed={"agy/m-high"})["models"]],
                          ["agy/m-high"])
@@ -270,6 +271,32 @@ class ExportPublishTest(unittest.TestCase):
         self.assertEqual(git("rev-list", "--count", "bench-data"), "1")   # orphan, no history
         self.assertEqual(git("for-each-ref", "--format=%(refname)"), "refs/heads/bench-data")
         self.assertIn("agy/m-high", git("show", "bench-data:free-models.json"))
+
+
+class WordCloudTest(unittest.TestCase):
+    def test_counts_use_the_archive_tokenizer(self):
+        self.assertEqual(oh.cloud_words(["The moon's glow, a pond", "An old frog in it"]),
+                         ["moon's", "glow", "pond", "old", "frog"])
+
+    def test_ownership_needs_share_and_lift(self):
+        # Word totals: gemini 12, mistral 8, qwen 6 (46% / 31% / 23%).
+        haikus = ([("g/1", "gemini", ["silence river stone"])] * 4
+                  + [("q/1", "qwen", ["silence plum plum"])] * 2
+                  + [("m/1", "mistral", ["silence river"])] * 4)
+        words = {w["word"]: w for w in oh.word_cloud(haikus)}
+        self.assertEqual(words["silence"]["owner"], None)        # everyone's word
+        self.assertEqual(words["plum"]["owner"], "qwen")         # all qwen, 4x its share
+        self.assertEqual(words["stone"]["owner"], "gemini")      # all gemini, 2.2x its share
+        # An even split still leans: river is half of each, but mistral writes less
+        # overall (1.6x its share) while gemini's half is just its share (1.1x).
+        self.assertEqual(words["river"]["owner"], "mistral")
+        self.assertEqual(words["silence"]["uses"], 10)
+        self.assertEqual(words["silence"]["models"], 3)
+        self.assertEqual(words["silence"]["families"][0], ["gemini", 4])
+        self.assertEqual(list(words)[0], "silence")              # most-used first
+
+    def test_rare_words_are_dropped(self):
+        self.assertEqual(oh.word_cloud([("a/1", "gemini", ["lonely heron"])] * 2), [])
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 // Unit tests for site/experimental.js (the free-model bench page).
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { esc, benchName, fmtUtc, renderBench } = require("../site/experimental.js");
+const { esc, benchName, fmtUtc, renderBench, familyClass, cloudSize, wordDetail, renderCloud } = require("../site/experimental.js");
 
 test("benchName drops the provider prefix and the effort suffix", () => {
   assert.equal(benchName("agy/gemini-3.7-flash-high", "agy"), "gemini-3.7-flash");
@@ -39,4 +39,32 @@ test("renderBench escapes haiku text and shows effort, counts and silent models"
 test("renderBench has an empty state", () => {
   assert.match(renderBench({ window_days: 14, runs_in_window: 0, latest_run: null, haikus: [], models: [] }),
     /No bench runs published yet/);
+});
+
+test("cloud colours go to named families only, never by rank", () => {
+  assert.equal(familyClass("gemini"), "gemini");
+  assert.equal(familyClass("qwen"), "qwen");
+  assert.equal(familyClass("llama"), "other");
+  assert.equal(familyClass(null), "shared");
+});
+
+test("cloud sizes span the range by square root", () => {
+  assert.equal(cloudSize(3, 3, 147), 0.85);
+  assert.equal(cloudSize(147, 3, 147), 2.6);
+  assert.ok(Math.abs(cloudSize(39, 3, 147) - (0.85 + 1.75 * 0.5)) < 1e-9);
+  assert.equal(cloudSize(5, 5, 5), (0.85 + 2.6) / 2);
+});
+
+test("renderCloud escapes words and carries the breakdown", () => {
+  const cloud = { haikus: 12, words: [
+    { word: "<moon>", uses: 9, owner: "gemini", families: [["gemini", 7], ["qwen", 2]], models: 3 },
+    { word: "leaves", uses: 4, owner: null, families: [["mistral", 2]], models: 1 },
+  ] };
+  const html = renderCloud(cloud);
+  assert.ok(html.includes("&lt;moon&gt;") && !html.includes("<moon>"));
+  assert.match(html, /class="cloud-word fam-gemini"/);
+  assert.match(html, /class="cloud-word fam-shared"/);
+  assert.match(html, /2 most-used words · 12 haikus/);
+  assert.equal(wordDetail(cloud.words[1]), "leaves: 4 uses by 1 model (mistral 2)");
+  assert.equal(renderCloud({ haikus: 0, words: [] }), "");
 });

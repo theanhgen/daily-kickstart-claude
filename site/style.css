@@ -46,6 +46,11 @@
   --codex-bg: #e4f2ec;
   --agy-text: #4f5bd5;
   --agy-bg: #ece9f7;
+  /* Experimental word cloud: categorical slots 1-3 (blue, orange, aqua) stepped
+     darker for text on --bg; validated all-pairs for CVD, 4.1-5.2:1 contrast. */
+  --fam-gemini: #2168c0;
+  --fam-mistral: #c9531f;
+  --fam-qwen: #0f8a5f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -62,6 +67,9 @@
     --codex-bg: #0e2420;
     --agy-text: #8b93e6;
     --agy-bg: #161430;
+    --fam-gemini: #3987e5;
+    --fam-mistral: #d95926;
+    --fam-qwen: #199e70;
   }
 }
 
@@ -794,6 +802,69 @@ body {
 .bench-dead p {
   margin-top: 0.6rem;
   overflow-wrap: anywhere;
+}
+
+.fam-gemini { --fam: var(--fam-gemini); }
+.fam-mistral { --fam: var(--fam-mistral); }
+.fam-qwen { --fam: var(--fam-qwen); }
+.fam-other { --fam: var(--muted); }
+.fam-shared { --fam: var(--text); }
+
+.cloud-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin-bottom: 1.5rem;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.cloud-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cloud-key i {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+  background: var(--fam);
+}
+
+.bench-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.15rem 0.7rem;
+  padding: 1rem 0 0.5rem;
+  line-height: 1.15;
+}
+
+.cloud-word {
+  font-family: 'DM Serif Display', 'New York', ui-serif, 'Noto Serif', serif;
+  font-style: italic;
+  color: var(--fam);
+  overflow-wrap: anywhere;
+  cursor: default;
+  border-radius: 2px;
+}
+.cloud-word:focus-visible {
+  outline: 1px solid var(--fam);
+  outline-offset: 2px;
+}
+
+.cloud-detail {
+  min-height: 1.7em;
+  margin: 0.75rem 0 0.5rem;
+  text-align: center;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.7rem;
+  line-height: 1.6;
+  color: var(--muted);
+  text-wrap: balance;
 }
 
 .bench-empty {
