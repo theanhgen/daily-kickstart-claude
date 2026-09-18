@@ -30,14 +30,15 @@ function badges(item) {
 }
 
 // ── Word cloud ──
-// Colour slots 1-3 go to these families BY NAME, never by rank, so a word keeps
-// its colour when the families reshuffle. Three is the most a cloud can carry:
-// every colour sits next to every other, and past three the categorical palette
-// stops separating for colour-blind readers (the validator finds no fourth hue that
-// clears the all-pairs floors beside these). Any other family's words are grey; its
-// legend key lights them up instead. Picked as the three that lean on the most words
-// (Sep 2026: gemini, mistral, llama; qwen had none); revisit by hand, never by rank.
-const CLOUD_FAMILIES = ["gemini", "mistral", "llama"];
+// Colours go to these families BY NAME, never by rank, so a word keeps its colour
+// when the families reshuffle. Picked as the seven that lean on the most words once
+// big families are damped (Sep 2026); any other family's words are grey. Seven is
+// past what colour alone can carry in a cloud, where every colour sits next to every
+// other: the closest pairs (magenta/pink, olive/aqua) sit just under the normal-vision
+// floor, and blue/violet, pink/aqua merge for colour-blind readers. So the legend key
+// (hover or tap lights a family's words) and the caption are the backup. Revisit by
+// hand, never automatically.
+const CLOUD_FAMILIES = ["gemini", "mistral", "llama", "liquid", "ling", "nemotron", "gpt-oss"];
 const CLOUD_MIN_REM = 0.85;
 const CLOUD_MAX_REM = 2.6;
 
@@ -92,12 +93,15 @@ function wordDetail(w) {
 
 function renderCloud(cloud) {
   if (!cloud || !cloud.words.length) return "";
-  const uses = cloud.words.map(w => w.uses);
+  // Sized by the damped weight when the export has one (see FAMILY_DAMPING in
+  // omniroute-haiku.py), so a family with many models doesn't set every size.
+  const sizeOf = w => w.weight ?? w.uses;
+  const uses = cloud.words.map(sizeOf);
   const min = Math.min(...uses), max = Math.max(...uses);
   const words = [...cloud.words].sort((a, b) => wordHash(a.word) - wordHash(b.word) || (a.word < b.word ? -1 : 1));
   const spans = words.map(w => `<span class="cloud-word fam-${familyClass(w.owner)}" tabindex="0"`
     + ` data-family="${esc(w.owner || "shared")}"`
-    + ` style="font-size:${cloudSize(w.uses, min, max).toFixed(2)}rem"`
+    + ` style="font-size:${cloudSize(sizeOf(w), min, max).toFixed(2)}rem"`
     + ` title="${esc(wordDetail(w))}" data-detail="${esc(wordDetail(w))}">${esc(w.word)}</span>`).join(" ");
   const keys = cloudLegend(cloud.words).map(([f, n]) => `<button type="button"`
     + ` class="cloud-key fam-${f === "shared" ? "shared" : familyClass(f)}" data-family="${esc(f)}"`
@@ -107,7 +111,7 @@ function renderCloud(cloud) {
   return `
     <div class="month-group">
       <h2 class="month-heading">Word cloud</h2>
-      <span class="month-count">${cloud.words.length} most-used words · ${cloud.haikus} haikus · last 14 days · size = uses, colour = the family that leans on it; tap a family to light up its words</span>
+      <span class="month-count">${cloud.words.length} most-used words · ${cloud.haikus} haikus · last 14 days · size = uses, big families damped so none drowns out the rest · colour = the family that leans on it; tap a family to light up its words</span>
       <div class="cloud-legend">${keys}</div>
       <div class="bench-cloud">${spans}</div>
       <p class="cloud-detail" aria-live="polite">Hover or tap a word.</p>

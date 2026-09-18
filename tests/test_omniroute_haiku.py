@@ -300,6 +300,15 @@ class WordCloudTest(unittest.TestCase):
         haikus = [("g/1", "gemini", ["ember sky sky"])] * 7 + [("q/1", "qwen", ["ember"])] * 3
         self.assertEqual({w["word"]: w["owner"] for w in oh.word_cloud(haikus)}["ember"], "qwen")
 
+    def test_a_big_family_is_damped(self):
+        # gemini's 16 haikus say "code", five one-haiku families say "leaf": raw counts
+        # put code first, the square-root damping (16 -> 4) puts leaf first.
+        haikus = ([("g/1", "gemini", ["code"])] * 16
+                  + [(f"{f}/1", f, ["leaf"]) for f in ("qwen", "mistral", "llama", "kimi", "glm")])
+        words = oh.word_cloud(haikus)
+        self.assertEqual([w["word"] for w in words], ["leaf", "code"])
+        self.assertEqual((words[1]["uses"], words[1]["weight"]), (16, 4.0))
+
     def test_rare_words_are_dropped(self):
         self.assertEqual(oh.word_cloud([("a/1", "gemini", ["lonely heron"])] * 2), [])
 

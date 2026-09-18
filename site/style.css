@@ -46,11 +46,17 @@
   --codex-bg: #e4f2ec;
   --agy-text: #4f5bd5;
   --agy-bg: #ece9f7;
-  /* Experimental word cloud: categorical slots 1-3 (blue, orange, aqua) stepped
-     darker for text on --bg; validated all-pairs for CVD, 4.1-5.2:1 contrast. */
+  /* Experimental word cloud: one hue per family, stepped for text on --bg (4.5:1
+     or better). Slots 1-3 are the categorical blue, orange, aqua; 4-7 were searched
+     for the widest gap from them and each other. Past three, colour can't separate
+     every pair (see CLOUD_FAMILIES in experimental.js). */
   --fam-gemini: #2168c0;
   --fam-mistral: #c9531f;
   --fam-llama: #0f8a5f;
+  --fam-liquid: #8c51d9;
+  --fam-ling: #435d04;
+  --fam-nemotron: #93158e;
+  --fam-gpt-oss: #cd3482;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -70,6 +76,10 @@
     --fam-gemini: #3987e5;
     --fam-mistral: #d95926;
     --fam-llama: #199e70;
+    --fam-liquid: #a167f1;
+    --fam-ling: #8ab627;
+    --fam-nemotron: #f178e9;
+    --fam-gpt-oss: #db428e;
   }
 }
 
@@ -807,6 +817,10 @@ body {
 .fam-gemini { --fam: var(--fam-gemini); }
 .fam-mistral { --fam: var(--fam-mistral); }
 .fam-llama { --fam: var(--fam-llama); }
+.fam-liquid { --fam: var(--fam-liquid); }
+.fam-ling { --fam: var(--fam-ling); }
+.fam-nemotron { --fam: var(--fam-nemotron); }
+.fam-gpt-oss { --fam: var(--fam-gpt-oss); }
 .fam-other { --fam: var(--muted); }
 .fam-shared { --fam: var(--text); }
 

@@ -48,6 +48,7 @@ test("renderBench has an empty state", () => {
 test("cloud colours go to named families only, never by rank", () => {
   assert.equal(familyClass("gemini"), "gemini");
   assert.equal(familyClass("llama"), "llama");
+  assert.equal(familyClass("gpt-oss"), "gpt-oss");
   assert.equal(familyClass("qwen"), "other");
   assert.equal(familyClass(null), "shared");
 });
@@ -72,6 +73,12 @@ test("renderCloud escapes words and carries the breakdown", () => {
   assert.equal(wordDetail(cloud.words[1]), "leaves: 4 uses by 1 model (mistral 2)");
   assert.equal(renderCloud({ haikus: 0, words: [] }), "");
   assert.match(html, /data-family="gemini"/);
+  // Sized by the damped weight when there is one: the lighter word gets the smaller size.
+  const weighted = renderCloud({ haikus: 2, words: [
+    { word: "code", uses: 16, weight: 4, owner: "gemini", families: [], models: 1 },
+    { word: "leaf", uses: 5, weight: 5, owner: null, families: [], models: 5 } ] });
+  assert.match(weighted, /font-size:0\.85rem"[^>]*>code</);
+  assert.match(weighted, /font-size:2\.60rem"[^>]*>leaf</);
   assert.match(html, /<button type="button" class="cloud-key fam-shared" data-family="shared"/);
 });
 
@@ -81,11 +88,11 @@ test("the legend lists every family that leans on a word, named three first", ()
     { word: "d", owner: "llama" }, { word: "e", owner: null }, { word: "f", owner: "gemini" },
     { word: "g", owner: "other" },
   ];
-  // gemini and llama in their fixed order (mistral has none), then by count, then name.
+  // Coloured families in their fixed order (mistral has none), then by count, then name.
   assert.deepEqual(cloudLegend(words),
     [["gemini", 1], ["llama", 1], ["nemotron", 2], ["other", 1], ["qwen", 1], ["shared", 1]]);
   const html = renderCloud({ haikus: 3, words: words.map(w => ({ ...w, uses: 3, families: [], models: 1 })) });
-  assert.match(html, /class="cloud-key fam-other" data-family="nemotron"[^>]*><i><\/i>nemotron <span class="cloud-key-n">2</);
+  assert.match(html, /class="cloud-key fam-nemotron" data-family="nemotron"[^>]*><i><\/i>nemotron <span class="cloud-key-n">2</);
   assert.match(html, />unclassified </);
   assert.equal(familyDetail(words, "nemotron"), "nemotron leans on 2 words: b, c");
   assert.equal(familyDetail(words, "shared"), "shared by all: 1 word no one family leans on");

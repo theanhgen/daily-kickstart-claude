@@ -111,7 +111,7 @@ Want just one voice? Call it by name:
 ENGINE=agy scripts/generate.sh     # claude (default) | codex | agy
 ```
 
-First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `AGY_MODEL`, `AGY_MODEL_FALLBACKS`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. If the agy default model fails, cron retries once with a randomly selected model from `AGY_MODEL_FALLBACKS`. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them. `claude` and `codex` each name the model they used, and that name is what gets written down — so when a provider quietly rolls its default under an unpinned run (`gpt-5.4` → `gpt-5.5`, say), the swap surfaces as a dashed marker on the trend chart. `agy` doesn't say, so its default runs read `unknown`; explicit fallback runs record their selected model. Since 2026-09-18 each line also carries the reasoning effort (`effort=`): `codex` reads it from the same banner (`low` today), `claude` records `default` because no `--effort` is passed, and `agy` records what a pinned id names (`gpt-oss-120b-medium` → `medium`), else `unknown`. An effort change marks the chart the same way a model swap does.
+First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `AGY_MODEL`, `AGY_MODEL_FALLBACKS`, `CLAUDE_MODEL`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. If the agy default model fails, cron retries once with a randomly selected model from `AGY_MODEL_FALLBACKS`. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them. `claude` and `codex` each name the model they used, and that name is what gets written down — so when a provider quietly rolls its default under an unpinned run (`gpt-5.4` → `gpt-5.5`, say), the swap surfaces as a dashed marker on the trend chart. `agy` doesn't say, so its default runs read `unknown`; explicit fallback runs record their selected model. Since 2026-09-18 each line also carries the reasoning effort (`effort=`): `codex` reads it from the same banner (`low` today), `claude` records `default` because no `--effort` is passed, and `agy` records what a pinned id names (`gpt-oss-120b-medium` → `medium`), else `unknown`. An effort change marks the chart the same way a model swap does.
 
 ## The free-model bench
 
@@ -122,7 +122,8 @@ answer in a local SQLite database, `omniroute-haiku.db` (gitignored, never pushe
 touches `haiku.txt`, `model.log`, the archive or its stats. A daily export feeds its own page,
 **[Experimental](https://theanhgen.github.io/daily-kickstart-claude/experimental.html)**,
 linked under Archive: a word cloud of the free models' 80 most-used words over 14 days (sized
-by uses; coloured gemini / mistral / llama when that family leans on a word, grey for any other
+by uses, each haiku counted 1/sqrt of its family's haikus so gemini's many models don't fill the
+cloud; each of seven families has its own colour when it leans on a word, grey for any other
 family, ink when everyone shares it; every family that leans on a word gets a legend key that
 lights its words up), then, folded away, the latest run's haikus and a per-model table of how
 often each was used and answered.

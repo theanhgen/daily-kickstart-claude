@@ -104,6 +104,12 @@ CLOUD_MIN_USES = 3       # below this a word is noise, not part of anyone's worl
 # words (gemini 18, llama 8, mistral 6, liquid 2), at 0.25 seven do.
 OWN_SHARE = 0.25
 OWN_LIFT = 1.5
+# Each haiku counts 1/sqrt(its family's haikus in the window), so a family with many
+# models can't fill the cloud with its words: gemini wrote 117 of 458 haikus (26% of
+# the words) and owned 20 of 80; weighted it carries 12% and owns 5. The square root,
+# not a full 1/n, because at 1/n a family with 2 haikus outweighs one with 100 and
+# its two poems' quirks take over (agnes, 2 haikus, owned 9 words).
+FAMILY_DAMPING = 0.5
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -432,30 +438,40 @@ def cloud_words(lines):
 
 
 def word_cloud(haikus):
-    """[(word, uses, owner family or None, [[family, uses], ...], distinct models)] for the
-    CLOUD_SIZE most-used words. `haikus` is (model, family, lines) triples."""
-    uses, by_family, by_model, family_total = {}, {}, {}, {}
+    """[(word, uses, weight, owner family or None, [[family, uses], ...], distinct models)]
+    for the CLOUD_SIZE heaviest words. `haikus` is (model, family, lines) triples. `uses`
+    is the plain count; `weight` (FAMILY_DAMPING) picks and sizes the words and decides
+    who owns them; `families` lists raw counts, the owner's first."""
+    haikus = [(model, family or "other", lines) for model, family, lines in haikus]
+    per_family = {}
+    for _, family, _ in haikus:
+        per_family[family] = per_family.get(family, 0) + 1
+    uses, weight, by_family, raw_by_family, by_model, family_total = {}, {}, {}, {}, {}, {}
     for model, family, lines in haikus:
-        family = family or "other"
+        wt = per_family[family] ** -FAMILY_DAMPING
         for w in cloud_words(lines):
             uses[w] = uses.get(w, 0) + 1
+            weight[w] = weight.get(w, 0) + wt
             by_family.setdefault(w, {}).setdefault(family, 0)
-            by_family[w][family] += 1
+            by_family[w][family] += wt
+            raw_by_family.setdefault(w, {}).setdefault(family, 0)
+            raw_by_family[w][family] += 1
             by_model.setdefault(w, set()).add(model)
-            family_total[family] = family_total.get(family, 0) + 1
+            family_total[family] = family_total.get(family, 0) + wt
     total = sum(family_total.values())
-    top = sorted((w for w in uses if uses[w] >= CLOUD_MIN_USES), key=lambda w: (-uses[w], w))
+    top = sorted((w for w in uses if uses[w] >= CLOUD_MIN_USES), key=lambda w: (-weight[w], w))
     out = []
     for w in top[:CLOUD_SIZE]:
         fams = sorted(by_family[w].items(), key=lambda kv: (-kv[1], kv[0]))
         owner = None
         for family, n in fams:
-            expected = uses[w] * family_total[family] / total
-            if n / uses[w] >= OWN_SHARE and n / expected >= OWN_LIFT:
+            expected = weight[w] * family_total[family] / total
+            if n / weight[w] >= OWN_SHARE and n / expected >= OWN_LIFT:
                 owner = family
                 break
-        out.append({"word": w, "uses": uses[w], "owner": owner,
-                    "families": [list(kv) for kv in fams[:3]], "models": len(by_model[w])})
+        out.append({"word": w, "uses": uses[w], "weight": round(weight[w], 3), "owner": owner,
+                    "families": [[f, raw_by_family[w][f]] for f, _ in fams[:3]],
+                    "models": len(by_model[w])})
     return out
 
 
