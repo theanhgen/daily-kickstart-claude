@@ -21,7 +21,9 @@ Every attempt is stored, failures included, so the database also records which f
 models were available at each run. A model whose last three attempts all errored is
 skipped, and retried once a day, so the roster's dead weight does not set the run time.
 
-`publish` (a second, daily cron line) exports the last 14 days to free-models.json,
+`publish` (daily at 21:30 from the LaunchAgent com.theanhgen.omniroute-haiku-publish, not
+cron: cron has no keychain, so neither git nor gh can authenticate there; launchd runs
+python3 directly, which may read ~/Desktop) exports the last 14 days to free-models.json,
 force-pushes it as the only file on the `bench-data` branch, then starts the Pages deploy
 on main (`gh workflow run`), which copies the file in for site/experimental.html. A push
 to bench-data can't deploy by itself: the github-pages environment only accepts main. It

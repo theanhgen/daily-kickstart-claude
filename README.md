@@ -137,7 +137,11 @@ linked under Archive.
   `bash` and launchd jobs from this repo under `~/Desktop`. The log is
   `~/Library/Logs/omniroute-haiku.log`. Failures stay in the log and never reach ntfy.
 
-- **Published daily** by `omniroute-haiku.py publish`. It exports the latest run's haikus plus
+- **Published daily at 21:30** by `omniroute-haiku.py publish`, from a LaunchAgent
+  (`~/Library/LaunchAgents/com.theanhgen.omniroute-haiku-publish.plist`) rather than cron:
+  cron can't read the login keychain, so neither `git push` nor `gh` can authenticate there.
+  The agent runs `/opt/homebrew/bin/python3` directly, since launchd can't run a bash
+  script from this repo. It exports the latest run's haikus plus
   14 days of per-model answered/asked counts (no errors, raw replies or request ids). The export
   is force-pushed as the only file on the `bench-data` branch, from a bare repo in
   `~/Library/Caches`, so the working copy is never touched. Then it starts the Pages deploy on
@@ -147,7 +151,6 @@ linked under Archive.
 
 ```cron
 1 6,11,16,21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
-30 21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py publish >> ~/Library/Logs/omniroute-haiku.log 2>&1
 ```
 
 ```bash
