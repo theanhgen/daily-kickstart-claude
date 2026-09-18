@@ -30,21 +30,55 @@ function badges(item) {
 }
 
 // ── Word cloud ──
-// Colours go to these families BY NAME, never by rank, so a word keeps its colour
-// when the families reshuffle. Picked as the seven that lean on the most words once
-// big families are damped (Sep 2026); any other family's words are grey. Seven is
-// past what colour alone can carry in a cloud, where every colour sits next to every
-// other: the closest pairs (magenta/pink, olive/aqua) sit just under the normal-vision
-// floor, and blue/violet, pink/aqua merge for colour-blind readers. So the legend key
-// (hover or tap lights a family's words) and the caption are the backup. Revisit by
-// hand, never automatically.
-const CLOUD_FAMILIES = ["gemini", "mistral", "llama", "liquid", "ling", "nemotron", "gpt-oss"];
+// One text colour per family, [light, dark], fixed BY NAME so a word keeps its colour
+// when the families reshuffle. Covers every lineage the multireview runner names, so
+// a family that starts leaning on words isn't grey. Picked greedily in this order, each
+// the hue farthest (OKLab) from all before it and from the grey and ink, at 4.5:1 or
+// better on both backgrounds: the first ones get the widest gaps. Past about three
+// hues a cloud can't separate every pair by colour alone (every colour sits next to
+// every other, and several pairs merge for colour-blind readers), so the legend key,
+// which lights a family's words, and the caption are the backup. "other" (unclassified)
+// stays grey: it is a mix of families, not one.
+const FAMILY_COLOURS = {
+  gemini:    ["#2168c0", "#3987e5"],
+  mistral:   ["#c9531f", "#d95926"],
+  llama:     ["#0f8a5f", "#199e70"],
+  liquid:    ["#8c51d9", "#a167f1"],
+  ling:      ["#435d04", "#8ab627"],
+  nemotron:  ["#93158e", "#f178e9"],
+  "gpt-oss": ["#cd3482", "#db428e"],
+  claude:    ["#8a0700", "#f19f91"],
+  granite:   ["#373974", "#afb7fe"],
+  cohere:    ["#864260", "#c97e9c"],
+  poolside:  ["#804b0d", "#e7890f"],
+  qwen:      ["#601194", "#8e6fae"],
+  solar:     ["#91619a", "#f5c1fe"],
+  deepseek:  ["#4835cd", "#8e95d9"],
+  kimi:      ["#b81839", "#fe6270"],
+  glm:       ["#b938bc", "#c646c9"],
+  dots:      ["#055a85", "#19affe"],
+  longcat:   ["#6b2362", "#db9cd0"],
+  stepfun:   ["#037c9a", "#4ad5fe"],
+  agnes:     ["#71782b", "#d2df1b"],
+  minimax:   ["#6b4697", "#c191ff"],
+  tencent:   ["#094a1a", "#3de765"],
+  phi:       ["#a5595d", "#b46669"],
+  gpt:       ["#1f790c", "#9fd396"],
+};
 const CLOUD_MIN_REM = 0.85;
 const CLOUD_MAX_REM = 2.6;
 
 function familyClass(owner) {
   if (!owner) return "shared";
-  return CLOUD_FAMILIES.includes(owner) ? owner : "other";
+  return FAMILY_COLOURS[owner] ? owner : "other";
+}
+
+// The class list and colour variables for a word or legend key; style.css picks the
+// light or dark one.
+function famAttrs(family) {
+  const c = FAMILY_COLOURS[family];
+  return c ? { cls: `fam-${family} fam-c`, vars: `;--fam-l:${c[0]};--fam-d:${c[1]}` }
+    : { cls: `fam-${family === "shared" ? "shared" : familyClass(family)}`, vars: "" };
 }
 
 // Stable scatter: order words by a string hash, so big and small interleave the
@@ -65,15 +99,14 @@ function familyLabel(f) {
   return f === "shared" ? "shared by all" : f === "other" ? "unclassified" : f;
 }
 
-// Every family that leans on at least one word, with how many: the named three first
-// in their fixed order, then the rest by count, then the words nobody leans on.
+// Every family that leans on at least one word, with how many, most first (colour is
+// by name, so the order can follow the counts), then the words nobody leans on.
 function cloudLegend(words) {
   const counts = new Map();
   for (const w of words) counts.set(w.owner || "shared", (counts.get(w.owner || "shared") || 0) + 1);
-  const named = CLOUD_FAMILIES.filter(f => counts.has(f));
-  const rest = [...counts.keys()].filter(f => f !== "shared" && !CLOUD_FAMILIES.includes(f))
+  const families = [...counts.keys()].filter(f => f !== "shared")
     .sort((a, b) => counts.get(b) - counts.get(a) || (a < b ? -1 : 1));
-  return [...named, ...rest, ...(counts.has("shared") ? ["shared"] : [])].map(f => [f, counts.get(f)]);
+  return [...families, ...(counts.has("shared") ? ["shared"] : [])].map(f => [f, counts.get(f)]);
 }
 
 function familyDetail(words, f) {
@@ -99,12 +132,13 @@ function renderCloud(cloud) {
   const uses = cloud.words.map(sizeOf);
   const min = Math.min(...uses), max = Math.max(...uses);
   const words = [...cloud.words].sort((a, b) => wordHash(a.word) - wordHash(b.word) || (a.word < b.word ? -1 : 1));
-  const spans = words.map(w => `<span class="cloud-word fam-${familyClass(w.owner)}" tabindex="0"`
+  const spans = words.map(w => `<span class="cloud-word ${famAttrs(w.owner || "shared").cls}" tabindex="0"`
     + ` data-family="${esc(w.owner || "shared")}"`
-    + ` style="font-size:${cloudSize(sizeOf(w), min, max).toFixed(2)}rem"`
+    + ` style="font-size:${cloudSize(sizeOf(w), min, max).toFixed(2)}rem${famAttrs(w.owner || "shared").vars}"`
     + ` title="${esc(wordDetail(w))}" data-detail="${esc(wordDetail(w))}">${esc(w.word)}</span>`).join(" ");
   const keys = cloudLegend(cloud.words).map(([f, n]) => `<button type="button"`
-    + ` class="cloud-key fam-${f === "shared" ? "shared" : familyClass(f)}" data-family="${esc(f)}"`
+    + ` class="cloud-key ${famAttrs(f).cls}"${famAttrs(f).vars ? ` style="${famAttrs(f).vars.slice(1)}"` : ""}`
+    + ` data-family="${esc(f)}"`
     + ` aria-pressed="false"><i></i>${esc(familyLabel(f))} <span class="cloud-key-n">${n}</span></button>`).join("");
   const rows = cloud.words.map(w => `<tr><td>${esc(w.word)}</td><td class="num">${w.uses}</td>`
     + `<td class="num">${w.models}</td><td>${esc(w.owner || "—")}</td></tr>`).join("");

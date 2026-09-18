@@ -45,11 +45,12 @@ test("renderBench has an empty state", () => {
     /No bench runs published yet/);
 });
 
-test("cloud colours go to named families only, never by rank", () => {
+test("cloud colours go to families by name, never by rank", () => {
   assert.equal(familyClass("gemini"), "gemini");
-  assert.equal(familyClass("llama"), "llama");
   assert.equal(familyClass("gpt-oss"), "gpt-oss");
-  assert.equal(familyClass("qwen"), "other");
+  assert.equal(familyClass("qwen"), "qwen");
+  assert.equal(familyClass("other"), "other");            // unclassified: a mix, stays grey
+  assert.equal(familyClass("no-such-family"), "other");
   assert.equal(familyClass(null), "shared");
 });
 
@@ -67,7 +68,7 @@ test("renderCloud escapes words and carries the breakdown", () => {
   ] };
   const html = renderCloud(cloud);
   assert.ok(html.includes("&lt;moon&gt;") && !html.includes("<moon>"));
-  assert.match(html, /class="cloud-word fam-gemini"/);
+  assert.match(html, /class="cloud-word fam-gemini fam-c"[^>]*style="[^"]*--fam-l:#2168c0;--fam-d:#3987e5"/);
   assert.match(html, /class="cloud-word fam-shared"/);
   assert.match(html, /2 most-used words · 12 haikus/);
   assert.equal(wordDetail(cloud.words[1]), "leaves: 4 uses by 1 model (mistral 2)");
@@ -77,22 +78,22 @@ test("renderCloud escapes words and carries the breakdown", () => {
   const weighted = renderCloud({ haikus: 2, words: [
     { word: "code", uses: 16, weight: 4, owner: "gemini", families: [], models: 1 },
     { word: "leaf", uses: 5, weight: 5, owner: null, families: [], models: 5 } ] });
-  assert.match(weighted, /font-size:0\.85rem"[^>]*>code</);
+  assert.match(weighted, /font-size:0\.85rem;--fam-l:[^"]*"[^>]*>code</);
   assert.match(weighted, /font-size:2\.60rem"[^>]*>leaf</);
   assert.match(html, /<button type="button" class="cloud-key fam-shared" data-family="shared"/);
 });
 
-test("the legend lists every family that leans on a word, named three first", () => {
+test("the legend lists every family that leans on a word, most words first", () => {
   const words = [
     { word: "a", owner: "qwen" }, { word: "b", owner: "nemotron" }, { word: "c", owner: "nemotron" },
     { word: "d", owner: "llama" }, { word: "e", owner: null }, { word: "f", owner: "gemini" },
     { word: "g", owner: "other" },
   ];
-  // Coloured families in their fixed order (mistral has none), then by count, then name.
+  // Most words first, then by name; the words nobody leans on last.
   assert.deepEqual(cloudLegend(words),
-    [["gemini", 1], ["llama", 1], ["nemotron", 2], ["other", 1], ["qwen", 1], ["shared", 1]]);
+    [["nemotron", 2], ["gemini", 1], ["llama", 1], ["other", 1], ["qwen", 1], ["shared", 1]]);
   const html = renderCloud({ haikus: 3, words: words.map(w => ({ ...w, uses: 3, families: [], models: 1 })) });
-  assert.match(html, /class="cloud-key fam-nemotron" data-family="nemotron"[^>]*><i><\/i>nemotron <span class="cloud-key-n">2</);
+  assert.match(html, /class="cloud-key fam-nemotron fam-c" style="--fam-l:[^"]+" data-family="nemotron"[^>]*><i><\/i>nemotron <span class="cloud-key-n">2</);
   assert.match(html, />unclassified </);
   assert.equal(familyDetail(words, "nemotron"), "nemotron leans on 2 words: b, c");
   assert.equal(familyDetail(words, "shared"), "shared by all: 1 word no one family leans on");

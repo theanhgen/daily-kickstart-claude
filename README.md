@@ -123,9 +123,9 @@ touches `haiku.txt`, `model.log`, the archive or its stats. A daily export feeds
 **[Experimental](https://theanhgen.github.io/daily-kickstart-claude/experimental.html)**,
 linked under Archive: a word cloud of the free models' 80 most-used words over 14 days (sized
 by uses, each haiku counted 1/sqrt of its family's haikus so gemini's many models don't fill the
-cloud; each of seven families has its own colour when it leans on a word, grey for any other
-family, ink when everyone shares it; every family that leans on a word gets a legend key that
-lights its words up), then, folded away, the latest run's haikus and a per-model table of how
+cloud; every family has its own colour when it leans on a word, grey for unclassified models,
+ink when everyone shares it; every family that leans on a word gets a legend key that lights
+its words up), then, folded away, the latest run's haikus and a per-model table of how
 often each was used and answered.
 
 - **Which models:** the multireview runner's `roster` subcommand decides what counts as free,
