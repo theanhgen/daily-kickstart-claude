@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import sqlite3
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -127,6 +128,7 @@ class RunTest(unittest.TestCase):
 
         sent = next(b for b in Stub.seen if b["model"] == "good/model")
         self.assertEqual((sent["tags"], sent["max_tokens"], sent["stream"]), (["user=x"], 4096, False))
+        self.assertEqual(good["effort"], "default")
         self.assertEqual(sent["messages"][1]["content"], "Generate a haiku.")
 
     def test_rate_limit_is_retried(self):
@@ -180,6 +182,94 @@ class SplitDeadTest(unittest.TestCase):
         db = oh.open_db(path)
         self.assertIn("skipped", {row[1] for row in db.execute("PRAGMA table_info(runs)")})
         db.close()
+
+
+class EffortTest(unittest.TestCase):
+    def test_effort_of(self):
+        self.assertEqual(oh.effort_of("agy/gemini-3.7-flash-high"), "high")
+        self.assertEqual(oh.effort_of("agy/gpt-oss-120b-medium"), "medium")
+        self.assertEqual(oh.effort_of("x/model-xhigh:free"), "xhigh")
+        self.assertEqual(oh.effort_of("agy/gemini-3.7-flash-tiered"), "default")
+        self.assertEqual(oh.effort_of("cline/z-ai/glm-5.2:free"), "default")
+
+    def test_old_rows_are_backfilled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "old.db")
+            old = sqlite3.connect(path)
+            old.execute("CREATE TABLE attempts (id INTEGER PRIMARY KEY, run_id INTEGER NOT NULL, "
+                        "created_utc TEXT NOT NULL, model TEXT NOT NULL, provider TEXT NOT NULL, "
+                        "status TEXT NOT NULL, attempts INTEGER NOT NULL)")
+            old.execute("INSERT INTO attempts (run_id, created_utc, model, provider, status, attempts) "
+                        "VALUES (1, '2026-09-17 10:00:00', 'agy/gemini-3.6-flash-low', 'agy', 'ok', 1)")
+            old.commit()
+            old.close()
+            db = oh.open_db(path)
+            self.assertEqual(db.execute("SELECT effort FROM attempts").fetchone()[0], "low")
+            db.close()
+
+
+class ExportPublishTest(unittest.TestCase):
+    NOW = datetime(2026, 9, 18, 20, 0, tzinfo=timezone.utc)
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = oh.open_db(os.path.join(self.tmp.name, "h.db"))
+        for rid, started, err in ((1, "2026-09-01 06:00:00", None), (2, "2026-09-18 06:00:00", None),
+                                  (3, "2026-09-18 11:00:00", "roster failed")):
+            self.db.execute("INSERT INTO runs (id, started_utc, finished_utc, roster_size, skipped, ok, "
+                            "failed, error) VALUES (?, ?, ?, 3, 1, 1, 1, ?)", (rid, started, started, err))
+        rows = [
+            (1, "2026-09-01 06:01:00", "a/old", "error", None),       # outside the window
+            (2, "2026-09-18 06:01:00", "agy/m-high", "ok", "one\ntwo\nthree"),
+            (2, "2026-09-18 06:01:00", "b/dead", "error", None),
+        ]
+        for rid, ts, model, status, haiku in rows:
+            self.db.execute("INSERT INTO attempts (run_id, created_utc, model, provider, effort, status, "
+                            "haiku, error, request_id, attempts) VALUES (?, ?, ?, ?, ?, ?, ?, 'boom', 'req', 1)",
+                            (rid, ts, model, model.split("/")[0], oh.effort_of(model), status, haiku))
+        self.db.commit()
+
+    def tearDown(self):
+        self.db.close()
+        self.tmp.cleanup()
+
+    def test_export_shape(self):
+        data = oh.export(self.db, now=self.NOW)
+        # The failed-roster run 3 is not "latest": it wrote no attempts.
+        self.assertEqual(data["latest_run"]["started"], "2026-09-18 06:00:00 UTC")
+        self.assertEqual([(h["model"], h["effort"], h["lines"]) for h in data["haikus"]],
+                         [("agy/m-high", "high", ["one", "two", "three"])])
+        self.assertEqual([(m["model"], m["asked"], m["ok"]) for m in data["models"]],
+                         [("agy/m-high", 1, 1), ("b/dead", 1, 0)])
+        self.assertEqual(data["runs_in_window"], 1)
+        # Only models still in the roster, when the caller knows the roster.
+        self.assertEqual([m["model"] for m in oh.export(self.db, now=self.NOW, listed={"agy/m-high"})["models"]],
+                         ["agy/m-high"])
+        blob = json.dumps(data)
+        for private in ("boom", "req"):   # errors and request ids stay on the Mac
+            self.assertNotIn(f'"{private}"', blob)
+
+    def test_publish_force_pushes_one_file_to_bench_data(self):
+        remote = os.path.join(self.tmp.name, "remote.git")
+        subprocess.run(["git", "init", "--bare", "-q", remote], check=True)
+        repo = os.path.join(self.tmp.name, "publish.git")
+        env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+               "GIT_COMMITTER_EMAIL": "t@t"}
+        old_env = {k: os.environ.get(k) for k in env}
+        os.environ.update(env)
+        try:
+            first, _ = oh.publish(self.db, remote=remote, repo=repo, dispatch=False)
+            second, _ = oh.publish(self.db, remote=remote, repo=repo, dispatch=False)
+        finally:
+            for k, v in old_env.items():
+                os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        git = lambda *a: subprocess.run(["git", "-C", remote, *a], capture_output=True, text=True,
+                                        check=True).stdout.strip()
+        self.assertEqual(git("rev-parse", "refs/heads/bench-data"), second)
+        self.assertEqual(git("ls-tree", "--name-only", "bench-data"), "free-models.json")
+        self.assertEqual(git("rev-list", "--count", "bench-data"), "1")   # orphan, no history
+        self.assertEqual(git("for-each-ref", "--format=%(refname)"), "refs/heads/bench-data")
+        self.assertIn("agy/m-high", git("show", "bench-data:free-models.json"))
 
 
 if __name__ == "__main__":

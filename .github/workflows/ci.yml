@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Also how the Mac redeploys after publishing bench data (scripts/omniroute-
+  # haiku.py publish runs `gh workflow run ci.yml --ref main`): the github-pages
+  # environment only accepts deploys from main, so a push to bench-data can't.
   workflow_dispatch:
 
 # Minimal default token; the deploy job elevates its own scope.
@@ -36,7 +39,7 @@ jobs:
           python3 tests/test_omniroute_haiku.py
 
       - name: JS unit tests
-        run: node --test tests/test_main.js
+        run: node --test tests/test_main.js tests/test_experimental.js
 
       # Full-archive parse of the real haiku.txt (no Pillow: pages-only path).
       - name: Build-site smoke test
@@ -81,6 +84,18 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
+      # The experimental page's data: bench-data holds only free-models.json,
+      # force-pushed daily from the Mac by scripts/omniroute-haiku.py publish.
+      # Optional: before the first publish there is no branch, and the page
+      # shows its empty state.
+      - name: Fetch free-model bench data
+        run: |
+          if git fetch --depth=1 origin bench-data 2>/dev/null; then
+            git show FETCH_HEAD:free-models.json > site/free-models.json
+          else
+            echo "no bench-data branch yet; experimental page shows its empty state"
+          fi
 
       # Restore previously-rendered preview images so each deploy only renders
       # haikus added since the last haiku.txt change (slugs are immutable).

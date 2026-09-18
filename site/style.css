@@ -688,6 +688,120 @@ body {
   white-space: nowrap;
 }
 
+/* ── Experimental: the free-model bench (experimental.html) ── */
+
+.nav-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bench-intro {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  max-width: 34rem;
+  margin-bottom: 3rem;
+  text-wrap: pretty;
+}
+
+/* Up to ~45 models in one list, no per-page font fitting: let a long line wrap
+   rather than be cut off in a narrow viewport. */
+.bench .haiku-entry p {
+  white-space: normal;
+}
+
+.bench-model {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.72rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.bench-table-wrap {
+  overflow-x: auto;
+  border-top: 1px solid var(--rule);
+}
+
+.bench-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.bench-table th {
+  text-align: left;
+  font-weight: 400;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.7rem 0.6rem 0.6rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.bench-table td {
+  padding: 0.5rem 0.6rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+/* Model ids run to 40+ characters; the name column wraps so the table fits
+   the 740px column instead of scrolling sideways. */
+.bench-table td:first-child {
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Phones: drop the date column and let the provider wrap too, so the model
+   name keeps about half the row instead of breaking every few letters. */
+@media (max-width: 540px) {
+  .bench-table th:last-child,
+  .bench-table td:last-child {
+    display: none;
+  }
+  .bench-table td:first-child {
+    width: 50%;
+  }
+  .bench-table td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.bench-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bench-dead {
+  margin-top: 1.25rem;
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.68rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.bench-dead summary {
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+
+.bench-dead p {
+  margin-top: 0.6rem;
+  overflow-wrap: anywhere;
+}
+
+.bench-empty {
+  font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 /* ── Scroll index rails: month·year + the active month's days ──
    Fixed in the right margin beside the 740px column; desktop-only. */
 .rails {

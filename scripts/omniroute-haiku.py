@@ -21,7 +21,16 @@ Every attempt is stored, failures included, so the database also records which f
 models were available at each run. A model whose last three attempts all errored is
 skipped, and retried once a day, so the roster's dead weight does not set the run time.
 
-Stdlib only. Env: OMNIROUTE_BASE_URL, MULTIREVIEW_RUNNER, NODE_BIN, OMNIROUTE_HAIKU_DB.
+`publish` (a second, daily cron line) exports the last 14 days to free-models.json,
+force-pushes it as the only file on the `bench-data` branch, then starts the Pages deploy
+on main (`gh workflow run`), which copies the file in for site/experimental.html. A push
+to bench-data can't deploy by itself: the github-pages environment only accepts main. It
+commits from a bare repo under ~/Library/Caches, so this working copy, its index and its
+branches are never touched. `export PATH` writes the same
+JSON locally, for previewing the page.
+
+Stdlib only. Env: OMNIROUTE_BASE_URL, MULTIREVIEW_RUNNER, NODE_BIN, OMNIROUTE_HAIKU_DB,
+OMNIROUTE_HAIKU_REMOTE, OMNIROUTE_HAIKU_PUBLISH_REPO.
 """
 import fcntl
 import json
@@ -35,7 +44,7 @@ import time
 import urllib.error
 import urllib.request
 from collections import defaultdict, deque
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROMPT_FILE = os.path.join(PROJECT_DIR, "scripts", "session_prompt.txt")
@@ -67,6 +76,15 @@ RETRYABLE = re.compile(r"\b(429|503)\b|rate.?limit|too many requests|admission",
 # malformed reply does not count toward it: the model answered, just not in three lines.
 DEAD_AFTER = 3
 DEAD_RETRY_HOURS = 20
+# OmniRoute serves effort variants as separate ids (gemini-3.7-flash-high); nothing is
+# requested on top, so the id is the whole record. Checked before a ":free" tag.
+EFFORT_SUFFIX = re.compile(r"-(xhigh|high|medium|low|minimal|none)(?::[\w.-]+)?$")
+
+PUBLISH_BRANCH = "bench-data"
+PUBLISH_FILE = "free-models.json"
+PUBLISH_REPO = os.environ.get("OMNIROUTE_HAIKU_PUBLISH_REPO", os.path.expanduser(
+    "~/Library/Caches/daily-kickstart-bench.git"))
+EXPORT_WINDOW_DAYS = 14
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -88,6 +106,7 @@ CREATE TABLE IF NOT EXISTS attempts (
     served_provider TEXT,         -- x-omniroute-provider: the connection that answered
     served_model TEXT,            -- x-omniroute-model, else the response body's model
     lineage TEXT,                 -- model family per the runner, e.g. gemini, qwen
+    effort TEXT,                  -- reasoning effort named by the id, else "default"
     status TEXT NOT NULL,         -- ok | malformed | error
     haiku TEXT,                   -- three lines; only when status = ok
     raw TEXT,                     -- the reply as received, when status = malformed
@@ -110,6 +129,12 @@ def utc_now():
 
 def log(msg):
     print(f"[{utc_now()} UTC] {msg}", flush=True)
+
+
+def effort_of(model_id):
+    """"high" for agy/gemini-3.7-flash-high; "default" when the id names none."""
+    m = EFFORT_SUFFIX.search(model_id)
+    return m.group(1) if m else "default"
 
 
 def load_roster():
@@ -188,7 +213,8 @@ def call_model(entry, system, user):
     req = urllib.request.Request(
         f"{BASE_URL}/chat/completions", data=json.dumps(body).encode(),
         headers={"content-type": "application/json"}, method="POST")
-    row = {"model": entry["id"], "provider": entry["provider"], "lineage": entry.get("lineage")}
+    row = {"model": entry["id"], "provider": entry["provider"], "lineage": entry.get("lineage"),
+           "effort": effort_of(entry["id"])}
     t0 = time.monotonic()
     try:
         with urllib.request.urlopen(req, timeout=CALL_TIMEOUT_S) as resp:
@@ -236,16 +262,22 @@ def call_with_retry(entry, system, user):
 
 
 COLUMNS = ("run_id", "created_utc", "model", "provider", "served_provider", "served_model",
-           "lineage", "status", "haiku", "raw", "error", "finish_reason", "latency_ms",
+           "lineage", "effort", "status", "haiku", "raw", "error", "finish_reason", "latency_ms",
            "tokens_in", "tokens_out", "attempts", "request_id")
 
 
 def open_db(path):
     db = sqlite3.connect(path, check_same_thread=False)
     db.executescript(SCHEMA)
-    # runs.skipped arrived after the first runs; CREATE TABLE IF NOT EXISTS does not add it.
+    # Columns that arrived after the first runs; CREATE TABLE IF NOT EXISTS adds neither.
     if "skipped" not in {row[1] for row in db.execute("PRAGMA table_info(runs)")}:
         db.execute("ALTER TABLE runs ADD COLUMN skipped INTEGER")
+    if "effort" not in {row[1] for row in db.execute("PRAGMA table_info(attempts)")}:
+        db.execute("ALTER TABLE attempts ADD COLUMN effort TEXT")
+        # Effort comes from the id alone, so older rows can be filled in exactly.
+        for (model,) in db.execute("SELECT DISTINCT model FROM attempts").fetchall():
+            db.execute("UPDATE attempts SET effort = ? WHERE model = ?", (effort_of(model), model))
+        db.commit()
     return db
 
 
@@ -322,7 +354,121 @@ def run(roster, db, system, user, skipped=0):
     return run_id, counts, dict(sorted(failures.items(), key=lambda kv: -kv[1]))
 
 
+def export(db, now=None, window_days=EXPORT_WINDOW_DAYS, listed=None):
+    """What experimental.html shows: the latest finished run's haikus, and how each model
+    fared over the window. Nothing internal leaves: no errors, raw replies or request ids.
+
+    `listed` (ids in today's roster) keeps the table to models that still exist: without
+    it, the 330 paid nous-research ids a catalog sync let in for a day stay in the window
+    for two weeks."""
+    now = now or datetime.now(timezone.utc)
+    since = (now - timedelta(days=window_days)).strftime("%Y-%m-%d %H:%M:%S")
+    db.row_factory = sqlite3.Row
+    try:
+        latest = db.execute(
+            "SELECT id, started_utc, roster_size, skipped, ok, failed FROM runs "
+            "WHERE finished_utc IS NOT NULL AND error IS NULL ORDER BY id DESC LIMIT 1").fetchone()
+        haikus = [] if latest is None else [
+            {"model": r["model"], "provider": r["provider"], "effort": r["effort"],
+             "lineage": r["lineage"], "served_provider": r["served_provider"],
+             "served_model": r["served_model"], "timestamp": f"{r['created_utc']} UTC",
+             "lines": r["haiku"].split("\n")}
+            for r in db.execute("SELECT * FROM attempts WHERE run_id = ? AND status = 'ok' "
+                                "ORDER BY provider, model", (latest["id"],))]
+        models = [
+            {"model": r["model"], "provider": r["provider"], "effort": r["effort"],
+             "lineage": r["lineage"], "asked": r["asked"], "ok": r["ok"],
+             "last_ok": f"{r['last_ok']} UTC" if r["last_ok"] else None}
+            for r in db.execute(
+                "SELECT model, provider, effort, lineage, COUNT(*) AS asked, "
+                "SUM(status = 'ok') AS ok, "
+                "MAX(CASE WHEN status = 'ok' THEN created_utc END) AS last_ok "
+                "FROM attempts WHERE created_utc >= ? GROUP BY model "
+                "ORDER BY 1.0 * SUM(status = 'ok') / COUNT(*) DESC, ok DESC, model",
+                (since,))
+            if listed is None or r["model"] in listed]
+        runs = db.execute("SELECT COUNT(*) FROM runs WHERE started_utc >= ? AND error IS NULL",
+                          (since,)).fetchone()[0]
+    finally:
+        db.row_factory = None
+    return {
+        "generated": now.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "window_days": window_days,
+        "runs_in_window": runs,
+        "latest_run": None if latest is None else {
+            "started": f"{latest['started_utc']} UTC", "listed": latest["roster_size"],
+            "skipped": latest["skipped"] or 0, "ok": latest["ok"], "failed": latest["failed"]},
+        "haikus": haikus,
+        "models": models,
+    }
+
+
+def git(args, stdin=None, cwd=None):
+    out = subprocess.run(["git", *args], input=stdin, capture_output=True, text=True,
+                         timeout=120, check=False, cwd=cwd)
+    if out.returncode != 0:
+        raise RuntimeError(f"git {args[0]} failed ({out.returncode}): {out.stderr.strip()[:300]}")
+    return out.stdout.strip()
+
+
+def publish(db, remote=None, repo=PUBLISH_REPO, dispatch=True, listed=None):
+    """Force-push free-models.json as the single file of an orphan commit on bench-data.
+    No history on purpose: the database is the record, the branch only a transport, and
+    a daily snapshot would grow the public repo forever. The refspec is fixed, so this can
+    never move any other branch."""
+    data = export(db, listed=listed)
+    remote = remote or os.environ.get("OMNIROUTE_HAIKU_REMOTE") or git(
+        ["-C", PROJECT_DIR, "remote", "get-url", "origin"])
+    if not os.path.isdir(repo):
+        git(["init", "--bare", "-q", repo])
+    blob = git(["-C", repo, "hash-object", "-w", "--stdin"], stdin=json.dumps(data, indent=1))
+    tree = git(["-C", repo, "mktree"], stdin=f"100644 blob {blob}\t{PUBLISH_FILE}\n")
+    commit = git(["-C", repo, "commit-tree", tree, "-m",
+                  f"Free-model bench data, {data['generated']}"])
+    git(["-C", repo, "push", "--force", "-q", remote, f"{commit}:refs/heads/{PUBLISH_BRANCH}"])
+    if dispatch:
+        slug = re.sub(r"^(https://github\.com/|git@github\.com:)|\.git$", "", remote)
+        out = subprocess.run(["gh", "workflow", "run", "ci.yml", "--ref", "main", "-R", slug],
+                             capture_output=True, text=True, timeout=60, check=False)
+        if out.returncode != 0:
+            raise RuntimeError(f"pushed {commit[:7]}, but could not start the deploy: "
+                               f"{out.stderr.strip()[:300]}")
+    return commit, data
+
+
+def listed_now():
+    """Ids in today's roster, or None (no filtering) if the runner can't say."""
+    try:
+        return {m["id"] for m in load_roster()}
+    except Exception as exc:
+        log(f"WARNING: roster unavailable, exporting every model in the window: {exc}")
+        return None
+
+
+def main_publish(argv):
+    db = open_db(DB_PATH)
+    if argv and argv[0] == "export":
+        if len(argv) != 2:
+            log("usage: omniroute-haiku.py export <path>")
+            return 2
+        data = export(db, listed=listed_now())
+        with open(argv[1], "w") as f:
+            json.dump(data, f, indent=1)
+        log(f"exported {len(data['haikus'])} haikus, {len(data['models'])} models -> {argv[1]}")
+        return 0
+    try:
+        commit, data = publish(db, listed=listed_now())
+    except Exception as exc:
+        log(f"ERROR: publish failed: {exc}")
+        return 1
+    log(f"published {len(data['haikus'])} haikus, {len(data['models'])} models "
+        f"to {PUBLISH_BRANCH} ({commit[:7]})")
+    return 0
+
+
 def main():
+    if sys.argv[1:2] in (["publish"], ["export"]):
+        return main_publish(sys.argv[1:])
     with open(LOCK_PATH, "w") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

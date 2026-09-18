@@ -109,22 +109,25 @@ Want just one voice? Call it by name:
 ENGINE=agy scripts/generate.sh     # claude (default) | codex | agy
 ```
 
-First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `AGY_MODEL`, `AGY_MODEL_FALLBACKS`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. If the agy default model fails, cron retries once with a randomly selected model from `AGY_MODEL_FALLBACKS`. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them. `claude` and `codex` each name the model they used, and that name is what gets written down — so when a provider quietly rolls its default under an unpinned run (`gpt-5.4` → `gpt-5.5`, say), the swap surfaces as a dashed marker on the trend chart. `agy` doesn't say, so its default runs read `unknown`; explicit fallback runs record their selected model.
+First time with `agy`, log it in once (`agy -p test`). Swapping binaries, pinning models, or tuning timeouts? It all lives in [scripts/lib.sh](scripts/lib.sh) — `AGY_BIN`, `AGY_MODEL`, `AGY_MODEL_FALLBACKS`, `CODEX_MODEL`, `AGY_TIMEOUT_SECONDS`, and friends. If the agy default model fails, cron retries once with a randomly selected model from `AGY_MODEL_FALLBACKS`. Each generation also notes which model actually answered, in `model.log` (committed, never rotated), so the site's mood trends stay tied to the models behind them. `claude` and `codex` each name the model they used, and that name is what gets written down — so when a provider quietly rolls its default under an unpinned run (`gpt-5.4` → `gpt-5.5`, say), the swap surfaces as a dashed marker on the trend chart. `agy` doesn't say, so its default runs read `unknown`; explicit fallback runs record their selected model. Since 2026-09-18 each line also carries the reasoning effort (`effort=`): `codex` reads it from the same banner (`low` today), `claude` records `default` because no `--effort` is passed, and `agy` records what a pinned id names (`gpt-oss-120b-medium` → `medium`), else `unknown`. An effort change marks the chart the same way a model swap does.
 
 ## The free-model bench
 
-Off to one side, a fourth voice that never reaches the page. On the Mac that hosts
+Off to one side, a fourth voice that stays off the front page. On the Mac that hosts
 OmniRoute (the local model router), `scripts/omniroute-haiku.py` asks **every free model
 OmniRoute can reach at that moment** for a haiku, at the same four times, and files each
 answer in a local SQLite database, `omniroute-haiku.db` (gitignored, never pushed). Nothing
-touches `haiku.txt`, `model.log` or the site.
+touches `haiku.txt`, `model.log`, the archive or its stats. A daily export feeds its own page,
+**[Experimental](https://theanhgen.github.io/daily-kickstart-claude/experimental.html)**,
+linked under Archive.
 
 - **Which models:** the multireview runner's `roster` subcommand decides what counts as free,
   so there is one cost table, not two. Around 120 models across 15 providers today.
 - **What's kept:** every attempt, failures included, so the database also shows what was
   available when. Each row records the model asked for, its OmniRoute provider, the provider
   and model that actually answered (`x-omniroute-provider` / `x-omniroute-model`), status,
-  latency, tokens, and OmniRoute's request id.
+  latency, tokens, and OmniRoute's request id. Effort is the reasoning level the id names
+  (`gemini-3.7-flash-high` → `high`), `default` when it names none.
 - **Dead models are skipped:** one whose last three attempts all errored is left out of the
   next runs and retried once a day. Most of the roster is ids OmniRoute lists but can't serve,
   so this roughly halves the calls.
@@ -132,8 +135,17 @@ touches `haiku.txt`, `model.log` or the site.
   `bash` and launchd jobs from this repo under `~/Desktop`. The log is
   `~/Library/Logs/omniroute-haiku.log`. Failures stay in the log and never reach ntfy.
 
+- **Published daily** by `omniroute-haiku.py publish`. It exports the latest run's haikus plus
+  14 days of per-model answered/asked counts (no errors, raw replies or request ids). The export
+  is force-pushed as the only file on the `bench-data` branch, from a bare repo in
+  `~/Library/Caches`, so the working copy is never touched. Then it starts the Pages deploy on
+  `main` with `gh workflow run`, because the `github-pages` environment only deploys `main`.
+  The deploy copies the file in; before the first publish the page shows an empty state.
+  `omniroute-haiku.py export site/free-models.json` writes the same file locally for a preview.
+
 ```cron
 0 6,11,16,21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
+30 21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py publish >> ~/Library/Logs/omniroute-haiku.log 2>&1
 ```
 
 ```bash
@@ -163,13 +175,15 @@ cron/                   Thin wrappers that log everything and call scripts/
   update-clis.sh          Self-updates the engine CLIs ahead of the day's first run
 
 site/                   The static site (index, archive, main.js, style.css, fonts,
-                        favicons). haiku.json and h/ are build artifacts, not committed.
+                        favicons; experimental.html + .js for the free-model bench).
+                        haiku.json, h/ and free-models.json are build artifacts, not committed.
 .github/workflows/      deploy.yml — builds site/ and publishes to GitHub Pages on push
 tests/
   run.sh                  Stubbed unit tests for generate.sh, lib.sh, and sync.sh's safety gate
   test_build_site.py      Parsing, the Atom feed, and model-change detection
   test_omniroute_haiku.py The free-model bench, against a stub OmniRoute
   test_main.js            Front-end helpers — syllables, mood, trend copy
+  test_experimental.js    The experimental page's rendering and escaping
 haiku.txt               The ever-growing book of verses
 model.log               Which model wrote each haiku (committed, never rotated)
 .notify.env.example     Notification config template

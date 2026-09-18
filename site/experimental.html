@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experimental — Daily Haiku</title>
+  <meta name="description" content="Every free model reachable through OmniRoute, given the same haiku prompt as claude, codex and agy. A bench beside the archive, updated daily.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital@0;1&amp;display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="archive-layout bench">
+    <div class="archive-header">
+      <h1>Experimental</h1>
+      <div class="archive-header-right">
+        <span class="haiku-count" id="bench-count"></span>
+        <a class="nav-link" href="archive.html">Archive</a>
+        <a class="nav-link" href="index.html">&#8592; Today</a>
+      </div>
+    </div>
+    <p class="bench-intro">
+      Every free model reachable through OmniRoute, given the same prompt as the three
+      engines, four times a day. A bench, not part of the archive: none of it feeds the
+      stats or the mood chart. Effort is the reasoning level named by the model id;
+      <em>default</em> means none was requested. Updated daily.
+    </p>
+    <div id="bench-content"></div>
+  </div>
+  <script src="experimental.js"></script>
+</body>
+</html>
