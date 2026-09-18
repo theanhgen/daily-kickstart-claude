@@ -2,9 +2,10 @@
 """Ask every free model on local OmniRoute for a haiku and store the answers in SQLite.
 
 A bench, not a fourth engine: nothing here touches haiku.txt, model.log or the site.
-Runs on the Mac that hosts OmniRoute, not on the Pi, from that Mac's user crontab:
+Runs on the Mac that hosts OmniRoute, not on the Pi, from that Mac's user crontab, at
+the Pi's four times (05:59, 11:00, 16:01, 21:02), one line each:
 
-    1 6,11,16,21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 \
+    59 5 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 \
         <repo>/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
 
 Cron calls python3 directly, with no shell wrapper and a log outside ~/Desktop, because

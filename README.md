@@ -69,10 +69,13 @@ crontab -e
 # Lock to Czech local time, because daylight saving is chaos
 CRON_TZ=Europe/Prague
 
-# The main event — poetry, 4x daily. Five hours apart so each run opens a fresh
-# Claude 5-hour usage window (06–11, 11–16, 16–21, 21–02). Windows start on the
-# hour, so :01 clears the previous one; :59 would shift them all an hour earlier.
-1 6,11,16,21 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
+# The main event — poetry, 4x daily: 05:59, 11:00, 16:01, 21:02. Each run lands in
+# its own Claude 5-hour usage window (windows start on the hour: 05–10, 11–16,
+# 16–21, 21–02), and the minutes step so no two runs sit on the same one.
+59 5 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
+0 11 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
+1 16 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
+2 21 * * * /home/YOUR_USER/daily-kickstart-claude/cron/generate.sh
 
 # Sunday-night ritual: commit + push the week's verses (23:00)
 0 23 * * 0 /home/YOUR_USER/daily-kickstart-claude/cron/weekly-push.sh
@@ -155,7 +158,10 @@ often each was used and answered.
   `omniroute-haiku.py export site/free-models.json` writes the same file locally for a preview.
 
 ```cron
-1 6,11,16,21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
+59 5 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
+0 11 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
+1 16 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
+2 21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 /path/to/daily-kickstart-claude/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
 ```
 
 ```bash
