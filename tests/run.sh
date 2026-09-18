@@ -108,6 +108,11 @@ case "$mode" in
     twolines)
         printf '%s\n' '{"result":"just two\nlines here","modelUsage":{"claude-stub":{}}}'
         ;;
+    sidecall)
+        # The real CLI's shape: its own small side call is listed before the
+        # model that actually wrote the haiku.
+        printf '%s\n' '{"result":"morning sparrow sings\nrooftops warming into gold\nday opens its hands","modelUsage":{"claude-side-stub":{"inputTokens":897,"outputTokens":12,"cacheReadInputTokens":0,"cacheCreationInputTokens":0},"claude-main-stub":{"inputTokens":2,"outputTokens":35,"cacheReadInputTokens":0,"cacheCreationInputTokens":18232}}}'
+        ;;
     fail)
         printf 'stubbed claude failure\n' >&2
         exit 1
@@ -581,6 +586,17 @@ test_claude_records_default_effort() {
     assert_file_contains "$project_dir/model.log" "engine=claude model=claude-stub effort=default" "claude passes no --effort, so it should record default"
 }
 
+test_claude_records_main_model_not_side_call() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=claude GENERATE_STUB_MODE=sidecall
+    assert_eq "0" "$RUN_STATUS" "claude generation should exit cleanly"
+    assert_file_contains "$project_dir/model.log" "engine=claude model=claude-main-stub effort=default" "claude should record the model that read the context, not the first modelUsage key"
+}
+
 test_effort_from_id() {
     # shellcheck source=/dev/null
     . "$REPO_DIR/scripts/lib.sh"
@@ -777,6 +793,7 @@ main() {
     run_test test_codex_records_model_that_answered
     run_test test_codex_falls_back_to_pin_without_banner
     run_test test_claude_records_default_effort
+    run_test test_claude_records_main_model_not_side_call
     run_test test_effort_from_id
     run_test test_write_status_round_trips_values
     run_test test_write_health_state_round_trips_values

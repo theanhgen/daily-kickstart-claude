@@ -70,9 +70,25 @@ USER_PROMPT="$(cat "$PROMPT_FILE")"
 case "$ENGINE" in
     claude)
         # JSON output also reveals which model actually answered (modelUsage).
-        if ! run_with_timeout "$CLAUDE_TIMEOUT_SECONDS" "$CLAUDE_BIN" -p --output-format json \
-            --system-prompt "Output only the haiku, nothing else. No preamble, no explanation, just three lines." \
-            "$USER_PROMPT" > "$HAIKU_RAW" 2> "$HAIKU_ERROR"; then
+        # Keep the context down to the poem: no tools, no skills, no thinking,
+        # the default output style, no side calls, and an empty directory
+        # outside the repo and $HOME, so no project memory, CLAUDE.md or git
+        # state is loaded either (that context is what made the haikus about
+        # the Pi). The model still sees the directory's name, so keep it
+        # opaque. Measured 2026-09-19 on the Pi: ~18k -> ~370 input tokens,
+        # $0.18 (Opus 5, default) -> $0.0005 (Haiku 4.5) a run at list price.
+        CLAUDE_EMPTY_DIR="${TMPDIR:-/tmp}/dkc-c"
+        mkdir -p "$CLAUDE_EMPTY_DIR" || finish 1 "claude_failed" "ERROR: Cannot create $CLAUDE_EMPTY_DIR"
+        CLAUDE_ARGS=(-p --output-format json)
+        [ -n "$CLAUDE_MODEL" ] && CLAUDE_ARGS+=(--model "$CLAUDE_MODEL")
+        if ! (
+            cd "$CLAUDE_EMPTY_DIR" || exit 1
+            export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
+            run_with_timeout "$CLAUDE_TIMEOUT_SECONDS" "$CLAUDE_BIN" "${CLAUDE_ARGS[@]}" \
+                --tools "" --disable-slash-commands --settings '{"outputStyle":"default","alwaysThinkingEnabled":false}' \
+                --system-prompt "Output only the haiku, nothing else. No preamble, no explanation, just three lines." \
+                "$USER_PROMPT"
+        ) > "$HAIKU_RAW" 2> "$HAIKU_ERROR"; then
             log "ERROR: Claude CLI failed"
             cat "$HAIKU_ERROR" >&2
             # Auth/session failures often exit non-zero with empty stderr and
@@ -85,7 +101,12 @@ case "$ENGINE" in
             finish 1 "claude_failed" "ERROR: Claude CLI failed or timed out"
         fi
         node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write((JSON.parse(d).result||"")+"\n")}catch{}})' < "$HAIKU_RAW" > "$HAIKU_OUTPUT" 2>/dev/null
-        HAIKU_MODEL="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{process.stdout.write(Object.keys(JSON.parse(d).modelUsage||{})[0]||"unknown")}catch{process.stdout.write("unknown")}})' < "$HAIKU_RAW" 2>/dev/null || echo unknown)"
+        # modelUsage can also list the CLI's own side calls (claude-haiku-4-5
+        # on ~900 input tokens, before nonessential traffic was disabled),
+        # often first. The model that wrote the haiku is the one that read the
+        # harness context, so take the model with the most input tokens, not
+        # the first key.
+        HAIKU_MODEL="$(node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{const u=JSON.parse(d).modelUsage||{};const n=m=>(m.inputTokens||0)+(m.cacheReadInputTokens||0)+(m.cacheCreationInputTokens||0);process.stdout.write(Object.keys(u).sort((a,b)=>n(u[b])-n(u[a]))[0]||"unknown")}catch{process.stdout.write("unknown")}})' < "$HAIKU_RAW" 2>/dev/null || echo unknown)"
         # No --effort is passed, so the CLI's default applies.
         HAIKU_EFFORT="default"
         ;;
