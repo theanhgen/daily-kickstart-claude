@@ -75,8 +75,8 @@ case "$ENGINE" in
         # outside the repo and $HOME, so no project memory, CLAUDE.md or git
         # state is loaded either (that context is what made the haikus about
         # the Pi). The model still sees the directory's name, so keep it
-        # opaque. Measured 2026-09-19 on the Pi: ~18k -> ~370 input tokens,
-        # $0.18 (Opus 5, default) -> $0.0005 (Haiku 4.5) a run at list price.
+        # opaque. Measured 2026-09-19 on the Pi: ~18k -> ~500 input tokens,
+        # $0.18 (Opus 5, default) -> $0.0013 (Sonnet 5) a run at list price.
         CLAUDE_EMPTY_DIR="${TMPDIR:-/tmp}/dkc-c"
         mkdir -p "$CLAUDE_EMPTY_DIR" || finish 1 "claude_failed" "ERROR: Cannot create $CLAUDE_EMPTY_DIR"
         CLAUDE_ARGS=(-p --output-format json)

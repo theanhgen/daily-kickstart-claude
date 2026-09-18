@@ -30,9 +30,9 @@ AGY_FALLBACK_MODELS="${AGY_FALLBACK_MODELS:-claude-sonnet-4-6 gpt-oss-120b-mediu
 CODEX_MODEL="${CODEX_MODEL:-gpt-5.6-sol}"
 # Pin claude too: unpinned, it follows the account default, which rolled
 # Opus 4.8 -> Sonnet 5 -> Fable 5 -> Opus 5 between July and September 2026
-# and changed the cost of a run with each move. A haiku needs no more than
-# Haiku. Set to "" to follow the account default again.
-CLAUDE_MODEL="${CLAUDE_MODEL-claude-haiku-4-5}"
+# and changed the cost of a run with each move. Sonnet 5 costs ~$0.0013 a
+# run at list price. Set to "" to follow the account default again.
+CLAUDE_MODEL="${CLAUDE_MODEL-claude-sonnet-5}"
 # Keep codex generation fast: the config default is xhigh reasoning, which
 # makes a current codex grind for minutes over a haiku. Low is plenty here.
 CODEX_REASONING="${CODEX_REASONING:-low}"
