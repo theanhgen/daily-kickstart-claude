@@ -295,6 +295,11 @@ class WordCloudTest(unittest.TestCase):
         self.assertEqual(words["silence"]["families"][0], ["gemini", 4])
         self.assertEqual(list(words)[0], "silence")              # most-used first
 
+    def test_a_small_family_owns_a_word_at_a_quarter_share(self):
+        # qwen writes 3 of 24 words but 3 of ember's 10: 30% of it, 8x its share.
+        haikus = [("g/1", "gemini", ["ember sky sky"])] * 7 + [("q/1", "qwen", ["ember"])] * 3
+        self.assertEqual({w["word"]: w["owner"] for w in oh.word_cloud(haikus)}["ember"], "qwen")
+
     def test_rare_words_are_dropped(self):
         self.assertEqual(oh.word_cloud([("a/1", "gemini", ["lonely heron"])] * 2), [])
 

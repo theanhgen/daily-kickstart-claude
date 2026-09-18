@@ -33,22 +33,54 @@ function badges(item) {
 // Colour slots 1-3 go to these families BY NAME, never by rank, so a word keeps
 // its colour when the families reshuffle. Three is the most a cloud can carry:
 // every colour sits next to every other, and past three the categorical palette
-// stops separating for colour-blind readers. Any other family's words are grey.
-// Picked as the three that lean on the most words (Sep 2026: gemini 18, llama 8,
-// mistral 6, qwen 0); revisit by hand if that changes, never automatically.
+// stops separating for colour-blind readers (the validator finds no fourth hue that
+// clears the all-pairs floors beside these). Any other family's words are grey; its
+// legend key lights them up instead. Picked as the three that lean on the most words
+// (Sep 2026: gemini, mistral, llama; qwen had none); revisit by hand, never by rank.
 const CLOUD_FAMILIES = ["gemini", "mistral", "llama"];
 const CLOUD_MIN_REM = 0.85;
-const CLOUD_MAX_REM = 3.2;
+const CLOUD_MAX_REM = 2.6;
 
 function familyClass(owner) {
   if (!owner) return "shared";
   return CLOUD_FAMILIES.includes(owner) ? owner : "other";
 }
 
+// Stable scatter: order words by a string hash, so big and small interleave the
+// same way on every load instead of reading as a sorted list.
+function wordHash(w) {
+  let h = 2166136261;
+  for (const c of w) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  return h;
+}
+
 // Area, not height, should track uses: size by the square root.
 function cloudSize(uses, min, max) {
   if (max === min) return (CLOUD_MIN_REM + CLOUD_MAX_REM) / 2;
   return CLOUD_MIN_REM + (CLOUD_MAX_REM - CLOUD_MIN_REM) * Math.sqrt((uses - min) / (max - min));
+}
+
+function familyLabel(f) {
+  return f === "shared" ? "shared by all" : f === "other" ? "unclassified" : f;
+}
+
+// Every family that leans on at least one word, with how many: the named three first
+// in their fixed order, then the rest by count, then the words nobody leans on.
+function cloudLegend(words) {
+  const counts = new Map();
+  for (const w of words) counts.set(w.owner || "shared", (counts.get(w.owner || "shared") || 0) + 1);
+  const named = CLOUD_FAMILIES.filter(f => counts.has(f));
+  const rest = [...counts.keys()].filter(f => f !== "shared" && !CLOUD_FAMILIES.includes(f))
+    .sort((a, b) => counts.get(b) - counts.get(a) || (a < b ? -1 : 1));
+  return [...named, ...rest, ...(counts.has("shared") ? ["shared"] : [])].map(f => [f, counts.get(f)]);
+}
+
+function familyDetail(words, f) {
+  const mine = words.filter(w => (w.owner || "shared") === f).map(w => w.word);
+  if (f === "shared") return `shared by all: ${mine.length} word${mine.length === 1 ? "" : "s"} no one family leans on`;
+  const more = mine.length > 8 ? ` +${mine.length - 8} more` : "";
+  return `${familyLabel(f)} leans on ${mine.length} word${mine.length === 1 ? "" : "s"}: `
+    + mine.slice(0, 8).join(", ") + more;
 }
 
 function wordDetail(w) {
@@ -58,82 +90,24 @@ function wordDetail(w) {
   return `${w.word}: ${w.uses} uses by ${models} (${fams})${lean}`;
 }
 
-// ── Packed layout ──
-// The Wordle layout: biggest word first, each one placed at the first clear spot
-// on a spiral out from the centre, so the heavy words gather in the middle. Pure
-// over measured boxes so node can test it; layoutCloud measures the spans, packs
-// them and positions them absolutely.
-const PACK_GAP = 3;        // px of clear space between two words
-const PACK_PITCH = 1.4;    // px the spiral's radius grows per radian, ~9px a turn
-const PACK_STEP = 4;       // px along the spiral between tries
-const PACK_TRIES = 30000;
-
-// boxes: [{w, h}] in placement order. Returns [{x0, x1, y0, y1}] around a (0, 0)
-// centre, every box inside [-width/2, width/2].
-function packCloud(boxes, width) {
-  const half = width / 2;
-  // Wide screens pack an oval, phones a round cloud that grows downward.
-  const stretch = Math.min(2, Math.max(1, width / 360));
-  const placed = [];
-  const clear = r => placed.every(p => r.x1 + PACK_GAP <= p.x0 || p.x1 + PACK_GAP <= r.x0
-    || r.y1 + PACK_GAP <= p.y0 || p.y1 + PACK_GAP <= r.y0);
-  for (const { w, h } of boxes) {
-    const room = Math.max(0, half - w / 2);
-    let rect = null;
-    for (let i = 0, t = 0; i < PACK_TRIES && !rect; i++) {
-      const r = PACK_PITCH * t;
-      const x = r * Math.cos(t) * stretch, y = r * Math.sin(t);
-      if (Math.abs(x) <= room) {
-        const c = { x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 };
-        if (clear(c)) rect = c;
-      }
-      t += PACK_STEP / Math.max(r, PACK_STEP);
-    }
-    // Wider than the screen, or no room found: a row of its own under the rest.
-    if (!rect) {
-      const bottom = placed.length ? Math.max(...placed.map(p => p.y1)) + PACK_GAP : 0;
-      rect = { x0: -w / 2, x1: w / 2, y0: bottom, y1: bottom + h };
-    }
-    placed.push(rect);
-  }
-  return placed;
-}
-
-function layoutCloud(box) {
-  const width = box.clientWidth;
-  if (!width) return;
-  box.classList.add("packed");
-  const spans = [...box.querySelectorAll(".cloud-word")];
-  const rects = packCloud(spans.map(s => {
-    const b = s.getBoundingClientRect();
-    return { w: b.width, h: b.height };
-  }), width);
-  const top = Math.min(...rects.map(r => r.y0));
-  spans.forEach((s, i) => {
-    s.style.left = `${(width / 2 + rects[i].x0).toFixed(1)}px`;
-    s.style.top = `${(rects[i].y0 - top).toFixed(1)}px`;
-  });
-  box.style.height = `${Math.ceil(Math.max(...rects.map(r => r.y1)) - top)}px`;
-  box.dataset.width = String(width);
-}
-
 function renderCloud(cloud) {
   if (!cloud || !cloud.words.length) return "";
   const uses = cloud.words.map(w => w.uses);
   const min = Math.min(...uses), max = Math.max(...uses);
-  // Most-used first: the order they are packed in, and the reading order.
-  const words = [...cloud.words].sort((a, b) => b.uses - a.uses || (a.word < b.word ? -1 : 1));
+  const words = [...cloud.words].sort((a, b) => wordHash(a.word) - wordHash(b.word) || (a.word < b.word ? -1 : 1));
   const spans = words.map(w => `<span class="cloud-word fam-${familyClass(w.owner)}" tabindex="0"`
+    + ` data-family="${esc(w.owner || "shared")}"`
     + ` style="font-size:${cloudSize(w.uses, min, max).toFixed(2)}rem"`
     + ` title="${esc(wordDetail(w))}" data-detail="${esc(wordDetail(w))}">${esc(w.word)}</span>`).join(" ");
-  const keys = [...CLOUD_FAMILIES, "other", "shared"].map(f => `<span class="cloud-key fam-${f}"><i></i>`
-    + `${f === "other" ? "other family" : f === "shared" ? "shared by all" : f}</span>`).join("");
+  const keys = cloudLegend(cloud.words).map(([f, n]) => `<button type="button"`
+    + ` class="cloud-key fam-${f === "shared" ? "shared" : familyClass(f)}" data-family="${esc(f)}"`
+    + ` aria-pressed="false"><i></i>${esc(familyLabel(f))} <span class="cloud-key-n">${n}</span></button>`).join("");
   const rows = cloud.words.map(w => `<tr><td>${esc(w.word)}</td><td class="num">${w.uses}</td>`
     + `<td class="num">${w.models}</td><td>${esc(w.owner || "—")}</td></tr>`).join("");
   return `
     <div class="month-group">
       <h2 class="month-heading">Word cloud</h2>
-      <span class="month-count">${cloud.words.length} most-used words · ${cloud.haikus} haikus · last 14 days · size = uses, colour = the family that leans on it</span>
+      <span class="month-count">${cloud.words.length} most-used words · ${cloud.haikus} haikus · last 14 days · size = uses, colour = the family that leans on it; tap a family to light up its words</span>
       <div class="cloud-legend">${keys}</div>
       <div class="bench-cloud">${spans}</div>
       <p class="cloud-detail" aria-live="polite">Hover or tap a word.</p>
@@ -176,7 +150,8 @@ function renderModels(data) {
       <td>${esc(benchName(m.model, m.provider))}</td>
       <td>${esc(m.provider)}</td>
       <td>${esc(m.effort || "default")}</td>
-      <td class="num">${m.ok}/${m.asked}</td>
+      <td class="num">${m.asked}×</td>
+      <td class="num">${m.ok}</td>
       <td>${m.last_ok ? fmtUtc(m.last_ok) : "—"}</td>
     </tr>`).join("");
   const dead = silent.length ? `
@@ -191,7 +166,7 @@ function renderModels(data) {
         <span class="month-count">${answered.length} answered · last ${data.window_days} days · ${data.runs_in_window} runs</span></summary>
       <div class="bench-table-wrap">
         <table class="bench-table">
-          <thead><tr><th>Model</th><th>Provider</th><th>Effort</th><th class="num">Answered</th><th>Last answer</th></tr></thead>
+          <thead><tr><th>Model</th><th>Provider</th><th title="reasoning level named by the model id; default = none requested">Effort</th><th class="num" title="times asked in the window">Used</th><th class="num">Answered</th><th>Last answer</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -221,21 +196,28 @@ if (typeof window !== "undefined") (async () => {
       if (w && detail) detail.textContent = w.dataset.detail;
     };
     for (const ev of ["mouseover", "focusin", "click"]) el.addEventListener(ev, show);
-    // Pack once the font is in (its widths decide the layout), and again whenever the
-    // column changes width. Until then the words sit in a plain wrapped row.
-    const box = el.querySelector(".bench-cloud");
-    if (box) {
-      const pack = () => layoutCloud(box);
-      pack();
-      if (document.fonts) {
-        document.fonts.ready.then(pack);
-        document.fonts.addEventListener("loadingdone", pack);
-      }
-      if (typeof ResizeObserver !== "undefined") {
-        new ResizeObserver(() => {
-          if (box.clientWidth && String(box.clientWidth) !== box.dataset.width) pack();
-        }).observe(box);
-      }
+    // Legend keys: hover or focus previews a family's words, a click or tap pins it.
+    const legend = el.querySelector(".cloud-legend");
+    if (legend) {
+      const words = data.cloud.words;
+      let pinned = null;
+      const light = f => {
+        for (const w of el.querySelectorAll(".cloud-word")) {
+          w.classList.toggle("dim", f !== null && w.dataset.family !== f);
+          w.classList.toggle("lit", f !== null && w.dataset.family === f);
+        }
+        if (detail) detail.textContent = f === null ? "Hover or tap a word." : familyDetail(words, f);
+      };
+      const keyOf = e => e.target.closest(".cloud-key");
+      for (const ev of ["mouseover", "focusin"]) legend.addEventListener(ev, e => { if (keyOf(e)) light(keyOf(e).dataset.family); });
+      for (const ev of ["mouseleave", "focusout"]) legend.addEventListener(ev, () => light(pinned));
+      legend.addEventListener("click", e => {
+        const k = keyOf(e);
+        if (!k) return;
+        pinned = pinned === k.dataset.family ? null : k.dataset.family;
+        for (const b of legend.querySelectorAll(".cloud-key")) b.setAttribute("aria-pressed", String(b.dataset.family === pinned));
+        light(pinned);
+      });
     }
     const count = document.getElementById("bench-count");
     if (count) count.textContent = `${data.models.filter(m => m.ok > 0).length} models`;
@@ -245,5 +227,6 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, benchName, fmtUtc, renderBench, familyClass, cloudSize, wordDetail, renderCloud, packCloud };
+  module.exports = { esc, benchName, fmtUtc, renderBench, familyClass, cloudSize, wordDetail, renderCloud,
+    cloudLegend, familyDetail };
 }

@@ -100,7 +100,9 @@ CLOUD_MIN_USES = 3       # below this a word is noise, not part of anyone's worl
 # uses it OWN_LIFT times more than its share of all words predicts. The lift is what
 # stops the biggest family from owning every common word just by writing the most (a
 # family writing over 2/3 of all words could own nothing; gemini writes about 1/4).
-OWN_SHARE = 0.4
+# The share was 0.4 until 2026-09-19; at 0.4 only 4 families owned any of the top 80
+# words (gemini 18, llama 8, mistral 6, liquid 2), at 0.25 seven do.
+OWN_SHARE = 0.25
 OWN_LIFT = 1.5
 
 SCHEMA = """
