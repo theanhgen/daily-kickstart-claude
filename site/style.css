@@ -867,6 +867,41 @@ body {
   text-wrap: balance;
 }
 
+.bench-fold > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.9rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+}
+.bench-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.bench-fold > summary .month-count {
+  display: inline;
+  margin-bottom: 0;
+}
+
+.bench-fold-title {
+  font-family: 'DM Serif Display', 'New York', ui-serif, 'Noto Serif', serif;
+  font-size: clamp(1.15rem, 3vw, 1.4rem);
+  color: var(--text);
+}
+.bench-fold-title::before {
+  content: "▸ ";
+  color: var(--muted);
+}
+.bench-fold[open] .bench-fold-title::before {
+  content: "▾ ";
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bench-fold > summary:hover .bench-fold-title { color: var(--muted); }
+}
+
 .bench-empty {
   font-family: ui-monospace, 'SF Mono', 'Menlo', monospace;
   font-size: 0.75rem;

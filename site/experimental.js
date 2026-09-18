@@ -105,12 +105,13 @@ function renderLatest(data) {
       ${h.lines.map(l => `<p>${esc(l)}</p>`).join("")}
       <div class="entry-meta">${badges(h)}</div>
     </div>`).join("");
+  // Folded by default: the word cloud is the page, the run's haikus are the detail.
   return `
-    <div class="month-group">
-      <h2 class="month-heading">Latest run</h2>
-      <span class="month-count">${run.ok} of ${asked} answered · ${fmtUtc(run.started)}${skipped}</span>
+    <details class="month-group bench-fold">
+      <summary><span class="bench-fold-title">Latest run</span>
+        <span class="month-count">${run.ok} of ${asked} answered · ${fmtUtc(run.started)}${skipped}</span></summary>
       <div class="month-entries">${rows}</div>
-    </div>`;
+    </details>`;
 }
 
 function renderModels(data) {

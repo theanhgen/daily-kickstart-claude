@@ -30,6 +30,8 @@ test("renderBench escapes haiku text and shows effort, counts and silent models"
   assert.ok(html.includes("&lt;b&gt;one&lt;/b&gt;"));
   assert.ok(!html.includes("<b>one</b>"));
   assert.match(html, /1 of 3 answered · Sep 18, 06:00 UTC · 1 skipped/);
+  // The latest run is folded away; the word cloud leads the page.
+  assert.match(html, /<details class="month-group bench-fold">/);
   assert.match(html, /title="reasoning effort">high</);
   assert.match(html, /2\/2/);
   assert.match(html, /1 more listed model never answered/);
