@@ -85,6 +85,9 @@ EFFORT_SUFFIX = re.compile(r"-(xhigh|high|medium|low|minimal|none)(?::[\w.-]+)?$
 
 PUBLISH_BRANCH = "bench-data"
 PUBLISH_FILE = "free-models.json"
+# Every answered haiku ever, one JSON object per line, beside the page data: the public
+# backup of what the bench wrote. Errors, raw replies and request ids stay on the Mac.
+PUBLISH_ARCHIVE = "free-haikus.jsonl"
 PUBLISH_REPO = os.environ.get("OMNIROUTE_HAIKU_PUBLISH_REPO", os.path.expanduser(
     "~/Library/Caches/daily-kickstart-bench.git"))
 EXPORT_WINDOW_DAYS = 14
@@ -484,18 +487,30 @@ def git(args, stdin=None, cwd=None):
     return out.stdout.strip()
 
 
+def haiku_archive(db):
+    """PUBLISH_ARCHIVE's text: every answered haiku, oldest first, without the private
+    columns (error, raw, request_id)."""
+    rows = db.execute("SELECT created_utc, run_id, model, provider, served_provider, served_model, "
+                      "lineage, effort, haiku FROM attempts WHERE status = 'ok' ORDER BY id")
+    return "".join(json.dumps({"utc": r[0], "run": r[1], "model": r[2], "provider": r[3],
+                               "served_provider": r[4], "served_model": r[5], "lineage": r[6],
+                               "effort": r[7], "lines": r[8].split("\n")}) + "\n" for r in rows)
+
+
 def publish(db, remote=None, repo=PUBLISH_REPO, dispatch=True, listed=None):
-    """Force-push free-models.json as the single file of an orphan commit on bench-data.
-    No history on purpose: the database is the record, the branch only a transport, and
-    a daily snapshot would grow the public repo forever. The refspec is fixed, so this can
-    never move any other branch."""
+    """Force-push free-models.json (the page) and free-haikus.jsonl (every haiku) as the
+    only files of an orphan commit on bench-data. No history on purpose: each commit
+    carries everything, and daily snapshots would grow the public repo forever. The
+    refspec is fixed, so this can never move any other branch."""
     data = export(db, listed=listed)
     remote = remote or os.environ.get("OMNIROUTE_HAIKU_REMOTE") or git(
         ["-C", PROJECT_DIR, "remote", "get-url", "origin"])
     if not os.path.isdir(repo):
         git(["init", "--bare", "-q", repo])
     blob = git(["-C", repo, "hash-object", "-w", "--stdin"], stdin=json.dumps(data, indent=1))
-    tree = git(["-C", repo, "mktree"], stdin=f"100644 blob {blob}\t{PUBLISH_FILE}\n")
+    archive = git(["-C", repo, "hash-object", "-w", "--stdin"], stdin=haiku_archive(db))
+    tree = git(["-C", repo, "mktree"], stdin=f"100644 blob {archive}\t{PUBLISH_ARCHIVE}\n"
+                                             f"100644 blob {blob}\t{PUBLISH_FILE}\n")
     commit = git(["-C", repo, "commit-tree", tree, "-m",
                   f"Free-model bench data, {data['generated']}"])
     git(["-C", repo, "push", "--force", "-q", remote, f"{commit}:refs/heads/{PUBLISH_BRANCH}"])

@@ -250,7 +250,7 @@ class ExportPublishTest(unittest.TestCase):
         for private in ("boom", "req"):   # errors and request ids stay on the Mac
             self.assertNotIn(f'"{private}"', blob)
 
-    def test_publish_force_pushes_one_file_to_bench_data(self):
+    def test_publish_force_pushes_page_data_and_every_haiku(self):
         remote = os.path.join(self.tmp.name, "remote.git")
         subprocess.run(["git", "init", "--bare", "-q", remote], check=True)
         repo = os.path.join(self.tmp.name, "publish.git")
@@ -267,10 +267,17 @@ class ExportPublishTest(unittest.TestCase):
         git = lambda *a: subprocess.run(["git", "-C", remote, *a], capture_output=True, text=True,
                                         check=True).stdout.strip()
         self.assertEqual(git("rev-parse", "refs/heads/bench-data"), second)
-        self.assertEqual(git("ls-tree", "--name-only", "bench-data"), "free-models.json")
+        self.assertEqual(git("ls-tree", "--name-only", "bench-data").split(),
+                         ["free-haikus.jsonl", "free-models.json"])
         self.assertEqual(git("rev-list", "--count", "bench-data"), "1")   # orphan, no history
         self.assertEqual(git("for-each-ref", "--format=%(refname)"), "refs/heads/bench-data")
         self.assertIn("agy/m-high", git("show", "bench-data:free-models.json"))
+        # Every answered haiku, however old; errors and request ids stay on the Mac.
+        archive = [json.loads(l) for l in git("show", "bench-data:free-haikus.jsonl").splitlines()]
+        self.assertEqual([(a["model"], a["lines"]) for a in archive],
+                         [("agy/m-high", ["one", "two", "three"])])
+        self.assertNotIn("boom", json.dumps(archive))
+        self.assertNotIn("req", json.dumps(archive))
 
 
 class WordCloudTest(unittest.TestCase):

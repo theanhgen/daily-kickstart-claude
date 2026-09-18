@@ -151,7 +151,9 @@ often each was used and answered.
   The agent runs `/opt/homebrew/bin/python3` directly, since launchd can't run a bash
   script from this repo. It exports the latest run's haikus plus
   14 days of per-model answered/asked counts (no errors, raw replies or request ids). The export
-  is force-pushed as the only file on the `bench-data` branch, from a bare repo in
+  is force-pushed to the `bench-data` branch with `free-haikus.jsonl`, every answered haiku
+  the bench has ever collected (model, provider, effort, time), as a public backup of the
+  haikus; errors and raw replies stay only in the database. Both come from a bare repo in
   `~/Library/Caches`, so the working copy is never touched. Then it starts the Pages deploy on
   `main` with `gh workflow run`, because the `github-pages` environment only deploys `main`.
   The deploy copies the file in; before the first publish the page shows an empty state.
