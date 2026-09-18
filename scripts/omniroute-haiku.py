@@ -4,7 +4,7 @@
 A bench, not a fourth engine: nothing here touches haiku.txt, model.log or the site.
 Runs on the Mac that hosts OmniRoute, not on the Pi, from that Mac's user crontab:
 
-    0 6,11,16,21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 \
+    1 6,11,16,21 * * * PATH=/opt/homebrew/bin:/usr/bin:/bin /opt/homebrew/bin/python3 \
         <repo>/scripts/omniroute-haiku.py >> ~/Library/Logs/omniroute-haiku.log 2>&1
 
 Cron calls python3 directly, with no shell wrapper and a log outside ~/Desktop, because
