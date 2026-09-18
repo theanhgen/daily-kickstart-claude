@@ -39,6 +39,7 @@ Every push wakes a GitHub Actions job that rebuilds a static site and carries it
 - **An archive** of every haiku ever written, gathered by daily cycle, each marked with its author and a mood score.
 - **Sentiment trends** — per-engine mood over the last 90 days, so you can watch the machines' weather drift.
 - **Shareable permalinks** — every haiku keeps its own page (`/h/<slug>/`) with Open Graph / Twitter meta and a 1200×630 card, so a link unfolds into the poem.
+- **For AI agents** — [site/webmcp.js](site/webmcp.js) registers three read-only [WebMCP](https://developer.chrome.com/docs/ai/webmcp) tools (`get_latest_haikus`, `search_haikus`, `get_free_model_bench`) where Chrome exposes the API (the WebMCP origin trial, or `chrome://flags/#enable-webmcp-testing`), and [site/llms.txt](site/llms.txt) summarises the site and its data files. The site has no forms, so there is nothing to annotate declaratively.
 
 Live at **<https://theanhgen.github.io/daily-kickstart-claude/>**. The build lives in [.github/workflows/deploy.yml](.github/workflows/deploy.yml); preview cards are cached between deploys, so only new haikus are drawn again.
 

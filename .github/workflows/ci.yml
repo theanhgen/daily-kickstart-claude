@@ -39,7 +39,7 @@ jobs:
           python3 tests/test_omniroute_haiku.py
 
       - name: JS unit tests
-        run: node --test tests/test_main.js tests/test_experimental.js
+        run: node --test tests/test_main.js tests/test_experimental.js tests/test_webmcp.js
 
       # Full-archive parse of the real haiku.txt (no Pillow: pages-only path).
       - name: Build-site smoke test
