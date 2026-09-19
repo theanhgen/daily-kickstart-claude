@@ -46,6 +46,7 @@ test("slugOf matches main.js, so tool permalinks resolve", () => {
 });
 
 // The word and mood helpers are copies of main.js's: the tools must give the Archive page's numbers.
+// site/haiku.json is build output (gitignored): run scripts/build-site.py first, as CI does.
 test("word and mood helpers agree with main.js on the whole archive", () => {
   const archive = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "site", "haiku.json"), "utf8"));
   for (const h of archive) {
