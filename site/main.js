@@ -840,5 +840,5 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, shortModel, modelLabel, trendFoot };
+  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, moodAgg, tokens, shortModel, modelLabel, trendFoot };
 }

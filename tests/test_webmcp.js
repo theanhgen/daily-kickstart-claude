@@ -4,7 +4,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const { tools, latestHaikus, searchHaikus, benchSection, slugOf } = require("../site/webmcp.js");
+const { tools, respond, latestHaikus, searchHaikus, haikusForWord, searchByWord, wordCloud, wordTrends,
+  compareEngines, benchSection, slugOf, tokens, moodRaw, moodAgg, is575 } = require("../site/webmcp.js");
 const main = require("../site/main.js");
 
 const BASE = "https://theanhgen.github.io/daily-kickstart-claude/";
@@ -16,7 +17,8 @@ const haikus = [   // haiku.json order: newest first
 
 test("tools have MCP-shaped names, descriptions and object schemas", () => {
   const list = tools(BASE);
-  assert.deepEqual(list.map(t => t.name), ["get_latest_haikus", "search_haikus", "get_free_model_bench"]);
+  assert.deepEqual(list.map(t => t.name), ["get_latest_haikus", "search_haikus", "get_haikus_for_word",
+    "search_by_word", "get_word_cloud", "get_word_trends", "compare_engines", "get_free_model_bench"]);
   for (const t of list) {
     assert.match(t.name, /^[a-z][a-z0-9_]*$/);
     assert.ok(t.description.length > 40, t.name);
@@ -41,6 +43,85 @@ test("webmcp.js loads beside each page's script without a global clash", () => {
 
 test("slugOf matches main.js, so tool permalinks resolve", () => {
   for (const h of haikus) assert.equal(slugOf(h), main.slugOf(h));
+});
+
+// The word and mood helpers are copies of main.js's: the tools must give the Archive page's numbers.
+test("word and mood helpers agree with main.js on the whole archive", () => {
+  const archive = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "site", "haiku.json"), "utf8"));
+  for (const h of archive) {
+    assert.deepEqual(tokens(h), main.tokens(h), h.timestamp);
+    assert.deepEqual(moodRaw(h), main.moodRaw(h), h.timestamp);
+    assert.equal(is575(h), main.is575(h), h.timestamp);
+  }
+  for (const e of ["claude", "codex", "agy"]) {
+    const es = archive.filter(h => h.source === e);
+    assert.deepEqual(moodAgg(es), main.moodAgg(es), e);
+  }
+});
+
+const words = [   // newest first, as haiku.json
+  { date: "2026-09-10", timestamp: "2026-09-10 09:00:00 UTC", source: "agy", lines: ["Winter's frost holds", "sea and season", "frost frost"] },
+  { date: "2026-08-03", timestamp: "2026-08-03 09:00:00 UTC", source: "codex", lines: ["warm light blooms", "the sea", "light"] },
+  { date: "2026-08-01", timestamp: "2026-08-01 09:00:00 UTC", source: "claude", lines: ["winter sea", "blossom blossoms", "silent"] },
+];
+
+test("haikus for a word: whole word and possessive, never a fragment; order and counts", () => {
+  const winter = haikusForWord(words, { word: "Winter" }, BASE);
+  assert.deepEqual([winter.total, winter.by_engine], [2, { claude: 1, codex: 0, agy: 1 }]);
+  assert.deepEqual(winter.haikus.map(h => h.engine), ["agy", "claude"]);
+  assert.deepEqual(haikusForWord(words, { word: "winter", order: "oldest" }, BASE).haikus.map(h => h.engine), ["claude", "agy"]);
+  assert.equal(haikusForWord(words, { word: "sea" }, BASE).total, 3);   // "season" isn't "sea"
+  assert.equal(haikusForWord(words, { word: "seas" }, BASE).total, 0);
+  assert.equal(haikusForWord(words, { word: "sea", engine: "codex" }, BASE).total, 1);
+  assert.throws(() => haikusForWord(words, { word: "two words" }, BASE), /single word/);
+  assert.throws(() => haikusForWord(words, { word: "sea", order: "random" }, BASE), /order must be/);
+});
+
+test("search by word: prefix, contains and exact over the vocabulary", () => {
+  const blos = searchByWord(words, { query: "blos" });
+  assert.deepEqual(blos.words.map(w => w.word), ["blossom", "blossoms"]);
+  const frost = searchByWord(words, { query: "frost", match: "exact" }).words[0];
+  assert.deepEqual(frost, { word: "frost", uses: 3, haikus: 1, by_engine: { claude: 0, codex: 0, agy: 3 },
+    first_used: "2026-09-10", last_used: "2026-09-10" });
+  assert.deepEqual(searchByWord(words, { query: "eas", match: "contains" }).words.map(w => w.word), ["season"]);
+  const sea = searchByWord(words, { query: "sea" }).words.find(w => w.word === "sea");
+  assert.deepEqual([sea.first_used, sea.last_used], ["2026-08-01", "2026-09-10"]);
+  assert.throws(() => searchByWord(words, { query: "" }), /query must be/);
+  assert.throws(() => searchByWord(words, { query: "sea", match: "fuzzy" }), /match must be/);
+});
+
+test("word cloud: the Archive's counting (stopwords and short words out), per engine", () => {
+  const cloud = wordCloud(words, {});
+  assert.equal(cloud.haikus, 3);
+  assert.deepEqual(cloud.words.slice(0, 2), [
+    { word: "frost", uses: 3, by_engine: { claude: 0, codex: 0, agy: 3 } },
+    { word: "sea", uses: 3, by_engine: { claude: 1, codex: 1, agy: 1 } },
+  ]);
+  assert.ok(!cloud.words.some(w => ["the", "and"].includes(w.word) || w.word.length < 3));
+  assert.deepEqual(wordCloud(words, { engine: "claude", limit: 1 }).words.map(w => w.word), ["blossom"]);
+  assert.equal(wordCloud(words, { from: "2026-09-01" }).haikus, 1);
+});
+
+test("word trends: per period, with haiku counts and a rate", () => {
+  const t = wordTrends(words, { words: ["sea", "Frost"] });
+  assert.deepEqual(t.words, ["sea", "frost"]);
+  assert.deepEqual(t.totals, { sea: 3, frost: 3 });
+  assert.deepEqual(t.periods.map(p => [p.period, p.haikus, p.uses.sea, p.per_100_haikus.sea]),
+    [["2026-08", 2, 2, 100], ["2026-09", 1, 1, 100]]);
+  assert.deepEqual(wordTrends(words, { words: "sea", period: "week" }).periods.map(p => p.period),
+    ["2026-07-27", "2026-08-03", "2026-09-07"]);   // each week's Monday
+  assert.throws(() => wordTrends(words, { words: ["a", "b", "c", "d", "e", "f"] }), /1 to 5/);
+  assert.throws(() => wordTrends(words, { words: ["sea"], period: "year" }), /period must be/);
+});
+
+test("compare engines: per-engine stats, skipping engines with no haikus in range", () => {
+  const c = compareEngines(words, { from: "2026-08-02" });
+  assert.deepEqual(c.engines.map(e => e.engine), ["codex", "agy"]);
+  const agy = c.engines[1];
+  assert.deepEqual([agy.haikus, agy.first, agy.unique_haikus_pct], [1, "2026-09-10", 100]);
+  assert.deepEqual(agy.top_words[0], { word: "frost", uses: 3 });
+  assert.deepEqual([agy.mood.n, agy.mood.label], [1, "cool"]);   // frost is a cool word
+  assert.deepEqual(compareEngines(words, {}).engines.map(e => e.engine), ["claude", "codex", "agy"]);
 });
 
 test("latest haikus: newest first, engine filter, limit clamped", () => {
@@ -73,6 +154,12 @@ test("bench sections", () => {
   assert.deepEqual(benchSection(bench, "models").models[0],
     { model: "a/m", provider: "a", effort: "default", family: "qwen", used: 9, answered: 7, last_answer: "t" });
   assert.throws(() => benchSection(bench, "nope"), /section must be one of/);
+});
+
+test("a tool that fails tells the agent why, as an MCP error result", async () => {
+  assert.deepEqual(await respond(() => ({ ok: 1 })), { content: [{ type: "text", text: '{"ok":1}' }] });
+  assert.deepEqual(await respond(() => wordTrends(words, { words: [] })),
+    { content: [{ type: "text", text: "words must be 1 to 5 single words" }], isError: true });
 });
 
 test("llms.txt passes Lighthouse's checks: an H1, a link, not too short", () => {
