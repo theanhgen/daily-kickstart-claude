@@ -139,9 +139,12 @@ often each was used and answered.
   and model that actually answered (`x-omniroute-provider` / `x-omniroute-model`), status,
   latency, tokens, and OmniRoute's request id. Effort is the reasoning level the id names
   (`gemini-3.7-flash-high` → `high`), `default` when it names none.
-- **Dead models are skipped:** one whose last three attempts all errored is left out of the
-  next runs and retried once a day. Most of the roster is ids OmniRoute lists but can't serve,
-  so this roughly halves the calls.
+- **Dead models are probed, not skipped:** every model is called every run, but one whose
+  last three attempts all errored (rate limits don't count — 429 means alive and throttled)
+  gets a probe: one call on a 20s timeout, no retries, and only after the models that still
+  answer have finished. Most of the roster is ids OmniRoute lists but can't serve, so probing
+  them alongside the rest saturates OmniRoute and starves the good calls: mixed in, run 18
+  lost 21 healthy models to 120s timeouts and returned 45 haikus; phased, run 19 returned 62.
 - **Runs from the Mac's crontab**, calling Homebrew's `python3` directly: macOS blocks
   `bash` and launchd jobs from this repo under `~/Desktop`. The log is
   `~/Library/Logs/omniroute-haiku.log`. Failures stay in the log and never reach ntfy.

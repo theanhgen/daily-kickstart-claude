@@ -166,6 +166,7 @@ function renderLatest(data) {
   if (!run || !data.haikus.length) return "";
   const asked = run.ok + run.failed;
   const skipped = run.skipped ? ` · ${run.skipped} skipped after 3 errors in a row` : "";
+  const probed = run.probed ? ` · ${run.probed} probed after 3 errors in a row` : "";
   const rows = data.haikus.map(h => `
     <div class="haiku-entry">
       ${h.lines.map(l => `<p>${esc(l)}</p>`).join("")}
@@ -175,7 +176,7 @@ function renderLatest(data) {
   return `
     <details class="month-group bench-fold">
       <summary><span class="bench-fold-title">Latest run</span>
-        <span class="month-count">${run.ok} of ${asked} answered · ${fmtUtc(run.started)}${skipped}</span></summary>
+        <span class="month-count">${run.ok} of ${asked} answered · ${fmtUtc(run.started)}${skipped}${probed}</span></summary>
       <div class="month-entries">${rows}</div>
     </details>`;
 }

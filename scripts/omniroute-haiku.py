@@ -74,11 +74,16 @@ RETRY_WAIT_S = {"mistral": 31}
 DEFAULT_RETRY_WAIT_S = 5
 RETRYABLE = re.compile(r"\b(429|503)\b|rate.?limit|too many requests|admission", re.I)
 # Measured 2026-09-18: 74 of the 82 failures in run 7 came from models that had never
-# once answered. Those are skipped after DEAD_AFTER straight errors and retried when their
-# last attempt is DEAD_RETRY_HOURS old, which with four runs a day is once a day. A
-# malformed reply does not count toward it: the model answered, just not in three lines.
+# once answered. Those are still called every run, but as a probe: one attempt on a short
+# timeout with no retry budget, so a roster full of dead ids cannot stretch the run (run
+# 12 called everything the slow way and took 38 minutes against a normal 4-6). A model is
+# presumed dead after DEAD_AFTER straight errors. A malformed reply does not count toward
+# it (the model answered, just not in three lines), and neither does a rate limit: 429
+# means alive and throttled, and 38 models were sitting in the pool on one.
 DEAD_AFTER = 3
-DEAD_RETRY_HOURS = 20
+DEAD_LOOKBACK = 12            # attempts read per model before rate limits are dropped
+PROBE_TIMEOUT_S = 20
+RATE_LIMITED = re.compile(r"\b429\b|rate.?limit|too many requests|quota", re.I)
 # OmniRoute serves effort variants as separate ids (gemini-3.7-flash-high); nothing is
 # requested on top, so the id is the whole record. Checked before a ":free" tag.
 EFFORT_SUFFIX = re.compile(r"-(xhigh|high|medium|low|minimal|none)(?::[\w.-]+)?$")
@@ -120,11 +125,12 @@ CREATE TABLE IF NOT EXISTS runs (
     id INTEGER PRIMARY KEY,
     started_utc TEXT NOT NULL,
     finished_utc TEXT,
-    roster_size INTEGER,          -- free models listed, skipped ones included
+    roster_size INTEGER,          -- free models listed, probed ones included
     ok INTEGER,
     failed INTEGER,
     error TEXT,
-    skipped INTEGER               -- listed but not called: errored DEAD_AFTER times running
+    skipped INTEGER,              -- historical: listed but not called at all (always 0 now)
+    probed INTEGER                -- called as a probe: errored DEAD_AFTER times running
 );
 CREATE TABLE IF NOT EXISTS attempts (
     id INTEGER PRIMARY KEY,
@@ -229,7 +235,7 @@ def parse_body(text):
             choices[0].get("finish_reason"), data.get("usage") or {})
 
 
-def call_model(entry, system, user):
+def call_model(entry, system, user, timeout=CALL_TIMEOUT_S):
     quirks = entry.get("quirks") or {}
     body = {
         "model": entry["id"],
@@ -246,7 +252,7 @@ def call_model(entry, system, user):
            "effort": effort_of(entry["id"])}
     t0 = time.monotonic()
     try:
-        with urllib.request.urlopen(req, timeout=CALL_TIMEOUT_S) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             headers, text = resp.headers, resp.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         with exc:
@@ -278,7 +284,9 @@ def call_model(entry, system, user):
     return row
 
 
-def call_with_retry(entry, system, user):
+def call_with_retry(entry, system, user, probe=False):
+    if probe:   # presumed dead: one short call, no waiting on a retry it will fail anyway
+        return call_model(entry, system, user, timeout=PROBE_TIMEOUT_S) | {"attempts": 1}
     wait = RETRY_WAIT_S.get(entry["provider"], DEFAULT_RETRY_WAIT_S)
     for attempt in range(1, MAX_RETRIES + 2):
         row = call_model(entry, system, user)
@@ -299,8 +307,11 @@ def open_db(path):
     db = sqlite3.connect(path, check_same_thread=False)
     db.executescript(SCHEMA)
     # Columns that arrived after the first runs; CREATE TABLE IF NOT EXISTS adds neither.
-    if "skipped" not in {row[1] for row in db.execute("PRAGMA table_info(runs)")}:
+    run_columns = {row[1] for row in db.execute("PRAGMA table_info(runs)")}
+    if "skipped" not in run_columns:
         db.execute("ALTER TABLE runs ADD COLUMN skipped INTEGER")
+    if "probed" not in run_columns:
+        db.execute("ALTER TABLE runs ADD COLUMN probed INTEGER")
     if "effort" not in {row[1] for row in db.execute("PRAGMA table_info(attempts)")}:
         db.execute("ALTER TABLE attempts ADD COLUMN effort TEXT")
         # Effort comes from the id alone, so older rows can be filled in exactly.
@@ -310,42 +321,40 @@ def open_db(path):
     return db
 
 
-def split_dead(db, roster, now=None):
-    """(to_call, skipped): skipped are models whose last DEAD_AFTER attempts were all
-    errors and whose latest attempt is under DEAD_RETRY_HOURS old."""
-    now = now or datetime.now(timezone.utc)
-    to_call, skipped = [], []
+def split_probes(db, roster):
+    """(normal, probes): probes are models whose last DEAD_AFTER attempts were all errors,
+    counting neither malformed replies nor rate limits — both mean the model is alive.
+    Every model is still called; a probe just gets one short call (see run)."""
+    normal, probes = [], []
     for entry in roster:
         recent = db.execute(
-            "SELECT status, created_utc FROM attempts WHERE model = ? ORDER BY id DESC LIMIT ?",
-            (entry["id"], DEAD_AFTER)).fetchall()
-        dead = len(recent) == DEAD_AFTER and all(status == "error" for status, _ in recent)
-        if dead:
-            last = datetime.strptime(recent[0][1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-            if (now - last).total_seconds() < DEAD_RETRY_HOURS * 3600:
-                skipped.append(entry)
-                continue
-        to_call.append(entry)
-    return to_call, skipped
+            "SELECT status, error FROM attempts WHERE model = ? ORDER BY id DESC LIMIT ?",
+            (entry["id"], DEAD_LOOKBACK)).fetchall()
+        tried = [status for status, error in recent
+                 if not (status == "error" and RATE_LIMITED.search(error or ""))]
+        dead = len(tried) >= DEAD_AFTER and all(s == "error" for s in tried[:DEAD_AFTER])
+        (probes if dead else normal).append(entry)
+    return normal, probes
 
 
-def run(roster, db, system, user, skipped=0):
+def run(roster, db, system, user, probes=()):
     """Fan the roster out, `cap` workers per provider under one global limit, and store
-    each attempt as it finishes so an interrupted run keeps what it already has."""
-    run_id = db.execute("INSERT INTO runs (started_utc, roster_size, skipped) VALUES (?, ?, ?)",
-                        (utc_now(), len(roster) + skipped, skipped)).lastrowid
+    each attempt as it finishes so an interrupted run keeps what it already has.
+
+    Two phases, never mixed: the models that still answer, then the probes. Measured in
+    run 18, where 137 calls went out together: 21 healthy models timed out at the full
+    120s (0-2 in every earlier run) and the run took 45 haikus instead of 59. The probes
+    do not steal the timeout, they steal the pipeline — OmniRoute stays saturated for the
+    whole run and the good calls queue behind ids that were never going to answer."""
+    run_id = db.execute(
+        "INSERT INTO runs (started_utc, roster_size, skipped, probed) VALUES (?, ?, 0, ?)",
+        (utc_now(), len(roster) + len(probes), len(probes))).lastrowid
     db.commit()
-    queues = defaultdict(deque)
-    caps = {}
-    for entry in roster:
-        queues[entry["provider"]].append(entry)
-        caps[entry["provider"]] = max(1, int(entry.get("cap") or 1))
-    gate = threading.BoundedSemaphore(GLOBAL_CONCURRENCY)
     db_lock = threading.Lock()
     counts = {"ok": 0, "failed": 0}
     failures = defaultdict(int)
 
-    def worker(queue):
+    def worker(queue, gate, probe):
         while True:
             try:
                 entry = queue.popleft()  # deque.popleft is atomic across threads
@@ -353,7 +362,7 @@ def run(roster, db, system, user, skipped=0):
                 return
             with gate:
                 try:
-                    row = call_with_retry(entry, system, user)
+                    row = call_with_retry(entry, system, user, probe=probe)
                 except Exception as exc:  # a bug must not lose the rest of the provider
                     row = {"model": entry["id"], "provider": entry["provider"],
                            "status": "error", "error": f"{type(exc).__name__}: {exc}"[:300],
@@ -370,13 +379,23 @@ def run(roster, db, system, user, skipped=0):
                     counts["failed"] += 1
                     failures[row["provider"]] += 1  # per-model detail is in the db
 
-    threads = [threading.Thread(target=worker, args=(q,), daemon=True)
-               for provider, q in queues.items()
-               for _ in range(min(caps[provider], len(q)))]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+    def phase(entries, probe):
+        queues = defaultdict(deque)
+        caps = {}
+        for entry in entries:
+            queues[entry["provider"]].append(entry)
+            caps[entry["provider"]] = max(1, int(entry.get("cap") or 1))
+        gate = threading.BoundedSemaphore(GLOBAL_CONCURRENCY)
+        threads = [threading.Thread(target=worker, args=(q, gate, probe), daemon=True)
+                   for provider, q in queues.items()
+                   for _ in range(min(caps[provider], len(q)))]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+    phase(roster, False)
+    phase(probes, True)
     db.execute("UPDATE runs SET finished_utc = ?, ok = ?, failed = ? WHERE id = ?",
                (utc_now(), counts["ok"], counts["failed"], run_id))
     db.commit()
@@ -395,7 +414,7 @@ def export(db, now=None, window_days=EXPORT_WINDOW_DAYS, listed=None):
     db.row_factory = sqlite3.Row
     try:
         latest = db.execute(
-            "SELECT id, started_utc, roster_size, skipped, ok, failed FROM runs "
+            "SELECT id, started_utc, roster_size, skipped, probed, ok, failed FROM runs "
             "WHERE finished_utc IS NOT NULL AND error IS NULL ORDER BY id DESC LIMIT 1").fetchone()
         haikus = [] if latest is None else [
             {"model": r["model"], "provider": r["provider"], "effort": r["effort"],
@@ -429,7 +448,8 @@ def export(db, now=None, window_days=EXPORT_WINDOW_DAYS, listed=None):
         "runs_in_window": runs,
         "latest_run": None if latest is None else {
             "started": f"{latest['started_utc']} UTC", "listed": latest["roster_size"],
-            "skipped": latest["skipped"] or 0, "ok": latest["ok"], "failed": latest["failed"]},
+            "skipped": latest["skipped"] or 0, "probed": latest["probed"] or 0,
+            "ok": latest["ok"], "failed": latest["failed"]},
         "haikus": haikus,
         "models": models,
         "cloud": {"haikus": len(window_haikus), "words": word_cloud(window_haikus)},
@@ -574,11 +594,12 @@ def main():
             db.commit()
             log(f"ERROR: {exc}")
             return 1
-        roster, skipped = split_dead(db, roster)
-        log(f"Asking {len(roster)} free models "
-            f"across {len({m['provider'] for m in roster})} providers "
-            f"(skipping {len(skipped)} that errored {DEAD_AFTER} times running)...")
-        run_id, counts, failures = run(roster, db, SYSTEM_PROMPT, user, len(skipped))
+        roster, probes = split_probes(db, roster)
+        log(f"Asking {len(roster) + len(probes)} free models "
+            f"across {len({m['provider'] for m in roster + probes})} providers "
+            f"({len(probes)} probed on {PROBE_TIMEOUT_S}s after "
+            f"{DEAD_AFTER} errors running)...")
+        run_id, counts, failures = run(roster, db, SYSTEM_PROMPT, user, probes)
         log(f"run {run_id}: {counts['ok']} ok, {counts['failed']} failed -> {DB_PATH}")
         if failures:
             log("failed by provider: " + ", ".join(f"{p} {n}" for p, n in failures.items()))

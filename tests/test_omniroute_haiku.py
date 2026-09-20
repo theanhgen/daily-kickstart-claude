@@ -131,6 +131,17 @@ class RunTest(unittest.TestCase):
         self.assertEqual(good["effort"], "default")
         self.assertEqual(sent["messages"][1]["content"], "Generate a haiku.")
 
+    def test_probes_run_after_the_models_that_still_answer(self):
+        """Phase 2, never mixed in: probes must not queue ahead of a healthy model."""
+        roster = [{"id": "good/model", "provider": "good", "cap": 1}]
+        probes = [{"id": "broken/model", "provider": "broken", "cap": 1}]
+        run_id, counts, _ = oh.run(roster, self.db, "s", "u", probes)
+        self.assertEqual([b["model"] for b in Stub.seen], ["good/model", "broken/model"])
+        self.assertEqual(counts, {"ok": 1, "failed": 1})
+        self.assertEqual(self.db.execute(
+            "SELECT roster_size, probed, skipped FROM runs WHERE id = ?", (run_id,)).fetchone(),
+            (2, 1, 0))
+
     def test_rate_limit_is_retried(self):
         REPLIES["limited/model"] = (429, {}, {"error": {"message": "rate limited"}})
         try:
@@ -141,7 +152,7 @@ class RunTest(unittest.TestCase):
         self.assertEqual(attempts, oh.MAX_RETRIES + 1)
 
 
-class SplitDeadTest(unittest.TestCase):
+class SplitProbesTest(unittest.TestCase):
     NOW = datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
 
     def setUp(self):
@@ -167,12 +178,40 @@ class SplitDeadTest(unittest.TestCase):
         self.history("revived", ("error", 15), ("error", 10), ("ok", 5))
         roster = [{"id": m} for m in ("dead/recent", "dead/stale", "two/errors",
                                       "malformed/among", "revived", "brand/new")]
-        to_call, skipped = oh.split_dead(self.db, roster, now=self.NOW)
-        self.assertEqual([e["id"] for e in skipped], ["dead/recent"])
-        self.assertEqual([e["id"] for e in to_call],
-                         ["dead/stale", "two/errors", "malformed/among", "revived", "brand/new"])
+        normal, probes = oh.split_probes(self.db, roster)
+        # A model with a stale history is probed too: nothing is called on age any more.
+        self.assertEqual([e["id"] for e in probes], ["dead/recent", "dead/stale"])
+        self.assertEqual([e["id"] for e in normal],
+                         ["two/errors", "malformed/among", "revived", "brand/new"])
 
-    def test_old_db_gains_skipped_column(self):
+    def test_rate_limits_are_not_strikes(self):
+        """429 means alive and throttled, so it neither counts nor hides older errors."""
+        self.history("throttled", ("error", 20), ("error", 15), ("error", 10))
+        self.db.execute("UPDATE attempts SET error = 'HTTP 429: rate limited' WHERE model = 'throttled'")
+        self.history("dead/behind-limits", ("error", 30), ("error", 25), ("error", 20))
+        self.history("dead/behind-limits", ("error", 10), ("error", 5))
+        self.db.execute("UPDATE attempts SET error = 'HTTP 429: too many requests' "
+                        "WHERE model = 'dead/behind-limits' AND created_utc > '2026-09-18 00:00:00'")
+        roster = [{"id": "throttled"}, {"id": "dead/behind-limits"}]
+        normal, probes = oh.split_probes(self.db, roster)
+        self.assertEqual([e["id"] for e in normal], ["throttled"])
+        self.assertEqual([e["id"] for e in probes], ["dead/behind-limits"])
+
+    def test_probes_are_called_once_on_a_short_timeout(self):
+        calls = []
+        real = oh.call_model
+        oh.call_model = lambda entry, s, u, timeout=oh.CALL_TIMEOUT_S: (
+            calls.append((entry["id"], timeout))
+            or {"model": entry["id"], "provider": entry["provider"], "status": "error",
+                "error": "HTTP 429: rate limited"})
+        try:
+            row = oh.call_with_retry({"id": "d/m", "provider": "p"}, "s", "u", probe=True)
+        finally:
+            oh.call_model = real
+        self.assertEqual(calls, [("d/m", oh.PROBE_TIMEOUT_S)])   # no retry, despite the 429
+        self.assertEqual(row["attempts"], 1)
+
+    def test_old_db_gains_run_columns(self):
         path = os.path.join(self.tmp.name, "old.db")
         old = sqlite3.connect(path)
         old.execute("CREATE TABLE runs (id INTEGER PRIMARY KEY, started_utc TEXT NOT NULL, "
@@ -180,7 +219,8 @@ class SplitDeadTest(unittest.TestCase):
         old.commit()
         old.close()
         db = oh.open_db(path)
-        self.assertIn("skipped", {row[1] for row in db.execute("PRAGMA table_info(runs)")})
+        columns = {row[1] for row in db.execute("PRAGMA table_info(runs)")}
+        self.assertLessEqual({"skipped", "probed"}, columns)
         db.close()
 
 

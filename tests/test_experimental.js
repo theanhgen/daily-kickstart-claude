@@ -17,7 +17,7 @@ test("fmtUtc keeps UTC", () => {
 
 const data = {
   window_days: 14, runs_in_window: 2,
-  latest_run: { started: "2026-09-18 06:00:00 UTC", listed: 4, skipped: 1, ok: 1, failed: 2 },
+  latest_run: { started: "2026-09-18 06:00:00 UTC", listed: 4, skipped: 0, probed: 1, ok: 1, failed: 2 },
   haikus: [{ model: "agy/m-high", provider: "agy", effort: "high", timestamp: "2026-09-18 06:01:00 UTC",
              lines: ["<b>one</b>", "two", "three"] }],
   models: [
@@ -30,7 +30,7 @@ test("renderBench escapes haiku text and shows effort, counts and silent models"
   const html = renderBench(data);
   assert.ok(html.includes("&lt;b&gt;one&lt;/b&gt;"));
   assert.ok(!html.includes("<b>one</b>"));
-  assert.match(html, /1 of 3 answered · Sep 18, 06:00 UTC · 1 skipped/);
+  assert.match(html, /1 of 3 answered · Sep 18, 06:00 UTC · 1 probed after 3 errors in a row/);
   // The latest run is folded away; the word cloud leads the page.
   assert.equal((html.match(/<details class="month-group bench-fold">/g) || []).length, 2);   // latest run + models
   assert.match(html, /Models<\/span>\s*<span class="month-count">1 answered · last 14 days · 2 runs/);
