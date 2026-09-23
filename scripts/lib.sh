@@ -28,6 +28,12 @@ AGY_FALLBACK_MODELS="${AGY_FALLBACK_MODELS:-claude-sonnet-4-6 gpt-oss-120b-mediu
 # when using Codex with a ChatGPT account"). gpt-5.6-sol is what the account
 # can run today. Override via env if it changes again.
 CODEX_MODEL="${CODEX_MODEL:-gpt-5.6-sol}"
+# Tried in order when the pin is rejected as unavailable (the retirement
+# failure above, which cost ~5 days of codex haiku while nobody noticed).
+# "__default__" runs unpinned, i.e. whatever the installed CLI defaults to;
+# add explicit model ids ahead of it once they are known to work for the
+# account. A fallback run sends one warning per broken pin. "" disables it.
+CODEX_FALLBACK_MODELS="${CODEX_FALLBACK_MODELS-__default__}"
 # Pin claude too: unpinned, it follows the account default, which rolled
 # Opus 4.8 -> Sonnet 5 -> Fable 5 -> Opus 5 between July and September 2026
 # and changed the cost of a run with each move. Sonnet 5 costs ~$0.0013 a
