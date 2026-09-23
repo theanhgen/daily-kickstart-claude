@@ -12,6 +12,7 @@ import html
 import json
 import os
 import re
+import sys
 from datetime import datetime
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -331,7 +332,7 @@ def set_meta(page, attr, key, value):
                   lambda m: m.group(1) + value + m.group(2), page)
 
 
-def main():
+def main(inject_og=True):
     haikus = parse_haikus()
 
     with open(OUTPUT_FILE, "w") as f:
@@ -372,6 +373,13 @@ def main():
             rendered += 1
     print(f"Wrote {len(haikus)} permalink pages -> {SHARE_DIR} ({rendered} with images)")
 
+    # index.html is tracked, so injecting into it dirties the checkout. The CI
+    # test job (and anything that runs the suite in a worktree) passes --no-og;
+    # only the deploy build needs the injected meta.
+    if not inject_og:
+        print("Skipped OG injection (--no-og)")
+        return
+
     # Inject the latest day's OG meta into index.html. The card image stays the
     # latest haiku; the share DESCRIPTION is the stats insight (falling back to the
     # haiku text early on, before any engine has enough haikus to rank). image:alt
@@ -394,4 +402,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(inject_og="--no-og" not in sys.argv[1:])

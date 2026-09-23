@@ -883,6 +883,21 @@ run_test() {
 }
 
 main() {
+    # `bash tests/run.sh test_a test_b` runs only the named tests.
+    if [ "$#" -gt 0 ]; then
+        local name
+        for name in "$@"; do
+            if ! declare -F "$name" > /dev/null || [[ "$name" != test_* ]]; then
+                printf 'Unknown test: %s\n' "$name" >&2
+                exit 2
+            fi
+            run_test "$name"
+        done
+        printf '\nTest summary: %d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
+        [ "$FAIL_COUNT" -eq 0 ]
+        return
+    fi
+
     run_test test_missing_prompt_file
     run_test test_invalid_engine
     run_test test_claude_failure
