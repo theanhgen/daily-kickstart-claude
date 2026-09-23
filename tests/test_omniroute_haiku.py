@@ -294,8 +294,11 @@ class ExportPublishTest(unittest.TestCase):
         remote = os.path.join(self.tmp.name, "remote.git")
         subprocess.run(["git", "init", "--bare", "-q", remote], check=True)
         repo = os.path.join(self.tmp.name, "publish.git")
+        # safe.bareRepository=explicit (a Git hardening default some installs set) must not
+        # stop publish from using its bare cache repo.
         env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
-               "GIT_COMMITTER_EMAIL": "t@t"}
+               "GIT_COMMITTER_EMAIL": "t@t", "GIT_CONFIG_COUNT": "1",
+               "GIT_CONFIG_KEY_0": "safe.bareRepository", "GIT_CONFIG_VALUE_0": "explicit"}
         old_env = {k: os.environ.get(k) for k in env}
         os.environ.update(env)
         try:
@@ -304,8 +307,8 @@ class ExportPublishTest(unittest.TestCase):
         finally:
             for k, v in old_env.items():
                 os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
-        git = lambda *a: subprocess.run(["git", "-C", remote, *a], capture_output=True, text=True,
-                                        check=True).stdout.strip()
+        git = lambda *a: subprocess.run(["git", "--git-dir", remote, *a], capture_output=True,
+                                        text=True, check=True).stdout.strip()
         self.assertEqual(git("rev-parse", "refs/heads/bench-data"), second)
         self.assertEqual(git("ls-tree", "--name-only", "bench-data").split(),
                          ["free-haikus.jsonl", "free-models.json"])

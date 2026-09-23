@@ -527,13 +527,17 @@ def publish(db, remote=None, repo=PUBLISH_REPO, dispatch=True, listed=None):
         ["-C", PROJECT_DIR, "remote", "get-url", "origin"])
     if not os.path.isdir(repo):
         git(["init", "--bare", "-q", repo])
-    blob = git(["-C", repo, "hash-object", "-w", "--stdin"], stdin=json.dumps(data, indent=1))
-    archive = git(["-C", repo, "hash-object", "-w", "--stdin"], stdin=haiku_archive(db))
-    tree = git(["-C", repo, "mktree"], stdin=f"100644 blob {archive}\t{PUBLISH_ARCHIVE}\n"
-                                             f"100644 blob {blob}\t{PUBLISH_FILE}\n")
-    commit = git(["-C", repo, "commit-tree", tree, "-m",
+    # --git-dir, not -C: Git refuses to discover a bare repo from its cwd when
+    # safe.bareRepository is "explicit", and naming it outright is what that setting allows.
+    blob = git(["--git-dir", repo, "hash-object", "-w", "--stdin"],
+               stdin=json.dumps(data, indent=1))
+    archive = git(["--git-dir", repo, "hash-object", "-w", "--stdin"], stdin=haiku_archive(db))
+    tree = git(["--git-dir", repo, "mktree"], stdin=f"100644 blob {archive}\t{PUBLISH_ARCHIVE}\n"
+                                                    f"100644 blob {blob}\t{PUBLISH_FILE}\n")
+    commit = git(["--git-dir", repo, "commit-tree", tree, "-m",
                   f"Free-model bench data, {data['generated']}"])
-    git(["-C", repo, "push", "--force", "-q", remote, f"{commit}:refs/heads/{PUBLISH_BRANCH}"])
+    git(["--git-dir", repo, "push", "--force", "-q", remote,
+         f"{commit}:refs/heads/{PUBLISH_BRANCH}"])
     if dispatch:
         slug = re.sub(r"^(https://github\.com/|git@github\.com:)|\.git$", "", remote)
         out = subprocess.run(["gh", "workflow", "run", "ci.yml", "--ref", "main", "-R", slug],
