@@ -1,0 +1,390 @@
+{
+ "generated": "2026-09-21 07:27:08 UTC",
+ "model": "jev-latest",
+ "rubric_hash": "44864872febd",
+ "legend": [
+  "Bleak: loss, absence, or a cold and dark scene with nothing in it that relieves",
+  "Subdued: quiet, still, fading or solitary; melancholy, but not despairing",
+  "Even: a plain observation, or warmth and cold held in balance with neither winning",
+  "Lifting: quiet comfort, a small relief, something opening or beginning to turn",
+  "Bright: warmth, arrival, joy, or a difficulty resolving"
+ ],
+ "n": 2013,
+ "summary": {
+  "agree": 1390,
+  "agree_pct": 69.1,
+  "r": 0.696,
+  "lex_mean": 0.057,
+  "jev_mean": 0.174,
+  "conf_mean": 0.794,
+  "flat_n": 321,
+  "flat_moved": 314,
+  "latency_p50": 694
+ },
+ "jev_warmer": [
+  {
+   "lines": [
+    "Morning code awakes",
+    "Keys whisper through the still dusk",
+    "Bugs fade with sunrise"
+   ],
+   "source": "codex",
+   "lex": -0.6,
+   "jev": 0.605,
+   "conf": 0.8,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Silent morning frost",
+    "melts where the first sunbeam falls\u2014",
+    "sparrow shakes its wings"
+   ],
+   "source": "claude",
+   "lex": -0.6,
+   "jev": 0.53,
+   "conf": 0.95,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Silent morning frost",
+    "melts where the first sunbeam lands\u2014",
+    "sparrows take their bath"
+   ],
+   "source": "claude",
+   "lex": -0.5,
+   "jev": 0.575,
+   "conf": 0.87,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Silent codes align,",
+    "Antigravity takes flight,",
+    "Mind leaps past the stars."
+   ],
+   "source": "agy",
+   "lex": -0.333,
+   "jev": 0.73,
+   "conf": 0.58,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Silent morning frost",
+    "Crow lifts from a bare branch\u2014shakes",
+    "the whole sky awake"
+   ],
+   "source": "claude",
+   "lex": -0.6,
+   "jev": 0.45,
+   "conf": 0.85,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Silent code runs deep,",
+    "Errors vanish in the dark,",
+    "Peace returns to screen."
+   ],
+   "source": "agy",
+   "lex": -0.5,
+   "jev": 0.525,
+   "conf": 0.8,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Silent night descends",
+    "Whispering wind in the trees",
+    "Stars begin to shine"
+   ],
+   "source": "agy",
+   "lex": -0.6,
+   "jev": 0.42,
+   "conf": 0.85,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Silent morning frost",
+    "melts on the cedar's rough bark\u2014",
+    "sparrows take to flight"
+   ],
+   "source": "claude",
+   "lex": -0.5,
+   "jev": 0.5,
+   "conf": 0.99,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Morning code awakes",
+    "Quiet keys shape the new day",
+    "Bugs fade with sunrise"
+   ],
+   "source": "codex",
+   "lex": -0.333,
+   "jev": 0.665,
+   "conf": 0.72,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Silent morning frost",
+    "melts on the bending bamboo\u2014",
+    "sparrows take their drink"
+   ],
+   "source": "claude",
+   "lex": -0.5,
+   "jev": 0.475,
+   "conf": 0.96,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Silent morning mist",
+    "Rises from the still water",
+    "Crane lifts into flight"
+   ],
+   "source": "claude",
+   "lex": -0.6,
+   "jev": 0.36,
+   "conf": 0.76,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Morning code whispers",
+    "Small bugs scatter with sunrise",
+    "Silence ships the fix"
+   ],
+   "source": "codex",
+   "lex": -0.333,
+   "jev": 0.625,
+   "conf": 0.76,
+   "lex_scored": 1
+  }
+ ],
+ "jev_cooler": [
+  {
+   "lines": [
+    "Spring rain on the roof",
+    "A single crow calls softly",
+    "Evening folds the light"
+   ],
+   "source": "claude",
+   "lex": 0.6,
+   "jev": -0.415,
+   "conf": 0.86,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Soft rain on the leaves",
+    "A stillness between heartbeats",
+    "Spring breathes once, then gone"
+   ],
+   "source": "claude",
+   "lex": 0.6,
+   "jev": -0.385,
+   "conf": 0.81,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Cache warms the cliff edge\u2014",
+    "a thousand agents wake, blink,",
+    "return nothing new."
+   ],
+   "source": "claude",
+   "lex": 0.5,
+   "jev": -0.48,
+   "conf": 0.51,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Screen light at midnight\u2014",
+    "the cursor blinks and waits for",
+    "thoughts I haven't formed"
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": -0.545,
+   "conf": 0.92,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Morning terminal",
+    "Soft keys wake the waiting codebase",
+    "Rain hums through the wires"
+   ],
+   "source": "codex",
+   "lex": 0.6,
+   "jev": -0.275,
+   "conf": 0.62,
+   "lex_scored": 3
+  },
+  {
+   "lines": [
+    "Cached context wakes\u2014",
+    "one hour of remembered thought,",
+    "then the window shuts."
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": -0.53,
+   "conf": 0.93,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Morning light spills through\u2014",
+    "a quiet cup of coffee",
+    "waits for no one's hands."
+   ],
+   "source": "claude",
+   "lex": 0.5,
+   "jev": -0.345,
+   "conf": 0.74,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Spring rain on the roof",
+    "A single crow calls softly",
+    "Dusk swallows the light"
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": -0.5,
+   "conf": 0.99,
+   "lex_scored": 4
+  },
+  {
+   "lines": [
+    "Late-summer stillness\u2014",
+    "a cricket's small clockwork song",
+    "winds down with the light."
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": -0.5,
+   "conf": 1.0,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Spring rain on the roof",
+    "a single crow calls softly",
+    "dusk swallows the light"
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": -0.495,
+   "conf": 0.99,
+   "lex_scored": 4
+  },
+  {
+   "lines": [
+    "Late August heat",
+    "a sleeping terminal hums",
+    "cursor blinks, then waits"
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": -0.48,
+   "conf": 0.96,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Spring rain whispers soft\u2014",
+    "each drop a fleeting moment",
+    "gone before it lands."
+   ],
+   "source": "claude",
+   "lex": 0.5,
+   "jev": -0.305,
+   "conf": 0.67,
+   "lex_scored": 2
+  }
+ ],
+ "unsure": [
+  {
+   "lines": [
+    "Autumn leaves falling",
+    "Whispers of the wind pass by",
+    "Earth wears gold and red"
+   ],
+   "source": "claude",
+   "lex": 0.333,
+   "jev": 0.075,
+   "conf": 0.04,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Morning dew glistens\u2014",
+    "each blade holds a small bright sky,",
+    "then the sun drinks deep."
+   ],
+   "source": "claude",
+   "lex": 0.5,
+   "jev": 0.425,
+   "conf": 0.04,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Sunlight on the desk\u2014",
+    "each small task a stepping stone",
+    "toward the quiet dusk"
+   ],
+   "source": "claude",
+   "lex": 0.0,
+   "jev": 0.0,
+   "conf": 0.16,
+   "lex_scored": 2
+  },
+  {
+   "lines": [
+    "Cursor blinks in dark\u2014",
+    "somewhere a thousand branches",
+    "wait to be merged home"
+   ],
+   "source": "claude",
+   "lex": -0.333,
+   "jev": 0.0,
+   "conf": 0.16,
+   "lex_scored": 1
+  },
+  {
+   "lines": [
+    "Code flows like water,",
+    "Silent thoughts become commands,",
+    "Functions bloom and fade."
+   ],
+   "source": "claude",
+   "lex": 0.0,
+   "jev": 0.005,
+   "conf": 0.17,
+   "lex_scored": 4
+  },
+  {
+   "lines": [
+    "Code flows through the night,",
+    "Silent functions find their path,",
+    "Logic blooms, then sleeps."
+   ],
+   "source": "claude",
+   "lex": -0.143,
+   "jev": 0.0,
+   "conf": 0.17,
+   "lex_scored": 5
+  }
+ ]
+}

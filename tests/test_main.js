@@ -1,7 +1,7 @@
 // Unit tests for site/main.js pure helpers (node --test tests/test_main.js).
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { esc, slugOf, syllables, lineSyllables, is575, shortModel, modelLabel, trendFoot } = require("../site/main.js");
+const { esc, slugOf, syllables, lineSyllables, is575, shortModel, modelLabel, trendFoot, moodTrend } = require("../site/main.js");
 
 test("esc neutralizes HTML in haiku content", () => {
   assert.equal(esc("<img src=x onerror=alert(1)>"), "&lt;img src=x onerror=alert(1)&gt;");
@@ -72,4 +72,25 @@ test("trendFoot reports the direction when both windows have data", () => {
 test("modelLabel adds the effort only when model.log recorded one", () => {
   assert.equal(modelLabel("codex", "gpt-5.6-sol", "low"), "gpt-5.6-sol · low");
   assert.equal(modelLabel("claude", "claude-haiku-4-5-20251001", undefined), "haiku-4-5");
+});
+
+// The Sentiment toggle feeds moodTrend a second scorer (the model's one-off scores).
+// A haiku that scorer has no value for must drop out of the day's mean — counting it
+// as 0 would drag every day after the scoring snapshot toward neutral.
+test("moodTrend skips haikus the scorer has no value for", () => {
+  const h = (ts, lines = ["a", "b", "c"]) =>
+    ({ date: ts.slice(0, 10), timestamp: ts, source: "claude", lines });
+  const haikus = [h("2026-09-01 06:00:00 UTC"), h("2026-09-01 12:00:00 UTC"), h("2026-09-02 06:00:00 UTC")];
+  const scores = { "2026-09-01 06:00:00 UTC": 0.6, "2026-09-01 12:00:00 UTC": 0.2 };
+  const t = moodTrend(haikus, 5, x => scores[x.timestamp] ?? null);
+  assert.equal(t.get("claude").length, 1);
+  assert.equal(t.get("claude")[0].n, 2);
+  assert.ok(Math.abs(t.get("claude")[0].mean - 0.4) < 1e-9);
+  assert.deepEqual(t.get("codex"), []);
+});
+
+test("moodTrend defaults to the word-list scorer", () => {
+  const haikus = [{ date: "2026-09-01", timestamp: "2026-09-01 06:00:00 UTC", source: "codex",
+    lines: ["warm golden sun", "bright joy", "gentle light"] }];
+  assert.ok(moodTrend(haikus, 3).get("codex")[0].mean > 0);
 });

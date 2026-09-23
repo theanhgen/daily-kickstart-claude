@@ -213,6 +213,75 @@ function renderModels(data) {
     </details>`;
 }
 
+
+// ── Mood: the site's word list against a model ──
+// site/main.js scores mood from a ~70-word warm/cool lexicon. scripts/mood-bench.py
+// scored the same archive with TypeSafe's Jev, which reads the whole image. This
+// section shows where they part. It is a comparison, not a correction: neither number
+// has been checked against a reader, so the archive's mood still comes from the lexicon.
+function fmtScore(v) {
+  return (v > 0 ? "+" : v < 0 ? "\u2212" : "\u00b1") + Math.abs(v).toFixed(2);
+}
+
+function moodEntry(h) {
+  const conf = h.conf === null ? "" : ` <span class="mood-conf">conf ${h.conf.toFixed(2)}</span>`;
+  return `
+    <div class="haiku-entry">
+      ${h.lines.map(l => `<p>${esc(l)}</p>`).join("")}
+      <div class="entry-meta mood-scores">
+        <span class="source-badge">${esc(h.source || "untagged")}</span>
+        <span class="mood-pair"><span class="mood-tag">word list</span> ${fmtScore(h.lex)}</span>
+        <span class="mood-pair"><span class="mood-tag">model</span> ${fmtScore(h.jev)}</span>
+        ${conf}
+      </div>
+    </div>`;
+}
+
+function renderMood(data) {
+  if (!data || !data.n) return "";
+  const s = data.summary;
+  const cells = [
+    `${data.n} haikus scored both ways`,
+    `same warm/cool/even label ${s.agree_pct}%`,
+    `correlation r ${s.r.toFixed(2)}`,
+    `word list mean ${fmtScore(s.lex_mean)} \u00b7 model mean ${fmtScore(s.jev_mean)}`,
+  ];
+  if (s.flat_n) {
+    cells.push(`of ${s.flat_n} haikus the word list scored exactly 0, the model calls `
+      + `${s.flat_moved} warm or cool`);
+  }
+  return `
+    <details class="month-group bench-fold">
+      <summary><span class="bench-fold-title">Mood: a word list vs a model</span>
+        <span class="month-count">${data.n} haikus \u00b7 agree on ${s.agree_pct}% \u00b7 r ${s.r.toFixed(2)}</span></summary>
+      <div class="month-entries">
+        <p class="bench-intro">
+          The archive's mood score comes from a curated warm/cool word list, which counts
+          words and cannot see how they combine. Here the same ${data.n} haikus are scored
+          again by a model that reads the whole image, and the two are set side by side.
+          Neither has been checked against a human reader, so this is a disagreement, not a
+          verdict \u2014 the archive still uses the word list.
+        </p>
+        <div class="stats-strip">
+          ${cells.map(c => `<span class="stat-cell">${c}</span>`).join("")}
+        </div>
+        <p class="stat-note">Scored ${esc(data.generated)} with ${esc(data.model)}.</p>
+        <h3 class="mood-head">Where the model reads warmer</h3>
+        <p class="stat-note">A thaw the word list counts as frost: it scores
+          <em>silent</em> and <em>frost</em> and never reads <em>melts</em>.</p>
+        ${data.jev_warmer.map(moodEntry).join("")}
+        <h3 class="mood-head">Where the model reads cooler</h3>
+        <p class="stat-note">Warm words, cold poem \u2014 the list has no way to hear a
+          closing line take it back.</p>
+        ${data.jev_cooler.map(moodEntry).join("")}
+        <h3 class="mood-head">Where the model is least sure</h3>
+        <p class="stat-note">The model reports its own confidence; these are the haikus it
+          scored with the least of it.</p>
+        ${data.unsure.map(moodEntry).join("")}
+      </div>
+    </details>`;
+}
+
 function renderBench(data) {
   const cloud = renderCloud(data.cloud);
   const latest = renderLatest(data);
@@ -265,7 +334,19 @@ if (typeof window !== "undefined") (async () => {
   }
 })();
 
+if (typeof window !== "undefined") (async () => {
+  const el = document.getElementById("mood-content");
+  if (!el) return;
+  try {
+    const res = await fetch("mood-bench.json");
+    if (!res.ok) throw new Error(String(res.status));
+    el.innerHTML = renderMood(await res.json());
+  } catch {
+    el.innerHTML = "";   // no comparison published: show nothing, not an error
+  }
+})();
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, benchName, fmtUtc, renderBench, familyClass, cloudSize, wordDetail, renderCloud,
+  module.exports = { esc, benchName, fmtUtc, renderBench, renderMood, moodEntry, fmtScore, familyClass, cloudSize, wordDetail, renderCloud,
     cloudLegend, familyDetail };
 }

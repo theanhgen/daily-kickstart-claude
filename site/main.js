@@ -16,6 +16,27 @@ async function loadModels() {
   }
 }
 
+// The model's mood scores (scripts/mood-bench.py export -> mood-jev.json) — optional,
+// like models.json: the Sentiment card offers its word list / model toggle only when
+// this loads, so a missing file means no toggle rather than a broken one.
+async function loadJev() {
+  try {
+    const res = await fetch("mood-jev.json");
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+// The reader's last choice on the Sentiment toggle. A convenience only: storage can
+// be blocked or empty, and the card must read correctly on the word list regardless.
+const MOOD_SOURCE_KEY = "moodSource";
+function storedMoodSource() {
+  try { return localStorage.getItem(MOOD_SOURCE_KEY) === "model" ? "model" : "lexicon"; }
+  catch { return "lexicon"; }
+}
+
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
@@ -472,7 +493,7 @@ const dateMs = h => Date.parse(h.date + "T00:00:00Z");
 // Daily mean mood per engine over the last `days`, anchored to the newest
 // haiku so the axis tracks the data even if the page is opened later. Returns
 // src -> [{ day, mean, n }] for the days that engine actually wrote on.
-function moodTrend(haikus, days) {
+function moodTrend(haikus, days, moodFn = moodOf) {
   const out = new Map(ENGINES.map(src => [src, []]));
   if (!haikus.length) return out;
   const anchor = haikus.reduce((m, h) => Math.max(m, dateMs(h)), 0);
@@ -483,9 +504,13 @@ function moodTrend(haikus, days) {
       if (h.source !== src) continue;
       const t = dateMs(h);
       if (t < start) continue;
+      // null = no score from this source (the model scored the archive once, so
+      // haikus written since have none): skipped, never counted as neutral.
+      const v = moodFn(h);
+      if (v == null) continue;
       const day = Math.round((t - start) / DAY_MS);
       if (!byDay.has(day)) byDay.set(day, []);
-      byDay.get(day).push(moodOf(h));
+      byDay.get(day).push(v);
     }
     out.set(src, [...byDay.entries()].sort((a, b) => a[0] - b[0]).map(
       ([day, xs]) => ({ day, mean: xs.reduce((s, x) => s + x, 0) / xs.length, n: xs.length })));
@@ -549,11 +574,16 @@ function trendFoot(recent, prior) {
 // horizontal-only gridlines, smooth monotone curves in each engine's own
 // colour, month ticks, a hover tooltip, and a footer trend line. All three
 // engines share one −0.8…+0.8 axis so they compare directly.
-function renderTrend(haikus, modelChanges) {
+function renderTrend(haikus, modelChanges, jev = null, source = "lexicon") {
   const el = document.getElementById("archive-trend");
   if (!el) return;
   const days = 90;
-  const trend = moodTrend(haikus, days);
+  // The same card drawn from either scorer: the word list (moodOf) or the model's
+  // one-off scores, looked up by timestamp. Everything below — lines, legend,
+  // tooltip, 30-day footer — reads moodFn, so the toggle swaps all of it at once.
+  const useModel = source === "model" && jev && jev.scores;
+  const moodFn = useModel ? (h => jev.scores[h.timestamp] ?? null) : moodOf;
+  const trend = moodTrend(haikus, days, moodFn);
   // Calendar-date anchor (UTC midnight) so startMs aligns day buckets to dates,
   // matching moodTrend and keeping the footer/marker floor-bucketing correct.
   const anchor = haikus.reduce((m, h) => Math.max(m, dateMs(h)), 0);
@@ -653,9 +683,11 @@ function renderTrend(haikus, modelChanges) {
     if (!h.source) continue;
     const t = tsMs(h.timestamp);
     if (t < startMs) continue;
+    const v = moodFn(h);
+    if (v == null) continue;
     const d = Math.floor((t - startMs) / DAY_MS);
     if (!allByDay.has(d)) allByDay.set(d, []);
-    allByDay.get(d).push(moodOf(h));
+    allByDay.get(d).push(v);
   }
   const dayMean = d => { const a = allByDay.get(d); return a ? a.reduce((s, v) => s + v, 0) / a.length : null; };
   const windowMean = (lo, hi) => {
@@ -667,10 +699,21 @@ function renderTrend(haikus, modelChanges) {
   const foot = trendFoot(recent, prior);
   const fmt = ms => new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
+  // The model's caveats go in the footer, not the header: a longer header wraps the
+  // legend onto its own row, and the chart would jump every time the toggle flips.
+  const through = jev && jev.through ? ` through ${fmt(tsMs(jev.through))}` : "";
+  const toggle = jev && jev.scores ? `
+          <div class="mood-toggle" role="group" aria-label="Mood source">
+            <button type="button" data-source="lexicon" aria-pressed="${!useModel}">word list</button>
+            <button type="button" data-source="model" aria-pressed="${!!useModel}">model</button>
+          </div>` : "";
+  const sub = "cool below the line · warm above · shared −0.8…+0.8 scale"
+    + (useModel ? ` · model-scored${through} · <a href="experimental.html">how they differ</a>` : "");
+
   el.innerHTML =
     `<div class="chart-card">
       <div class="chart-head">
-        <div><div class="chart-title">Sentiment</div><div class="chart-desc">daily mood · ${fmt(startMs)} – ${fmt(anchor)}</div></div>
+        <div><div class="chart-title">Sentiment</div><div class="chart-desc">daily mood · ${fmt(startMs)} – ${fmt(anchor)}</div>${toggle}</div>
         <div class="trend-legend">${leg}</div>
       </div>
       <div class="chart-body">
@@ -679,13 +722,23 @@ function renderTrend(haikus, modelChanges) {
         </svg>
         <div class="chart-tip" hidden></div>
       </div>
-      <div class="chart-foot"><div class="chart-foot-main">${foot}</div><div class="chart-foot-sub">cool below the line · warm above · shared −0.8…+0.8 scale</div></div>
+      <div class="chart-foot"><div class="chart-foot-main">${foot}</div><div class="chart-foot-sub">${sub}</div></div>
     </div>`;
 
   // Hover tooltip + cursor. Map the pointer through the SVG's own rect and the
   // viewBox scale — the same coordinate space the lines and cursor draw in — so
   // the crosshair sits exactly on a data column, edges included. (A separately
   // positioned overlay drifts because chart-body's padding offsets its frame.)
+  for (const b of el.querySelectorAll(".mood-toggle button")) {
+    b.addEventListener("click", () => {
+      const next = b.dataset.source;
+      try { localStorage.setItem(MOOD_SOURCE_KEY, next); } catch {}
+      renderTrend(haikus, modelChanges, jev, next);
+      // The card was rebuilt; put keyboard focus back on the button just pressed.
+      el.querySelector(`.mood-toggle [data-source="${next}"]`)?.focus();
+    });
+  }
+
   const svg = el.querySelector(".trend-chart");
   const cursor = el.querySelector(".chart-cursor");
   const tip = el.querySelector(".chart-tip");
@@ -759,6 +812,8 @@ function renderInsights(haikus, modelChanges) {
   }
 
   renderTrend(haikus, modelChanges);
+  if (document.getElementById("archive-trend"))
+    loadJev().then(jev => { if (jev) renderTrend(haikus, modelChanges, jev, storedMoodSource()); });
 }
 
 // Fit a whole cycle to ONE shared font size so every haiku in it matches.
@@ -840,5 +895,5 @@ if (typeof window !== "undefined") (async () => {
 })();
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, moodAgg, tokens, shortModel, modelLabel, trendFoot };
+  module.exports = { esc, slugOf, formatDateShort, syllables, lineSyllables, is575, moodRaw, moodAgg, tokens, shortModel, modelLabel, trendFoot, moodTrend };
 }
