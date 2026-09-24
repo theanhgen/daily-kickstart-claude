@@ -224,6 +224,38 @@ class SplitProbesTest(unittest.TestCase):
         db.close()
 
 
+class RosterTest(unittest.TestCase):
+    def setUp(self):
+        self.calls = 0
+        self._run, self._sleep, self._log = oh.subprocess.run, oh.time.sleep, oh.log
+        oh.time.sleep = lambda s: None
+        oh.log = lambda msg: None
+
+    def tearDown(self):
+        oh.subprocess.run, oh.time.sleep, oh.log = self._run, self._sleep, self._log
+
+    def stub(self, *outcomes):
+        def run(cmd, **kw):
+            outcome = outcomes[self.calls]
+            self.calls += 1
+            if isinstance(outcome, Exception):
+                raise outcome
+            return subprocess.CompletedProcess(cmd, 0, json.dumps({"models": outcome}), "")
+        oh.subprocess.run = run
+
+    def test_a_stalled_roster_is_retried_once(self):
+        self.stub(subprocess.TimeoutExpired("node", 120), [{"id": "good/model"}])
+        self.assertEqual(oh.load_roster(), [{"id": "good/model"}])
+        self.assertEqual(self.calls, 2)
+
+    def test_gives_up_after_the_retry(self):
+        stall = subprocess.TimeoutExpired("node", 120)
+        self.stub(stall, stall, [])
+        with self.assertRaises(subprocess.TimeoutExpired):
+            oh.load_roster()
+        self.assertEqual(self.calls, 2)
+
+
 class EffortTest(unittest.TestCase):
     def test_effort_of(self):
         self.assertEqual(oh.effort_of("agy/gemini-3.7-flash-high"), "high")
