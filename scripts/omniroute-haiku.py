@@ -87,6 +87,10 @@ RATE_LIMITED = re.compile(r"\b429\b|rate.?limit|too many requests|quota", re.I)
 # OmniRoute serves effort variants as separate ids (gemini-3.7-flash-high); nothing is
 # requested on top, so the id is the whole record. Checked before a ":free" tag.
 EFFORT_SUFFIX = re.compile(r"-(xhigh|high|medium|low|minimal|none)(?::[\w.-]+)?$")
+# 2026-09-24 11:00 lost a whole run to one roster timeout: OmniRoute stalled for ~3
+# minutes after a reboot and recovered on its own. One retry after a pause rides that out.
+ROSTER_ATTEMPTS = 2
+ROSTER_RETRY_WAIT_S = 120
 
 PUBLISH_BRANCH = "bench-data"
 PUBLISH_FILE = "free-models.json"
@@ -175,12 +179,19 @@ def effort_of(model_id):
 def load_roster():
     """Free text models, Claude included: lineage independence matters for review, not here.
     --min-ctx 1 drops the image, speech and rerank ids that report no context window."""
-    out = subprocess.run(
-        [NODE_BIN, RUNNER, "roster", "--same-lineage", "--min-ctx", "1"],
-        capture_output=True, text=True, timeout=120, check=False)
-    if out.returncode != 0:
-        raise RuntimeError(f"roster failed ({out.returncode}): {out.stderr.strip()[:300]}")
-    return json.loads(out.stdout)["models"]
+    for attempt in range(1, ROSTER_ATTEMPTS + 1):
+        try:
+            out = subprocess.run(
+                [NODE_BIN, RUNNER, "roster", "--same-lineage", "--min-ctx", "1"],
+                capture_output=True, text=True, timeout=120, check=False)
+            if out.returncode != 0:
+                raise RuntimeError(f"roster failed ({out.returncode}): {out.stderr.strip()[:300]}")
+            return json.loads(out.stdout)["models"]
+        except Exception as exc:
+            if attempt == ROSTER_ATTEMPTS:
+                raise
+            log(f"WARNING: {exc}; retrying the roster in {ROSTER_RETRY_WAIT_S}s")
+            time.sleep(ROSTER_RETRY_WAIT_S)
 
 
 THINK_BLOCK = re.compile(r"<think>.*?</think>", re.S | re.I)
