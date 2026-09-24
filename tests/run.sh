@@ -18,6 +18,10 @@ fail() {
     FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
+# Assertions exit, not return: run_test calls each test inside `if ( ... )`,
+# where bash ignores set -e, so a returned failure mid-test was silently
+# dropped and only a test's last command decided its result. Each test runs in
+# its own subshell, so exit ends just that test.
 assert_eq() {
     local expected="$1"
     local actual="$2"
@@ -27,7 +31,7 @@ assert_eq() {
         printf 'ASSERTION FAILED: %s\n' "$message" >&2
         printf '  expected: %s\n' "$expected" >&2
         printf '  actual:   %s\n' "$actual" >&2
-        return 1
+        exit 1
     fi
 }
 
@@ -40,7 +44,7 @@ assert_match() {
         printf 'ASSERTION FAILED: %s\n' "$message" >&2
         printf '  pattern: %s\n' "$pattern" >&2
         printf '  actual:  %s\n' "$actual" >&2
-        return 1
+        exit 1
     fi
 }
 
@@ -51,7 +55,7 @@ assert_file_exists() {
     if [ ! -f "$path" ]; then
         printf 'ASSERTION FAILED: %s\n' "$message" >&2
         printf '  missing file: %s\n' "$path" >&2
-        return 1
+        exit 1
     fi
 }
 
@@ -62,7 +66,7 @@ assert_file_missing() {
     if [ -e "$path" ]; then
         printf 'ASSERTION FAILED: %s\n' "$message" >&2
         printf '  unexpected path: %s\n' "$path" >&2
-        return 1
+        exit 1
     fi
 }
 
@@ -75,7 +79,7 @@ assert_file_contains() {
         printf 'ASSERTION FAILED: %s\n' "$message" >&2
         printf '  file:   %s\n' "$path" >&2
         printf '  needle: %s\n' "$needle" >&2
-        return 1
+        exit 1
     fi
 }
 
@@ -134,11 +138,16 @@ EOF
 set -euo pipefail
 
 output_file=""
+model="__default__"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -o)
             output_file="$2"
+            shift 2
+            ;;
+        -m)
+            model="$2"
             shift 2
             ;;
         *)
@@ -148,6 +157,17 @@ while [ "$#" -gt 0 ]; do
 done
 
 mode="${GENERATE_STUB_MODE:-success}"
+
+# One line per call, so tests can see which models were tried and in what order.
+[ -n "${CODEX_STUB_CALLS:-}" ] && printf '%s\n' "$model" >> "$CODEX_STUB_CALLS"
+
+# A retired model is rejected the way the real CLI rejected gpt-5.4.
+for retired in ${CODEX_STUB_RETIRED:-}; do
+    if [ "$model" = "$retired" ]; then
+        printf "The '%s' model is not supported when using Codex with a ChatGPT account.\n" "$model" >&2
+        exit 1
+    fi
+done
 
 # The real codex exec prints a startup banner to stderr naming the model that
 # answered; generate.sh parses it back out of $HAIKU_ERROR. Set the variable
@@ -575,6 +595,92 @@ test_codex_falls_back_to_pin_without_banner() {
     assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-pin effort=low" "codex should fall back to the configured pin and effort"
 }
 
+# A stub notify.sh that records each alert instead of sending it.
+stub_notify() {
+    local project_dir="$1"
+    cat > "$project_dir/scripts/notify.sh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s|%s|%s\n' "$1" "$2" "$3" >> "$(dirname "$0")/../notify.calls"
+EOF
+    chmod +x "$project_dir/scripts/notify.sh"
+}
+
+# Models the stub codex was asked for, space-separated, in call order.
+codex_calls() {
+    tr '\n' ' ' < "$1/codex.calls" | sed 's/ $//'
+}
+
+test_codex_falls_back_when_pin_retired() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+    stub_notify "$project_dir"
+
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-retired \
+        CODEX_STUB_RETIRED=gpt-stub-retired CODEX_FALLBACK_MODELS="gpt-stub-next __default__" \
+        CODEX_STUB_BANNER_MODEL= CODEX_STUB_CALLS="$project_dir/codex.calls"
+    assert_eq "0" "$RUN_STATUS" "codex should fall back past a retired pin"
+    assert_eq "gpt-stub-retired gpt-stub-next" "$(codex_calls "$project_dir")" "codex should try the pin, then the first fallback"
+    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-next" "codex should record the fallback model"
+    assert_file_contains "$project_dir/notify.calls" "warning|daily-kickstart-claude codex fell back|Pin gpt-stub-retired is unavailable" "a fallback should send a warning"
+
+    # Same broken pin next cycle: a haiku, but no second warning.
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-retired \
+        CODEX_STUB_RETIRED=gpt-stub-retired CODEX_FALLBACK_MODELS="gpt-stub-next"
+    assert_eq "0" "$RUN_STATUS" "the second fallback run should succeed"
+    assert_eq "1" "$(wc -l < "$project_dir/notify.calls" | tr -d ' ')" "a still-broken pin should warn only once"
+
+    # The pin works again: the state clears, so a later break warns again.
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-retired
+    assert_eq "0" "$RUN_STATUS" "a working pin should succeed"
+    assert_file_missing "$project_dir/.runtime/codex_fallback" "a working pin should clear the fallback state"
+}
+
+test_codex_unpinned_fallback_records_banner_model() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+    stub_notify "$project_dir"
+
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-retired \
+        CODEX_STUB_RETIRED=gpt-stub-retired CODEX_STUB_BANNER_MODEL=gpt-stub-cli-default \
+        CODEX_STUB_CALLS="$project_dir/codex.calls"
+    assert_eq "0" "$RUN_STATUS" "the default fallback should run codex unpinned"
+    assert_eq "gpt-stub-retired __default__" "$(codex_calls "$project_dir")" "the unpinned run should pass no -m"
+    assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-cli-default" "an unpinned run should record the model from the banner"
+}
+
+test_codex_all_models_unavailable() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=codex CODEX_MODEL=gpt-stub-retired \
+        CODEX_STUB_RETIRED=gpt-stub-retired CODEX_FALLBACK_MODELS=""
+    assert_eq "1" "$RUN_STATUS" "codex should fail when no model is left"
+    # shellcheck source=/dev/null
+    . "$project_dir/.runtime/last_run.env"
+    assert_eq "codex_needs_upgrade" "$LAST_RUN_STATUS" "exhausted models should report codex_needs_upgrade"
+}
+
+test_codex_other_failure_skips_fallback() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    run_generate "$project_dir" ENGINE=codex GENERATE_STUB_MODE=fail \
+        CODEX_STUB_CALLS="$project_dir/codex.calls"
+    assert_eq "1" "$RUN_STATUS" "a plain codex failure should fail the run"
+    assert_eq "1" "$(wc -l < "$project_dir/codex.calls" | tr -d ' ')" "a plain failure should not try fallbacks"
+    # shellcheck source=/dev/null
+    . "$project_dir/.runtime/last_run.env"
+    assert_eq "codex_failed" "$LAST_RUN_STATUS" "a plain failure should report codex_failed"
+}
+
 test_claude_records_default_effort() {
     local project_dir
 
@@ -777,6 +883,21 @@ run_test() {
 }
 
 main() {
+    # `bash tests/run.sh test_a test_b` runs only the named tests.
+    if [ "$#" -gt 0 ]; then
+        local name
+        for name in "$@"; do
+            if ! declare -F "$name" > /dev/null || [[ "$name" != test_* ]]; then
+                printf 'Unknown test: %s\n' "$name" >&2
+                exit 2
+            fi
+            run_test "$name"
+        done
+        printf '\nTest summary: %d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
+        [ "$FAIL_COUNT" -eq 0 ]
+        return
+    fi
+
     run_test test_missing_prompt_file
     run_test test_invalid_engine
     run_test test_claude_failure
@@ -792,6 +913,10 @@ main() {
     run_test test_agy_records_unknown_model
     run_test test_codex_records_model_that_answered
     run_test test_codex_falls_back_to_pin_without_banner
+    run_test test_codex_falls_back_when_pin_retired
+    run_test test_codex_unpinned_fallback_records_banner_model
+    run_test test_codex_all_models_unavailable
+    run_test test_codex_other_failure_skips_fallback
     run_test test_claude_records_default_effort
     run_test test_claude_records_main_model_not_side_call
     run_test test_effort_from_id

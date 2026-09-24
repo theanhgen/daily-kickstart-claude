@@ -205,12 +205,12 @@ class MainEmptyArchiveTest(unittest.TestCase):
             setattr(bs, k, v)
         shutil.rmtree(self.tmp)
 
-    def _run_main(self, haiku_text):
+    def _run_main(self, haiku_text, **kwargs):
         with open(bs.HAIKU_FILE, "w") as f:
             f.write(haiku_text)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            bs.main()
+            bs.main(**kwargs)
         return out.getvalue()
 
     def test_empty_archive_exits_cleanly(self):
@@ -236,6 +236,17 @@ class MainEmptyArchiveTest(unittest.TestCase):
         self.assertIn("Injected OG", out)
         with open(bs.INDEX_FILE) as f:
             self.assertIn("20260601-060001-claude/og.png", f.read())
+
+
+    def test_no_og_leaves_index_untouched(self):
+        # --no-og: the test build must not dirty the tracked index.html.
+        out = self._run_main(
+            "2026-06-01 06:00:01 UTC [claude]\n"
+            "one\ntwo\nthree\n", inject_og=False)
+        self.assertIn("Skipped OG injection", out)
+        self.assertTrue(os.path.isfile(bs.OUTPUT_FILE))      # data still built
+        with open(bs.INDEX_FILE) as f:
+            self.assertEqual(f.read(), self.INDEX)
 
 
 class ModelChangePlaceholderTest(unittest.TestCase):

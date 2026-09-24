@@ -234,14 +234,14 @@ scripts/status.sh        # Dashboard: sync state, last run, recent logs
 scripts/healthcheck.sh   # Take the patient's pulse
 scripts/sync.sh          # Push whatever's pending
 scripts/build-site.py    # Rebuild the site locally (needs Python; Pillow for cards)
-tests/run.sh             # Run the unit tests
+tests/run.sh             # Run the unit tests (or name some: tests/run.sh test_effort_from_id)
 tail -f kickstart.log    # Watch the poems roll in, live
 ```
 
 One footnote on `build-site.py`: it injects fresh Open Graph meta into `site/index.html`,
-which *is* tracked — so a local run leaves that file modified. Harmless, but run
-`git checkout -- site/index.html` before you commit, or the day's stats ride along in your
-diff. On the machine running the cron jobs, don't run it at all: `sync.sh` refuses to sync a
+which *is* tracked — so a local run leaves that file modified. Pass `--no-og` to skip that
+step (CI's test job does); otherwise run `git checkout -- site/index.html` before you commit,
+or the day's stats ride along in your diff. On the machine running the cron jobs, don't run it at all: `sync.sh` refuses to sync a
 tree carrying unexpected tracked changes, so a stray rebuild quietly jams the daily pull until
 someone notices. The site is GitHub's job.
 

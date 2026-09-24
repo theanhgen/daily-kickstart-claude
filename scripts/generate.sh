@@ -111,23 +111,48 @@ case "$ENGINE" in
         HAIKU_EFFORT="default"
         ;;
     codex)
-        CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
-        [ -n "$CODEX_MODEL" ] && CODEX_ARGS+=(-m "$CODEX_MODEL")
-        [ -n "$CODEX_REASONING" ] && CODEX_ARGS+=(-c "model_reasoning_effort=$CODEX_REASONING")
-        CODEX_ARGS+=(-o "$HAIKU_OUTPUT")
-        # < /dev/null: codex exec reads stdin and hangs on an open pipe.
-        if ! run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" "${CODEX_ARGS[@]}" \
-            "Output only a haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
-            < /dev/null 2> "$HAIKU_ERROR"; then
-            log "ERROR: Codex CLI failed"
+        # The pin first, then CODEX_FALLBACK_MODELS in order. Only a "model
+        # unavailable / CLI too old" rejection moves on to the next model; a
+        # timeout or any other failure stops, as it would on every model.
+        CODEX_MODEL_QUEUE="${CODEX_MODEL:-__default__}"
+        for _model in $CODEX_FALLBACK_MODELS; do
+            [ "$_model" != "${CODEX_MODEL:-__default__}" ] && CODEX_MODEL_QUEUE="$CODEX_MODEL_QUEUE $_model"
+        done
+        CODEX_USED_MODEL=""
+        for _model in $CODEX_MODEL_QUEUE; do
+            CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
+            [ "$_model" != "__default__" ] && CODEX_ARGS+=(-m "$_model")
+            [ -n "$CODEX_REASONING" ] && CODEX_ARGS+=(-c "model_reasoning_effort=$CODEX_REASONING")
+            CODEX_ARGS+=(-o "$HAIKU_OUTPUT")
+            # < /dev/null: codex exec reads stdin and hangs on an open pipe.
+            if run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" "${CODEX_ARGS[@]}" \
+                "Output only a haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
+                < /dev/null 2> "$HAIKU_ERROR"; then
+                CODEX_USED_MODEL="$_model"
+                break
+            fi
+            log "ERROR: Codex CLI failed (model $_model)"
             cat "$HAIKU_ERROR" >&2
             # Distinguish "the CLI is out of date / model unavailable" (needs
             # an upgrade or a CODEX_MODEL pin) from a plain timeout, so the
             # operator alert is actionable.
-            if grep -qiE 'requires a newer version|not supported|please upgrade|does not exist or you do not have access' "$HAIKU_ERROR"; then
-                finish 1 "codex_needs_upgrade" "ERROR: Codex CLI out of date or model unavailable — run 'codex update' or set CODEX_MODEL"
+            if ! grep -qiE 'requires a newer version|not supported|please upgrade|does not exist or you do not have access' "$HAIKU_ERROR"; then
+                finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
             fi
-            finish 1 "codex_failed" "ERROR: Codex CLI failed or timed out"
+            log "WARNING: codex model $_model unavailable — trying next fallback"
+        done
+        if [ -z "$CODEX_USED_MODEL" ]; then
+            finish 1 "codex_needs_upgrade" "ERROR: Codex CLI out of date or model unavailable — run 'codex update' or set CODEX_MODEL"
+        fi
+        # Warn once per broken pin, not every cycle: the state file remembers
+        # which pin was reported and is cleared when the pin works again.
+        CODEX_FALLBACK_STATE="$STATE_DIR/codex_fallback"
+        if [ "$CODEX_USED_MODEL" = "${CODEX_MODEL:-__default__}" ]; then
+            rm -f "$CODEX_FALLBACK_STATE"
+        elif [ "$(cat "$CODEX_FALLBACK_STATE" 2>/dev/null)" != "${CODEX_MODEL:-__default__}" ]; then
+            "$SCRIPT_DIR/notify.sh" warning "$PROJECT_NAME codex fell back" \
+                "Pin ${CODEX_MODEL:-__default__} is unavailable; this haiku came from $CODEX_USED_MODEL. Update CODEX_MODEL in scripts/lib.sh." || true
+            printf '%s\n' "${CODEX_MODEL:-__default__}" > "$CODEX_FALLBACK_STATE"
         fi
         # codex exec prints a startup banner to stderr ("model: gpt-5.6-sol")
         # naming the model that actually answered. Record that, not the
@@ -136,7 +161,8 @@ case "$ENGINE" in
         # reason model.log exists. Fall back to the pin, then to "unknown" —
         # never "default", which would imply a reading we did not take.
         HAIKU_MODEL="$(awk '/^model:/ { print $2; exit }' "$HAIKU_ERROR" 2>/dev/null || true)"
-        HAIKU_MODEL="${HAIKU_MODEL:-${CODEX_MODEL:-unknown}}"
+        _codex_pin="${CODEX_USED_MODEL#__default__}"
+        HAIKU_MODEL="${HAIKU_MODEL:-${_codex_pin:-unknown}}"
         # Same banner, same rule: "reasoning effort: low" is what ran, the
         # configured CODEX_REASONING only the fallback.
         HAIKU_EFFORT="$(awk '/^reasoning effort:/ { print $3; exit }' "$HAIKU_ERROR" 2>/dev/null || true)"
