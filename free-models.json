@@ -1,0 +1,3650 @@
+{
+ "generated": "2026-09-27 19:30:09 UTC",
+ "window_days": 14,
+ "runs_in_window": 46,
+ "latest_run": {
+  "started": "2026-09-27 19:02:04 UTC",
+  "listed": 134,
+  "skipped": 0,
+  "probed": 70,
+  "ok": 53,
+  "failed": 81
+ },
+ "haikus": [
+  {
+   "model": "agnes/agnes-2.0-flash",
+   "provider": "agnes",
+   "effort": "default",
+   "lineage": "agnes",
+   "served_provider": "agnes",
+   "served_model": "agnes-2.0-flash",
+   "timestamp": "2026-09-27 19:03:11 UTC",
+   "lines": [
+    "Soft wind whispers through",
+    "Golden leaves begin to sway",
+    "Night falls with grace"
+   ]
+  },
+  {
+   "model": "agnes/agnes-2.5-flash",
+   "provider": "agnes",
+   "effort": "default",
+   "lineage": "agnes",
+   "served_provider": "agnes",
+   "served_model": "agnes-2.5-flash",
+   "timestamp": "2026-09-27 19:02:10 UTC",
+   "lines": [
+    "Gentle breeze whispers,",
+    "Through the quiet forest trees,",
+    "Sunlight paints the leaves."
+   ]
+  },
+  {
+   "model": "agy/claude-opus-4-6-thinking",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "claude",
+   "served_provider": "antigravity",
+   "served_model": "claude-opus-4-6-thinking",
+   "timestamp": "2026-09-27 19:02:09 UTC",
+   "lines": [
+    "Ancient stones stand still",
+    "Whispers ride the autumn wind",
+    "Moon reflects in streams"
+   ]
+  },
+  {
+   "model": "agy/claude-sonnet-4-6",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "claude",
+   "served_provider": "antigravity",
+   "served_model": "claude-sonnet-4-6",
+   "timestamp": "2026-09-27 19:02:10 UTC",
+   "lines": [
+    "Silent snowflakes fall",
+    "Bare branches hold winter's breath",
+    "Earth sleeps, dreaming white"
+   ]
+  },
+  {
+   "model": "agy/gemini-3-flash",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3-flash",
+   "timestamp": "2026-09-27 19:02:08 UTC",
+   "lines": [
+    "Silent code flows deep",
+    "Glowing screen in quiet night",
+    "Logic comes to life"
+   ]
+  },
+  {
+   "model": "agy/gemini-3.1-flash-lite",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.1-flash-lite",
+   "timestamp": "2026-09-27 19:02:09 UTC",
+   "lines": [
+    "Code flows like a stream,",
+    "Logic weaves a tapestry,",
+    "Bugs vanish in light."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.1-pro-high",
+   "provider": "agy",
+   "effort": "high",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.1-pro-high",
+   "timestamp": "2026-09-27 19:02:11 UTC",
+   "lines": [
+    "Silent morning mist,",
+    "Whispers through the ancient pines,",
+    "Sunlight wakes the world."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.5-flash-lite",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.5-flash-lite",
+   "timestamp": "2026-09-27 19:02:09 UTC",
+   "lines": [
+    "Code flows like a stream,",
+    "Bugs vanish into the night,",
+    "Green tests bring me joy."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.6-flash-low",
+   "provider": "agy",
+   "effort": "low",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.6-flash-low",
+   "timestamp": "2026-09-27 19:02:12 UTC",
+   "lines": [
+    "Code flows like a stream,",
+    "Logic dancing in the night,",
+    "Bugs fade out of sight."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.6-flash-tiered",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.6-flash-tiered",
+   "timestamp": "2026-09-27 19:02:14 UTC",
+   "lines": [
+    "Code flows like a stream,",
+    "Silent logic in the dark,",
+    "Thought becomes real now."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.7-flash-high",
+   "provider": "agy",
+   "effort": "high",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.7-flash-high",
+   "timestamp": "2026-09-27 19:02:13 UTC",
+   "lines": [
+    "Silent winter snow,",
+    "Falling softly through the night,",
+    "Earth is fast asleep."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.7-flash-tiered",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.7-flash-tiered",
+   "timestamp": "2026-09-27 19:02:13 UTC",
+   "lines": [
+    "Gentle morning breeze",
+    "Whispers softly through the trees",
+    "Sunlight warms the earth"
+   ]
+  },
+  {
+   "model": "agy/gemini-3.8-flash-high",
+   "provider": "agy",
+   "effort": "high",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.8-flash-high",
+   "timestamp": "2026-09-27 19:02:32 UTC",
+   "lines": [
+    "Silent autumn breeze,",
+    "Golden leaves fall to the ground,",
+    "Winter whispers near."
+   ]
+  },
+  {
+   "model": "agy/gemini-3.8-flash-tiered",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-3.8-flash-tiered",
+   "timestamp": "2026-09-27 19:02:16 UTC",
+   "lines": [
+    "Silent morning mist,",
+    "Golden sunlight breaks the cold,",
+    "Day begins anew."
+   ]
+  },
+  {
+   "model": "agy/gemini-pro-agent",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "antigravity",
+   "served_model": "gemini-pro-agent",
+   "timestamp": "2026-09-27 19:02:17 UTC",
+   "lines": [
+    "Golden morning sun",
+    "Whispers through the forest leaves",
+    "Waking up the world"
+   ]
+  },
+  {
+   "model": "agy/gpt-oss-120b-medium",
+   "provider": "agy",
+   "effort": "medium",
+   "lineage": "gpt-oss",
+   "served_provider": "antigravity",
+   "served_model": "gpt-oss-120b-medium",
+   "timestamp": "2026-09-27 19:02:15 UTC",
+   "lines": [
+    "Silent autumn drift",
+    "Leaves whisper on cold breezes",
+    "Moonlight paints the dusk"
+   ]
+  },
+  {
+   "model": "bazaarlink/auto:free",
+   "provider": "bazaarlink",
+   "effort": "default",
+   "lineage": "other",
+   "served_provider": "bzl",
+   "served_model": "auto:free",
+   "timestamp": "2026-09-27 19:02:13 UTC",
+   "lines": [
+    "A silent pond still,",
+    "frog leaps into the water\u2014",
+    "splash fades, ripples spread."
+   ]
+  },
+  {
+   "model": "bazaarlink/deepseek/deepseek-v4-flash-0731free:free",
+   "provider": "bazaarlink",
+   "effort": "default",
+   "lineage": "deepseek",
+   "served_provider": "bzl",
+   "served_model": "deepseek/deepseek-v4-flash-0731free:free",
+   "timestamp": "2026-09-27 19:02:07 UTC",
+   "lines": [
+    "Autumn\u2019s cold wind blows\u2014",
+    "A single leaf falls and turns",
+    "To dust in the dusk."
+   ]
+  },
+  {
+   "model": "bazaarlink/qwen/qwen3.7-flash:free",
+   "provider": "bazaarlink",
+   "effort": "default",
+   "lineage": "qwen",
+   "served_provider": "bzl",
+   "served_model": "qwen/qwen3.7-flash:free",
+   "timestamp": "2026-09-27 19:02:08 UTC",
+   "lines": [
+    "Silent snow falls down",
+    "Covering the world in white",
+    "Winter holds its breath"
+   ]
+  },
+  {
+   "model": "cloudflare-ai/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "deepseek",
+   "served_provider": "cf",
+   "served_model": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+   "timestamp": "2026-09-27 19:02:21 UTC",
+   "lines": [
+    "Autumn leaves whisper,",
+    "Breeze carries their soft goodbye,",
+    "Dancing to earth's sigh."
+   ]
+  },
+  {
+   "model": "cloudflare-ai/@cf/meta/llama-3.2-3b-instruct",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "llama",
+   "served_provider": "cf",
+   "served_model": "@cf/meta/llama-3.2-3b-instruct",
+   "timestamp": "2026-09-27 19:02:07 UTC",
+   "lines": [
+    "Snowflakes gently fall",
+    "Blanketing the winter scene",
+    "Peaceful silent hush"
+   ]
+  },
+  {
+   "model": "cloudflare-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "llama",
+   "served_provider": "cf",
+   "served_model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+   "timestamp": "2026-09-27 19:02:13 UTC",
+   "lines": [
+    "Snowflakes gently fall",
+    "Blanketing the winter scene",
+    "Frozen peaceful hush"
+   ]
+  },
+  {
+   "model": "cloudflare-ai/@cf/mistral/mistral-7b-instruct-v0.2-lora",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "mistral",
+   "served_provider": "cf",
+   "served_model": "@cf/mistral/mistral-7b-instruct-v0.2-lora",
+   "timestamp": "2026-09-27 19:02:09 UTC",
+   "lines": [
+    "Autumn leaves dance,",
+    "Whispers in the wind speak,",
+    "Nature's symphony."
+   ]
+  },
+  {
+   "model": "cloudflare-ai/@cf/qwen/qwen2.5-coder-32b-instruct",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "qwen",
+   "served_provider": "cf",
+   "served_model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+   "timestamp": "2026-09-27 19:02:10 UTC",
+   "lines": [
+    "Morning dew glistens,",
+    "Cherry blossoms whisper peace,",
+    "Sunrise paints the sky."
+   ]
+  },
+  {
+   "model": "cloudflare-ai/@cf/zai-org/glm-4.7-flash",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "glm",
+   "served_provider": "cf",
+   "served_model": "@cf/zai-org/glm-4.7-flash",
+   "timestamp": "2026-09-27 19:02:21 UTC",
+   "lines": [
+    "Chill wind cuts through air,",
+    "Leaves dance a falling song,",
+    "Autumn days are here."
+   ]
+  },
+  {
+   "model": "cloudflare-playground/deepseek-ai/deepseek-v4-flash-0731",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "deepseek",
+   "served_provider": "cfp",
+   "served_model": "deepseek-ai/deepseek-v4-flash-0731",
+   "timestamp": "2026-09-27 19:02:17 UTC",
+   "lines": [
+    "Silent hills awake,",
+    "Morning dew upon the grass,",
+    "Golden sun begins."
+   ]
+  },
+  {
+   "model": "cloudflare-playground/deepseek-ai/deepseek-v4-pro-0813",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "deepseek",
+   "served_provider": "cfp",
+   "served_model": "deepseek-ai/deepseek-v4-pro-0813",
+   "timestamp": "2026-09-27 19:02:19 UTC",
+   "lines": [
+    "Silent night falls,",
+    "Stars above shine so bright,",
+    "Dreams begin to grow."
+   ]
+  },
+  {
+   "model": "cloudflare-playground/nvidia/nemotron-3-120b-a12b",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "nemotron",
+   "served_provider": "cfp",
+   "served_model": "nvidia/nemotron-3-120b-a12b",
+   "timestamp": "2026-09-27 19:02:28 UTC",
+   "lines": [
+    "Old pond silent\u2014",
+    "A frog jumps into water,",
+    "Sound of summer's hush."
+   ]
+  },
+  {
+   "model": "cohere/c4ai-aya-expanse-32b",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "c4ai-aya-expanse-32b",
+   "timestamp": "2026-09-27 19:02:08 UTC",
+   "lines": [
+    "Whispers in the breeze,",
+    "Leaves dance under moonlit skies,",
+    "Nature's soft embrace."
+   ]
+  },
+  {
+   "model": "cohere/c4ai-aya-vision-32b",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "c4ai-aya-vision-32b",
+   "timestamp": "2026-09-27 19:02:08 UTC",
+   "lines": [
+    "Whispers in the breeze",
+    "Leaves dance, a gentle symphony",
+    "Nature's soft embrace"
+   ]
+  },
+  {
+   "model": "cohere/command-a-03-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-a-03-2025",
+   "timestamp": "2026-09-27 19:02:40 UTC",
+   "lines": [
+    "Silent night's embrace,",
+    "Stars whisper secrets to the moon,",
+    "Dreams drift in the dark."
+   ]
+  },
+  {
+   "model": "cohere/command-a-plus-05-2026",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-a-plus-05-2026",
+   "timestamp": "2026-09-27 19:02:12 UTC",
+   "lines": [
+    "Morning mist lifts slow",
+    "Sunlit river softly flows",
+    "Night birds call softly"
+   ]
+  },
+  {
+   "model": "cohere/command-a-reasoning-08-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-a-reasoning-08-2025",
+   "timestamp": "2026-09-27 19:02:16 UTC",
+   "lines": [
+    "Cherry blossoms fall,",
+    "Pink petals dance in the breeze,",
+    "Spring's gentle whisper."
+   ]
+  },
+  {
+   "model": "cohere/command-a-translate-08-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-a-translate-08-2025",
+   "timestamp": "2026-09-27 19:02:17 UTC",
+   "lines": [
+    "Morning dew on leaves,",
+    "Sunlight dances, a gentle breeze,",
+    "Nature's quiet peace."
+   ]
+  },
+  {
+   "model": "cohere/command-a-vision-07-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-a-vision-07-2025",
+   "timestamp": "2026-09-27 19:02:18 UTC",
+   "lines": [
+    "Nature's calm embrace",
+    "Whispers of the forest breeze",
+    "Serenity found"
+   ]
+  },
+  {
+   "model": "cohere/command-r-08-2024",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-r-08-2024",
+   "timestamp": "2026-09-27 19:02:19 UTC",
+   "lines": [
+    "Spring rain on my face",
+    "Nature's gentle morning bath",
+    "New life, fresh start, awake"
+   ]
+  },
+  {
+   "model": "cohere/command-r-plus-08-2024",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-r-plus-08-2024",
+   "timestamp": "2026-09-27 19:02:21 UTC",
+   "lines": [
+    "The autumn breeze blows,",
+    "Leaves dance, a golden shower,",
+    "Nature's graceful fall."
+   ]
+  },
+  {
+   "model": "cohere/command-r7b-12-2024",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "cohere",
+   "served_model": "command-r7b-12-2024",
+   "timestamp": "2026-09-27 19:02:22 UTC",
+   "lines": [
+    "Whispers of the wind,",
+    "A lone tree stands, silent sentinel,",
+    "Nature's quiet strength."
+   ]
+  },
+  {
+   "model": "gemini/gemini-2.5-flash",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "gemini",
+   "served_model": "gemini-2.5-flash",
+   "timestamp": "2026-09-27 19:02:13 UTC",
+   "lines": [
+    "Green leaves turn to gold,",
+    "Autumn winds whisper secrets,",
+    "Winter's quiet rest."
+   ]
+  },
+  {
+   "model": "gemini/gemini-3-flash-preview",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "served_provider": "gemini",
+   "served_model": "gemini-3-flash-preview",
+   "timestamp": "2026-09-27 19:02:21 UTC",
+   "lines": [
+    "White snow hides the ground",
+    "Silence falls upon the woods",
+    "Winter sleeps at last"
+   ]
+  },
+  {
+   "model": "mistral/codestral-latest",
+   "provider": "mistral",
+   "effort": "default",
+   "lineage": "mistral",
+   "served_provider": "mistral",
+   "served_model": "codestral-latest",
+   "timestamp": "2026-09-27 19:02:06 UTC",
+   "lines": [
+    "Autumn leaves fall down,",
+    "rustling whispers in the wind,",
+    "cold dawn approaches."
+   ]
+  },
+  {
+   "model": "nous-research/upstage/solar-pro4:free",
+   "provider": "nous-research",
+   "effort": "default",
+   "lineage": "solar",
+   "served_provider": "nous",
+   "served_model": "upstage/solar-pro4:free",
+   "timestamp": "2026-09-27 19:02:10 UTC",
+   "lines": [
+    "Cold wind blows softly",
+    "Snowflakes dance upon the ground",
+    "White silence remains"
+   ]
+  },
+  {
+   "model": "openrouter/cohere/north-mini-code:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "cohere",
+   "served_provider": "openrouter",
+   "served_model": "cohere/north-mini-code:free",
+   "timestamp": "2026-09-27 19:02:11 UTC",
+   "lines": [
+    "Silent autumn leaves",
+    "Dance down the wind's soft caress",
+    "Earth rests in twilight"
+   ]
+  },
+  {
+   "model": "openrouter/dots-studio/dots-3-note-preview:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "dots",
+   "served_provider": "openrouter",
+   "served_model": "dots-studio/dots-3-note-preview:free",
+   "timestamp": "2026-09-27 19:02:26 UTC",
+   "lines": [
+    "Autumn wind blows cold,",
+    "Leaves dance down from ancient trees,",
+    "Solitude speaks now."
+   ]
+  },
+  {
+   "model": "openrouter/inclusionai/ling-3.0-flash-fin:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "ling",
+   "served_provider": "openrouter",
+   "served_model": "inclusionai/ling-3.0-flash-fin:free",
+   "timestamp": "2026-09-27 19:02:13 UTC",
+   "lines": [
+    "Gentle springtime rain",
+    "Soft petals fall on the stream",
+    "Quiet earth rests now"
+   ]
+  },
+  {
+   "model": "openrouter/inclusionai/ling-3.0-flash-sante:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "ling",
+   "served_provider": "openrouter",
+   "served_model": "inclusionai/ling-3.0-flash-sante:free",
+   "timestamp": "2026-09-27 19:02:15 UTC",
+   "lines": [
+    "Autumn leaves fall down",
+    "Whispering secrets to the wind",
+    "Silent earth below"
+   ]
+  },
+  {
+   "model": "openrouter/liquid/lfm-2.5-2.6b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "liquid",
+   "served_provider": "openrouter",
+   "served_model": "liquid/lfm-2.5-2.6b:free",
+   "timestamp": "2026-09-27 19:02:21 UTC",
+   "lines": [
+    "Morning dew glistens",
+    "Sunlight paints the world anew",
+    "Peace in quiet dawn"
+   ]
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "served_provider": "openrouter",
+   "served_model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "timestamp": "2026-09-27 19:02:29 UTC",
+   "lines": [
+    "Morning mist lifts slow",
+    "Sunlight paints the quiet lake",
+    "Day awakens bright"
+   ]
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "served_provider": "openrouter",
+   "served_model": "nvidia/nemotron-3-super-120b-a12b:free",
+   "timestamp": "2026-09-27 19:02:35 UTC",
+   "lines": [
+    "Morning mist holds still",
+    "Pines whisper, sighing soft still",
+    "Sun breaks through the veil"
+   ]
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "served_provider": "openrouter",
+   "served_model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "timestamp": "2026-09-27 19:02:35 UTC",
+   "lines": [
+    "Morning dew clings tight",
+    "Sun rises, warming the grass",
+    "New day begins now"
+   ]
+  },
+  {
+   "model": "openrouter/poolside/laguna-s-2.1:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "poolside",
+   "served_provider": "openrouter",
+   "served_model": "poolside/laguna-s-2.1:free",
+   "timestamp": "2026-09-27 19:02:37 UTC",
+   "lines": [
+    "Whispers through the trees,",
+    "Autumn leaves in gentle dance\u2014",
+    "Silent beauty calls."
+   ]
+  },
+  {
+   "model": "openrouter/poolside/laguna-xs-2.1:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "poolside",
+   "served_provider": "openrouter",
+   "served_model": "poolside/laguna-xs-2.1:free",
+   "timestamp": "2026-09-27 19:02:45 UTC",
+   "lines": [
+    "Cherry blossoms drift",
+    "Petals dance in the breeze",
+    "Spring's fleeting beauty"
+   ]
+  },
+  {
+   "model": "openrouter/qwen/qwen3.8-27b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "qwen",
+   "served_provider": "openrouter",
+   "served_model": "qwen/qwen3.8-27b:free",
+   "timestamp": "2026-09-27 19:02:53 UTC",
+   "lines": [
+    "Fresh snow on the pine",
+    "soft wind lifts the morning mist",
+    "quiet lake at dawn"
+   ]
+  }
+ ],
+ "models": [
+  {
+   "model": "agy/claude-opus-4-6-thinking",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "claude",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:09 UTC"
+  },
+  {
+   "model": "agy/gemini-3.6-flash-low",
+   "provider": "agy",
+   "effort": "low",
+   "lineage": "gemini",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:12 UTC"
+  },
+  {
+   "model": "agy/gemini-3.7-flash-high",
+   "provider": "agy",
+   "effort": "high",
+   "lineage": "gemini",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:13 UTC"
+  },
+  {
+   "model": "agy/gemini-3.7-flash-tiered",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:13 UTC"
+  },
+  {
+   "model": "agy/gemini-pro-agent",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:17 UTC"
+  },
+  {
+   "model": "agy/gpt-oss-120b-medium",
+   "provider": "agy",
+   "effort": "medium",
+   "lineage": "gpt-oss",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:15 UTC"
+  },
+  {
+   "model": "mistral/codestral-latest",
+   "provider": "mistral",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 46,
+   "ok": 46,
+   "last_ok": "2026-09-27 19:02:06 UTC"
+  },
+  {
+   "model": "agy/gemini-3.5-flash-lite",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 44,
+   "ok": 44,
+   "last_ok": "2026-09-27 19:02:09 UTC"
+  },
+  {
+   "model": "agy/gemini-3.6-flash-tiered",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 44,
+   "ok": 44,
+   "last_ok": "2026-09-27 19:02:14 UTC"
+  },
+  {
+   "model": "agy/gemini-3.8-flash-tiered",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 44,
+   "ok": 44,
+   "last_ok": "2026-09-27 19:02:16 UTC"
+  },
+  {
+   "model": "agnes/agnes-2.0-flash",
+   "provider": "agnes",
+   "effort": "default",
+   "lineage": "agnes",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:03:11 UTC"
+  },
+  {
+   "model": "cohere/c4ai-aya-expanse-32b",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:08 UTC"
+  },
+  {
+   "model": "cohere/c4ai-aya-vision-32b",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:08 UTC"
+  },
+  {
+   "model": "cohere/command-a-plus-05-2026",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:12 UTC"
+  },
+  {
+   "model": "cohere/command-a-reasoning-08-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:16 UTC"
+  },
+  {
+   "model": "cohere/command-a-translate-08-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:17 UTC"
+  },
+  {
+   "model": "cohere/command-a-vision-07-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:18 UTC"
+  },
+  {
+   "model": "cohere/command-r-08-2024",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:19 UTC"
+  },
+  {
+   "model": "cohere/command-r-plus-08-2024",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:21 UTC"
+  },
+  {
+   "model": "cohere/command-r7b-12-2024",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:22 UTC"
+  },
+  {
+   "model": "agy/claude-sonnet-4-6",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "claude",
+   "asked": 46,
+   "ok": 45,
+   "last_ok": "2026-09-27 19:02:10 UTC"
+  },
+  {
+   "model": "agy/gemini-3.1-flash-lite",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 46,
+   "ok": 45,
+   "last_ok": "2026-09-27 19:02:09 UTC"
+  },
+  {
+   "model": "agy/gemini-3-flash",
+   "provider": "agy",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 44,
+   "ok": 43,
+   "last_ok": "2026-09-27 19:02:08 UTC"
+  },
+  {
+   "model": "agy/gemini-3.1-pro-high",
+   "provider": "agy",
+   "effort": "high",
+   "lineage": "gemini",
+   "asked": 44,
+   "ok": 43,
+   "last_ok": "2026-09-27 19:02:11 UTC"
+  },
+  {
+   "model": "agy/gemini-3.8-flash-high",
+   "provider": "agy",
+   "effort": "high",
+   "lineage": "gemini",
+   "asked": 44,
+   "ok": 43,
+   "last_ok": "2026-09-27 19:02:32 UTC"
+  },
+  {
+   "model": "agnes/agnes-2.5-flash",
+   "provider": "agnes",
+   "effort": "default",
+   "lineage": "agnes",
+   "asked": 38,
+   "ok": 37,
+   "last_ok": "2026-09-27 19:02:10 UTC"
+  },
+  {
+   "model": "cloudflare-playground/moonshotai/kimi-k2.7-code",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "kimi",
+   "asked": 38,
+   "ok": 37,
+   "last_ok": "2026-09-27 14:01:31 UTC"
+  },
+  {
+   "model": "cloudflare-playground/nvidia/nemotron-3-120b-a12b",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 37,
+   "last_ok": "2026-09-27 19:02:28 UTC"
+  },
+  {
+   "model": "cohere/command-a-03-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 37,
+   "last_ok": "2026-09-27 19:02:40 UTC"
+  },
+  {
+   "model": "gemini/gemini-3-flash-preview",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 38,
+   "ok": 37,
+   "last_ok": "2026-09-27 19:02:21 UTC"
+  },
+  {
+   "model": "bazaarlink/auto:free",
+   "provider": "bazaarlink",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 46,
+   "ok": 44,
+   "last_ok": "2026-09-27 19:02:13 UTC"
+  },
+  {
+   "model": "bazaarlink/qwen/qwen3.7-flash:free",
+   "provider": "bazaarlink",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 46,
+   "ok": 44,
+   "last_ok": "2026-09-27 19:02:08 UTC"
+  },
+  {
+   "model": "cloudflare-playground/deepseek-ai/deepseek-v4-flash-0731",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "deepseek",
+   "asked": 33,
+   "ok": 31,
+   "last_ok": "2026-09-27 19:02:17 UTC"
+  },
+  {
+   "model": "cloudflare-playground/deepseek-ai/deepseek-v4-pro-0813",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "deepseek",
+   "asked": 38,
+   "ok": 35,
+   "last_ok": "2026-09-27 19:02:19 UTC"
+  },
+  {
+   "model": "gemini/gemini-2.5-flash",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 38,
+   "ok": 35,
+   "last_ok": "2026-09-27 19:02:13 UTC"
+  },
+  {
+   "model": "cloudflare-ai/@cf/meta/llama-3.2-3b-instruct",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 46,
+   "ok": 42,
+   "last_ok": "2026-09-27 19:02:07 UTC"
+  },
+  {
+   "model": "cloudflare-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 46,
+   "ok": 42,
+   "last_ok": "2026-09-27 19:02:13 UTC"
+  },
+  {
+   "model": "cloudflare-ai/@cf/qwen/qwen2.5-coder-32b-instruct",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 46,
+   "ok": 42,
+   "last_ok": "2026-09-27 19:02:10 UTC"
+  },
+  {
+   "model": "bazaarlink/deepseek/deepseek-v4-flash-0731free:free",
+   "provider": "bazaarlink",
+   "effort": "default",
+   "lineage": "deepseek",
+   "asked": 44,
+   "ok": 40,
+   "last_ok": "2026-09-27 19:02:07 UTC"
+  },
+  {
+   "model": "nous-research/upstage/solar-pro4:free",
+   "provider": "nous-research",
+   "effort": "default",
+   "lineage": "solar",
+   "asked": 42,
+   "ok": 38,
+   "last_ok": "2026-09-27 19:02:10 UTC"
+  },
+  {
+   "model": "openrouter/inclusionai/ling-3.0-flash-fin:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "ling",
+   "asked": 38,
+   "ok": 34,
+   "last_ok": "2026-09-27 19:02:13 UTC"
+  },
+  {
+   "model": "openrouter/inclusionai/ling-3.0-flash-sante:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "ling",
+   "asked": 38,
+   "ok": 34,
+   "last_ok": "2026-09-27 19:02:15 UTC"
+  },
+  {
+   "model": "openrouter/liquid/lfm-2.5-2.6b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "liquid",
+   "asked": 38,
+   "ok": 34,
+   "last_ok": "2026-09-27 19:02:21 UTC"
+  },
+  {
+   "model": "openrouter/poolside/laguna-xs-2.1:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "poolside",
+   "asked": 38,
+   "ok": 34,
+   "last_ok": "2026-09-27 19:02:45 UTC"
+  },
+  {
+   "model": "cloudflare-ai/@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "deepseek",
+   "asked": 46,
+   "ok": 41,
+   "last_ok": "2026-09-27 19:02:21 UTC"
+  },
+  {
+   "model": "cloudflare-ai/@cf/mistral/mistral-7b-instruct-v0.2-lora",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 46,
+   "ok": 41,
+   "last_ok": "2026-09-27 19:02:09 UTC"
+  },
+  {
+   "model": "cloudflare-ai/@cf/zai-org/glm-4.7-flash",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "glm",
+   "asked": 46,
+   "ok": 41,
+   "last_ok": "2026-09-27 19:02:21 UTC"
+  },
+  {
+   "model": "openrouter/cohere/north-mini-code:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 33,
+   "last_ok": "2026-09-27 19:02:11 UTC"
+  },
+  {
+   "model": "openrouter/dots-studio/dots-3-note-preview:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "dots",
+   "asked": 38,
+   "ok": 33,
+   "last_ok": "2026-09-27 19:02:26 UTC"
+  },
+  {
+   "model": "openrouter/poolside/laguna-s-2.1:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "poolside",
+   "asked": 38,
+   "ok": 33,
+   "last_ok": "2026-09-27 19:02:37 UTC"
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 32,
+   "last_ok": "2026-09-27 19:02:35 UTC"
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 31,
+   "last_ok": "2026-09-27 19:02:35 UTC"
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 30,
+   "last_ok": "2026-09-27 19:02:29 UTC"
+  },
+  {
+   "model": "nous-research/stepfun/step-3.7-flash:free",
+   "provider": "nous-research",
+   "effort": "default",
+   "lineage": "stepfun",
+   "asked": 42,
+   "ok": 30,
+   "last_ok": "2026-09-27 14:01:14 UTC"
+  },
+  {
+   "model": "nous-research/meituan/longcat-2.0:free",
+   "provider": "nous-research",
+   "effort": "default",
+   "lineage": "longcat",
+   "asked": 42,
+   "ok": 29,
+   "last_ok": "2026-09-24 19:02:26 UTC"
+  },
+  {
+   "model": "cohere/command-r7b-arabic-02-2025",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 17,
+   "last_ok": "2026-09-23 03:59:19 UTC"
+  },
+  {
+   "model": "openrouter/qwen/qwen3.8-27b:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 36,
+   "ok": 16,
+   "last_ok": "2026-09-27 19:02:53 UTC"
+  },
+  {
+   "model": "openrouter/google/gemma-4-31b-it:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 35,
+   "ok": 10,
+   "last_ok": "2026-09-27 09:00:50 UTC"
+  },
+  {
+   "model": "openrouter/google/gemma-4-26b-a4b-it:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 38,
+   "ok": 8,
+   "last_ok": "2026-09-27 09:01:00 UTC"
+  },
+  {
+   "model": "cloudflare-playground/mistralai/mistral-small-3.1-24b-instruct",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 7,
+   "last_ok": "2026-09-25 19:02:26 UTC"
+  },
+  {
+   "model": "cloudflare-playground/ibm-granite/granite-4.0-h-micro",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "granite",
+   "asked": 38,
+   "ok": 6,
+   "last_ok": "2026-09-27 09:00:23 UTC"
+  },
+  {
+   "model": "openrouter/nvidia/nemotron-3.5-lightning:free",
+   "provider": "openrouter",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 6,
+   "last_ok": "2026-09-20 19:53:47 UTC"
+  },
+  {
+   "model": "cloudflare-playground/qwen/qwen3-30b-a3b-fp8",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 37,
+   "ok": 4,
+   "last_ok": "2026-09-18 15:37:11 UTC"
+  },
+  {
+   "model": "qoder/qwen3.8-max-preview",
+   "provider": "qoder",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 38,
+   "ok": 3,
+   "last_ok": "2026-09-17 14:00:53 UTC"
+  },
+  {
+   "model": "qoder/kimi-k3",
+   "provider": "qoder",
+   "effort": "default",
+   "lineage": "kimi",
+   "asked": 36,
+   "ok": 2,
+   "last_ok": "2026-09-17 10:07:50 UTC"
+  },
+  {
+   "model": "qoder/qwen3.7-max",
+   "provider": "qoder",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 36,
+   "ok": 2,
+   "last_ok": "2026-09-17 10:08:16 UTC"
+  },
+  {
+   "model": "qoder/qwen3.7-plus",
+   "provider": "qoder",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 36,
+   "ok": 2,
+   "last_ok": "2026-09-17 10:08:31 UTC"
+  },
+  {
+   "model": "cloudflare-playground/meta/llama-3.1-8b-instruct-fp8",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 1,
+   "last_ok": "2026-09-17 10:07:56 UTC"
+  },
+  {
+   "model": "nvidia/mistralai/mistral-nemotron",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 39,
+   "ok": 1,
+   "last_ok": "2026-09-18 04:00:18 UTC"
+  },
+  {
+   "model": "agnes/agnes-1.5-flash",
+   "provider": "agnes",
+   "effort": "default",
+   "lineage": "agnes",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "cline/poolside/laguna-m.1:free",
+   "provider": "cline",
+   "effort": "default",
+   "lineage": "poolside",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "cline/tencent/hy3:free",
+   "provider": "cline",
+   "effort": "default",
+   "lineage": "tencent",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "cloudflare-ai/@cf/moonshotai/kimi-k2.6",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "kimi",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "cloudflare-ai/@cf/qwen/qwq-32b",
+   "provider": "cloudflare-ai",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 46,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "cloudflare-playground/aisingapore/gemma-sea-lion-v4-27b-it",
+   "provider": "cloudflare-playground",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 37,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "cohere/cohere-transcribe-03-2026",
+   "provider": "cohere",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "gemini/gemini-2.5-flash-lite",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "gemini/gemini-2.5-pro",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "gemini/gemini-3.1-pro-preview",
+   "provider": "gemini",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "groq/llama-3.3-70b-versatile",
+   "provider": "groq",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "groq/meta-llama/llama-4-scout-17b-16e-instruct",
+   "provider": "groq",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "groq/openai/gpt-oss-20b",
+   "provider": "groq",
+   "effort": "default",
+   "lineage": "gpt-oss",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "groq/qwen/qwen3-32b",
+   "provider": "groq",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "groq/qwen/qwen3.6-27b",
+   "provider": "groq",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/CohereLabs/c4ai-command-r7b-12-2024",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "cohere",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/MiniMaxAI/MiniMax-M3",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "minimax",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/Qwen/Qwen3.6-35B-A3B",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/XiaomiMiMo/MiMo-V2.5-Pro",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/baidu/ERNIE-4.5-VL-424B-A47B-Base-PT",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/deepseek-ai/DeepSeek-V4-Flash",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "deepseek",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/deepseek-ai/DeepSeek-V4-Pro",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "deepseek",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/inclusionAI/Ling-2.6-1T",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "ling",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "huggingchat/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4",
+   "provider": "huggingchat",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "mistral/devstral-latest",
+   "provider": "mistral",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "mistral/mistral-large-latest",
+   "provider": "mistral",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "mistral/mistral-medium-3-5",
+   "provider": "mistral",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "mistral/mistral-small-latest",
+   "provider": "mistral",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/abacusai/dracarys-llama-3.1-70b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/google/gemma-2-2b-it",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/google/gemma-3n-e2b-it",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/meta/llama-3.1-8b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/meta/llama-3.2-11b-vision-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/meta/llama-3.2-1b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 33,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/meta/llama-3.2-90b-vision-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/meta/llama-4-maverick-17b-128e-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/minimaxai/minimax-m2.7",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "minimax",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/mistralai/devstral-2-123b-instruct-2512",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/mistralai/ministral-14b-instruct-2512",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/mistralai/mistral-large-3-675b-instruct-2512",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/mistralai/mistral-medium-3.5-128b",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/mistralai/mistral-small-4-119b-2603",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/mistralai/mixtral-8x7b-instruct-v0.1",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "mistral",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/ising-calibration-1-35b-a3b",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/llama-3.1-nemotron-nano-8b-v1",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/llama-3.1-nemotron-nano-vl-8b-v1",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/llama-3.3-nemotron-super-49b-v1",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/llama-3.3-nemotron-super-49b-v1.5",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/nemotron-3-nano-30b-a3b",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/nemotron-mini-4b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/nemotron-nano-12b-v2-vl",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/nvidia-nemotron-nano-9b-v2",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "nemotron",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/nvidia/riva-translate-4b-instruct-v1.1",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 40,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/qwen/qwen3-next-80b-a3b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/qwen/qwen3.5-122b-a10b",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/qwen/qwen3.5-397b-a17b",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/sarvamai/sarvam-m",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/stepfun-ai/step-3.5-flash",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "stepfun",
+   "asked": 34,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/stockmark/stockmark-2-100b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "other",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/upstage/solar-10.7b-instruct",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "solar",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "nvidia/z-ai/glm-5.2",
+   "provider": "nvidia",
+   "effort": "default",
+   "lineage": "glm",
+   "asked": 8,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "uncloseai/adamo1139/Hermes-3-Llama-3.1-8B-FP8-Dynamic",
+   "provider": "uncloseai",
+   "effort": "default",
+   "lineage": "llama",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "uncloseai/gemma4:31b",
+   "provider": "uncloseai",
+   "effort": "default",
+   "lineage": "gemini",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  },
+  {
+   "model": "uncloseai/qwen3.6:27b",
+   "provider": "uncloseai",
+   "effort": "default",
+   "lineage": "qwen",
+   "asked": 38,
+   "ok": 0,
+   "last_ok": null
+  }
+ ],
+ "cloud": {
+  "haikus": 2596,
+  "words": [
+   {
+    "word": "leaves",
+    "uses": 922,
+    "weight": 68.799,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      232
+     ],
+     [
+      "mistral",
+      116
+     ],
+     [
+      "cohere",
+      170
+     ]
+    ],
+    "models": 82
+   },
+   {
+    "word": "whispers",
+    "uses": 689,
+    "weight": 49.664,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      210
+     ],
+     [
+      "mistral",
+      77
+     ],
+     [
+      "gemini",
+      145
+     ]
+    ],
+    "models": 81
+   },
+   {
+    "word": "silent",
+    "uses": 661,
+    "weight": 46.698,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      231
+     ],
+     [
+      "cohere",
+      109
+     ],
+     [
+      "gpt-oss",
+      34
+     ]
+    ],
+    "models": 83
+   },
+   {
+    "word": "soft",
+    "uses": 512,
+    "weight": 43.852,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      108
+     ],
+     [
+      "nemotron",
+      57
+     ],
+     [
+      "other",
+      46
+     ]
+    ],
+    "models": 82
+   },
+   {
+    "word": "autumn",
+    "uses": 525,
+    "weight": 42.6,
+    "owner": null,
+    "families": [
+     [
+      "mistral",
+      116
+     ],
+     [
+      "ling",
+      70
+     ],
+     [
+      "gemini",
+      117
+     ]
+    ],
+    "models": 64
+   },
+   {
+    "word": "morning",
+    "uses": 524,
+    "weight": 40.758,
+    "owner": null,
+    "families": [
+     [
+      "nemotron",
+      96
+     ],
+     [
+      "cohere",
+      138
+     ],
+     [
+      "gpt-oss",
+      33
+     ]
+    ],
+    "models": 73
+   },
+   {
+    "word": "fall",
+    "uses": 460,
+    "weight": 38.473,
+    "owner": null,
+    "families": [
+     [
+      "llama",
+      88
+     ],
+     [
+      "mistral",
+      73
+     ],
+     [
+      "poolside",
+      36
+     ]
+    ],
+    "models": 67
+   },
+   {
+    "word": "through",
+    "uses": 425,
+    "weight": 33.472,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      144
+     ],
+     [
+      "claude",
+      33
+     ],
+     [
+      "ling",
+      32
+     ]
+    ],
+    "models": 65
+   },
+   {
+    "word": "breeze",
+    "uses": 436,
+    "weight": 31.146,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      155
+     ],
+     [
+      "gemini",
+      125
+     ],
+     [
+      "poolside",
+      29
+     ]
+    ],
+    "models": 60
+   },
+   {
+    "word": "wind",
+    "uses": 372,
+    "weight": 31.04,
+    "owner": null,
+    "families": [
+     [
+      "deepseek",
+      39
+     ],
+     [
+      "qwen",
+      34
+     ],
+     [
+      "ling",
+      30
+     ]
+    ],
+    "models": 67
+   },
+   {
+    "word": "quiet",
+    "uses": 378,
+    "weight": 30.393,
+    "owner": null,
+    "families": [
+     [
+      "nemotron",
+      49
+     ],
+     [
+      "cohere",
+      77
+     ],
+     [
+      "gemini",
+      83
+     ]
+    ],
+    "models": 79
+   },
+   {
+    "word": "night",
+    "uses": 342,
+    "weight": 27.246,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      128
+     ],
+     [
+      "agnes",
+      24
+     ],
+     [
+      "other",
+      29
+     ]
+    ],
+    "models": 69
+   },
+   {
+    "word": "winter",
+    "uses": 353,
+    "weight": 26.016,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      68
+     ],
+     [
+      "gemini",
+      163
+     ],
+     [
+      "claude",
+      26
+     ]
+    ],
+    "models": 45
+   },
+   {
+    "word": "gentle",
+    "uses": 331,
+    "weight": 24.217,
+    "owner": null,
+    "families": [
+     [
+      "mistral",
+      70
+     ],
+     [
+      "cohere",
+      110
+     ],
+     [
+      "llama",
+      23
+     ]
+    ],
+    "models": 59
+   },
+   {
+    "word": "dance",
+    "uses": 295,
+    "weight": 23.331,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      102
+     ],
+     [
+      "mistral",
+      39
+     ],
+     [
+      "poolside",
+      17
+     ]
+    ],
+    "models": 60
+   },
+   {
+    "word": "light",
+    "uses": 250,
+    "weight": 21.47,
+    "owner": null,
+    "families": [
+     [
+      "liquid",
+      23
+     ],
+     [
+      "gemini",
+      77
+     ],
+     [
+      "nemotron",
+      38
+     ]
+    ],
+    "models": 57
+   },
+   {
+    "word": "spring",
+    "uses": 220,
+    "weight": 21.171,
+    "owner": null,
+    "families": [
+     [
+      "poolside",
+      22
+     ],
+     [
+      "solar",
+      13
+     ],
+     [
+      "cohere",
+      43
+     ]
+    ],
+    "models": 50
+   },
+   {
+    "word": "cherry",
+    "uses": 167,
+    "weight": 19.549,
+    "owner": "poolside",
+    "families": [
+     [
+      "poolside",
+      41
+     ],
+     [
+      "qwen",
+      30
+     ],
+     [
+      "dots",
+      16
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "nature's",
+    "uses": 321,
+    "weight": 19.331,
+    "owner": "cohere",
+    "families": [
+     [
+      "cohere",
+      248
+     ],
+     [
+      "mistral",
+      33
+     ],
+     [
+      "granite",
+      7
+     ]
+    ],
+    "models": 27
+   },
+   {
+    "word": "golden",
+    "uses": 260,
+    "weight": 18.273,
+    "owner": "gemini",
+    "families": [
+     [
+      "gemini",
+      133
+     ],
+     [
+      "deepseek",
+      33
+     ],
+     [
+      "liquid",
+      13
+     ]
+    ],
+    "models": 43
+   },
+   {
+    "word": "blossoms",
+    "uses": 151,
+    "weight": 17.453,
+    "owner": "poolside",
+    "families": [
+     [
+      "poolside",
+      42
+     ],
+     [
+      "qwen",
+      29
+     ],
+     [
+      "dots",
+      16
+     ]
+    ],
+    "models": 34
+   },
+   {
+    "word": "rain",
+    "uses": 203,
+    "weight": 17.229,
+    "owner": "other",
+    "families": [
+     [
+      "other",
+      46
+     ],
+     [
+      "cohere",
+      40
+     ],
+     [
+      "agnes",
+      14
+     ]
+    ],
+    "models": 43
+   },
+   {
+    "word": "softly",
+    "uses": 219,
+    "weight": 16.714,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      96
+     ],
+     [
+      "dots",
+      9
+     ],
+     [
+      "other",
+      13
+     ]
+    ],
+    "models": 55
+   },
+   {
+    "word": "earth",
+    "uses": 211,
+    "weight": 16.606,
+    "owner": "ling",
+    "families": [
+     [
+      "ling",
+      43
+     ],
+     [
+      "gemini",
+      65
+     ],
+     [
+      "nemotron",
+      16
+     ]
+    ],
+    "models": 63
+   },
+   {
+    "word": "trees",
+    "uses": 212,
+    "weight": 16.542,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      92
+     ],
+     [
+      "liquid",
+      9
+     ],
+     [
+      "deepseek",
+      17
+     ]
+    ],
+    "models": 52
+   },
+   {
+    "word": "moonlight",
+    "uses": 184,
+    "weight": 16.405,
+    "owner": null,
+    "families": [
+     [
+      "other",
+      32
+     ],
+     [
+      "mistral",
+      35
+     ],
+     [
+      "agnes",
+      17
+     ]
+    ],
+    "models": 45
+   },
+   {
+    "word": "still",
+    "uses": 157,
+    "weight": 16.299,
+    "owner": null,
+    "families": [
+     [
+      "claude",
+      30
+     ],
+     [
+      "other",
+      26
+     ],
+     [
+      "longcat",
+      10
+     ]
+    ],
+    "models": 49
+   },
+   {
+    "word": "whispering",
+    "uses": 184,
+    "weight": 15.9,
+    "owner": "ling",
+    "families": [
+     [
+      "ling",
+      53
+     ],
+     [
+      "gemini",
+      47
+     ],
+     [
+      "nemotron",
+      17
+     ]
+    ],
+    "models": 44
+   },
+   {
+    "word": "mist",
+    "uses": 206,
+    "weight": 15.843,
+    "owner": "nemotron",
+    "families": [
+     [
+      "nemotron",
+      61
+     ],
+     [
+      "cohere",
+      63
+     ],
+     [
+      "gpt-oss",
+      22
+     ]
+    ],
+    "models": 39
+   },
+   {
+    "word": "gently",
+    "uses": 184,
+    "weight": 15.783,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      88
+     ],
+     [
+      "gemini",
+      42
+     ],
+     [
+      "qwen",
+      15
+     ]
+    ],
+    "models": 34
+   },
+   {
+    "word": "sun",
+    "uses": 209,
+    "weight": 15.655,
+    "owner": "gemini",
+    "families": [
+     [
+      "gemini",
+      107
+     ],
+     [
+      "glm",
+      14
+     ],
+     [
+      "liquid",
+      11
+     ]
+    ],
+    "models": 46
+   },
+   {
+    "word": "air",
+    "uses": 170,
+    "weight": 15.323,
+    "owner": null,
+    "families": [
+     [
+      "mistral",
+      49
+     ],
+     [
+      "liquid",
+      8
+     ],
+     [
+      "claude",
+      10
+     ]
+    ],
+    "models": 53
+   },
+   {
+    "word": "falls",
+    "uses": 174,
+    "weight": 15.297,
+    "owner": null,
+    "families": [
+     [
+      "qwen",
+      30
+     ],
+     [
+      "deepseek",
+      26
+     ],
+     [
+      "agnes",
+      18
+     ]
+    ],
+    "models": 44
+   },
+   {
+    "word": "drift",
+    "uses": 138,
+    "weight": 15.157,
+    "owner": null,
+    "families": [
+     [
+      "claude",
+      26
+     ],
+     [
+      "poolside",
+      16
+     ],
+     [
+      "gpt-oss",
+      13
+     ]
+    ],
+    "models": 44
+   },
+   {
+    "word": "dew",
+    "uses": 189,
+    "weight": 14.956,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      75
+     ],
+     [
+      "nemotron",
+      34
+     ],
+     [
+      "gpt-oss",
+      12
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "green",
+    "uses": 218,
+    "weight": 14.616,
+    "owner": "gemini",
+    "families": [
+     [
+      "gemini",
+      135
+     ],
+     [
+      "solar",
+      8
+     ],
+     [
+      "kimi",
+      6
+     ]
+    ],
+    "models": 45
+   },
+   {
+    "word": "peace",
+    "uses": 165,
+    "weight": 14.526,
+    "owner": null,
+    "families": [
+     [
+      "liquid",
+      16
+     ],
+     [
+      "qwen",
+      20
+     ],
+     [
+      "cohere",
+      36
+     ]
+    ],
+    "models": 45
+   },
+   {
+    "word": "pond",
+    "uses": 137,
+    "weight": 14.143,
+    "owner": null,
+    "families": [
+     [
+      "other",
+      28
+     ],
+     [
+      "nemotron",
+      23
+     ],
+     [
+      "gpt-oss",
+      10
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "down",
+    "uses": 169,
+    "weight": 14.018,
+    "owner": null,
+    "families": [
+     [
+      "mistral",
+      45
+     ],
+     [
+      "deepseek",
+      21
+     ],
+     [
+      "qwen",
+      18
+     ]
+    ],
+    "models": 42
+   },
+   {
+    "word": "day",
+    "uses": 192,
+    "weight": 13.962,
+    "owner": "nemotron",
+    "families": [
+     [
+      "nemotron",
+      48
+     ],
+     [
+      "cohere",
+      61
+     ],
+     [
+      "gemini",
+      39
+     ]
+    ],
+    "models": 45
+   },
+   {
+    "word": "silence",
+    "uses": 144,
+    "weight": 13.772,
+    "owner": null,
+    "families": [
+     [
+      "claude",
+      20
+     ],
+     [
+      "qwen",
+      16
+     ],
+     [
+      "mistral",
+      14
+     ]
+    ],
+    "models": 49
+   },
+   {
+    "word": "sunlight",
+    "uses": 196,
+    "weight": 12.056,
+    "owner": "cohere",
+    "families": [
+     [
+      "cohere",
+      69
+     ],
+     [
+      "gemini",
+      65
+     ],
+     [
+      "nemotron",
+      32
+     ]
+    ],
+    "models": 44
+   },
+   {
+    "word": "sky",
+    "uses": 124,
+    "weight": 12.026,
+    "owner": null,
+    "families": [
+     [
+      "qwen",
+      21
+     ],
+     [
+      "gpt-oss",
+      9
+     ],
+     [
+      "deepseek",
+      15
+     ]
+    ],
+    "models": 45
+   },
+   {
+    "word": "snow",
+    "uses": 152,
+    "weight": 11.88,
+    "owner": null,
+    "families": [
+     [
+      "claude",
+      25
+     ],
+     [
+      "gemini",
+      59
+     ],
+     [
+      "qwen",
+      25
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "petals",
+    "uses": 119,
+    "weight": 11.655,
+    "owner": "poolside",
+    "families": [
+     [
+      "poolside",
+      26
+     ],
+     [
+      "dots",
+      10
+     ],
+     [
+      "cohere",
+      29
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "begins",
+    "uses": 164,
+    "weight": 11.318,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      69
+     ],
+     [
+      "deepseek",
+      16
+     ],
+     [
+      "nemotron",
+      16
+     ]
+    ],
+    "models": 41
+   },
+   {
+    "word": "cold",
+    "uses": 118,
+    "weight": 10.863,
+    "owner": null,
+    "families": [
+     [
+      "ling",
+      17
+     ],
+     [
+      "gemini",
+      29
+     ],
+     [
+      "other",
+      12
+     ]
+    ],
+    "models": 40
+   },
+   {
+    "word": "peaceful",
+    "uses": 124,
+    "weight": 10.847,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      85
+     ],
+     [
+      "mistral",
+      9
+     ],
+     [
+      "cohere",
+      12
+     ]
+    ],
+    "models": 20
+   },
+   {
+    "word": "breath",
+    "uses": 120,
+    "weight": 10.81,
+    "owner": null,
+    "families": [
+     [
+      "mistral",
+      24
+     ],
+     [
+      "claude",
+      17
+     ],
+     [
+      "qwen",
+      12
+     ]
+    ],
+    "models": 49
+   },
+   {
+    "word": "whisper",
+    "uses": 127,
+    "weight": 9.963,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      32
+     ],
+     [
+      "deepseek",
+      19
+     ],
+     [
+      "mistral",
+      18
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "falling",
+    "uses": 124,
+    "weight": 9.621,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      49
+     ],
+     [
+      "other",
+      17
+     ],
+     [
+      "ling",
+      14
+     ]
+    ],
+    "models": 32
+   },
+   {
+    "word": "ground",
+    "uses": 126,
+    "weight": 9.514,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      57
+     ],
+     [
+      "ling",
+      10
+     ],
+     [
+      "deepseek",
+      11
+     ]
+    ],
+    "models": 39
+   },
+   {
+    "word": "moon",
+    "uses": 96,
+    "weight": 9.51,
+    "owner": "claude",
+    "families": [
+     [
+      "claude",
+      24
+     ],
+     [
+      "mistral",
+      14
+     ],
+     [
+      "solar",
+      6
+     ]
+    ],
+    "models": 34
+   },
+   {
+    "word": "snowflakes",
+    "uses": 103,
+    "weight": 9.45,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      88
+     ],
+     [
+      "gemini",
+      9
+     ],
+     [
+      "claude",
+      2
+     ]
+    ],
+    "models": 15
+   },
+   {
+    "word": "paints",
+    "uses": 110,
+    "weight": 9.348,
+    "owner": null,
+    "families": [
+     [
+      "nemotron",
+      25
+     ],
+     [
+      "gpt-oss",
+      14
+     ],
+     [
+      "cohere",
+      34
+     ]
+    ],
+    "models": 27
+   },
+   {
+    "word": "ancient",
+    "uses": 105,
+    "weight": 9.245,
+    "owner": "claude",
+    "families": [
+     [
+      "claude",
+      45
+     ],
+     [
+      "agnes",
+      10
+     ],
+     [
+      "cohere",
+      19
+     ]
+    ],
+    "models": 25
+   },
+   {
+    "word": "slow",
+    "uses": 108,
+    "weight": 9.195,
+    "owner": "nemotron",
+    "families": [
+     [
+      "nemotron",
+      32
+     ],
+     [
+      "cohere",
+      37
+     ],
+     [
+      "stepfun",
+      7
+     ]
+    ],
+    "models": 25
+   },
+   {
+    "word": "world",
+    "uses": 128,
+    "weight": 9.096,
+    "owner": "gemini",
+    "families": [
+     [
+      "gemini",
+      61
+     ],
+     [
+      "liquid",
+      7
+     ],
+     [
+      "glm",
+      8
+     ]
+    ],
+    "models": 39
+   },
+   {
+    "word": "dawn",
+    "uses": 101,
+    "weight": 8.52,
+    "owner": null,
+    "families": [
+     [
+      "other",
+      22
+     ],
+     [
+      "nemotron",
+      18
+     ],
+     [
+      "liquid",
+      6
+     ]
+    ],
+    "models": 40
+   },
+   {
+    "word": "grass",
+    "uses": 94,
+    "weight": 8.436,
+    "owner": null,
+    "families": [
+     [
+      "nemotron",
+      16
+     ],
+     [
+      "glm",
+      9
+     ],
+     [
+      "stepfun",
+      6
+     ]
+    ],
+    "models": 30
+   },
+   {
+    "word": "holds",
+    "uses": 80,
+    "weight": 8.33,
+    "owner": null,
+    "families": [
+     [
+      "claude",
+      17
+     ],
+     [
+      "qwen",
+      14
+     ],
+     [
+      "longcat",
+      6
+     ]
+    ],
+    "models": 30
+   },
+   {
+    "word": "gold",
+    "uses": 106,
+    "weight": 8.291,
+    "owner": null,
+    "families": [
+     [
+      "gemini",
+      31
+     ],
+     [
+      "glm",
+      7
+     ],
+     [
+      "qwen",
+      9
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "blanketing",
+    "uses": 88,
+    "weight": 8.084,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      76
+     ],
+     [
+      "gemini",
+      6
+     ],
+     [
+      "kimi",
+      1
+     ]
+    ],
+    "models": 14
+   },
+   {
+    "word": "lake",
+    "uses": 102,
+    "weight": 8.068,
+    "owner": null,
+    "families": [
+     [
+      "llama",
+      17
+     ],
+     [
+      "nemotron",
+      19
+     ],
+     [
+      "cohere",
+      21
+     ]
+    ],
+    "models": 33
+   },
+   {
+    "word": "new",
+    "uses": 136,
+    "weight": 8.039,
+    "owner": "cohere",
+    "families": [
+     [
+      "cohere",
+      82
+     ],
+     [
+      "nemotron",
+      17
+     ],
+     [
+      "gemini",
+      23
+     ]
+    ],
+    "models": 26
+   },
+   {
+    "word": "crisp",
+    "uses": 95,
+    "weight": 7.88,
+    "owner": "mistral",
+    "families": [
+     [
+      "mistral",
+      58
+     ],
+     [
+      "ling",
+      9
+     ],
+     [
+      "dots",
+      3
+     ]
+    ],
+    "models": 24
+   },
+   {
+    "word": "ripples",
+    "uses": 79,
+    "weight": 7.837,
+    "owner": null,
+    "families": [
+     [
+      "llama",
+      17
+     ],
+     [
+      "agnes",
+      7
+     ],
+     [
+      "longcat",
+      4
+     ]
+    ],
+    "models": 26
+   },
+   {
+    "word": "hush",
+    "uses": 80,
+    "weight": 7.791,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      66
+     ],
+     [
+      "gpt-oss",
+      3
+     ],
+     [
+      "nemotron",
+      3
+     ]
+    ],
+    "models": 18
+   },
+   {
+    "word": "winter's",
+    "uses": 100,
+    "weight": 7.756,
+    "owner": "mistral",
+    "families": [
+     [
+      "mistral",
+      56
+     ],
+     [
+      "llama",
+      20
+     ],
+     [
+      "gemini",
+      11
+     ]
+    ],
+    "models": 22
+   },
+   {
+    "word": "descends",
+    "uses": 82,
+    "weight": 7.689,
+    "owner": "liquid",
+    "families": [
+     [
+      "liquid",
+      21
+     ],
+     [
+      "gemini",
+      31
+     ],
+     [
+      "claude",
+      11
+     ]
+    ],
+    "models": 27
+   },
+   {
+    "word": "now",
+    "uses": 86,
+    "weight": 7.683,
+    "owner": null,
+    "families": [
+     [
+      "ling",
+      15
+     ],
+     [
+      "liquid",
+      8
+     ],
+     [
+      "gemini",
+      25
+     ]
+    ],
+    "models": 38
+   },
+   {
+    "word": "embrace",
+    "uses": 146,
+    "weight": 7.647,
+    "owner": "cohere",
+    "families": [
+     [
+      "cohere",
+      128
+     ],
+     [
+      "qwen",
+      9
+     ],
+     [
+      "poolside",
+      2
+     ]
+    ],
+    "models": 19
+   },
+   {
+    "word": "sing",
+    "uses": 68,
+    "weight": 7.485,
+    "owner": "liquid",
+    "families": [
+     [
+      "liquid",
+      20
+     ],
+     [
+      "other",
+      10
+     ],
+     [
+      "dots",
+      5
+     ]
+    ],
+    "models": 24
+   },
+   {
+    "word": "secrets",
+    "uses": 101,
+    "weight": 7.485,
+    "owner": null,
+    "families": [
+     [
+      "cohere",
+      35
+     ],
+     [
+      "ling",
+      17
+     ],
+     [
+      "mistral",
+      17
+     ]
+    ],
+    "models": 30
+   },
+   {
+    "word": "descend",
+    "uses": 87,
+    "weight": 7.448,
+    "owner": "ling",
+    "families": [
+     [
+      "ling",
+      44
+     ],
+     [
+      "cohere",
+      20
+     ],
+     [
+      "qwen",
+      7
+     ]
+    ],
+    "models": 19
+   },
+   {
+    "word": "birds",
+    "uses": 64,
+    "weight": 7.267,
+    "owner": "liquid",
+    "families": [
+     [
+      "liquid",
+      22
+     ],
+     [
+      "dots",
+      4
+     ],
+     [
+      "cohere",
+      12
+     ]
+    ],
+    "models": 23
+   },
+   {
+    "word": "old",
+    "uses": 77,
+    "weight": 7.209,
+    "owner": null,
+    "families": [
+     [
+      "nemotron",
+      21
+     ],
+     [
+      "qwen",
+      10
+     ],
+     [
+      "other",
+      9
+     ]
+    ],
+    "models": 26
+   },
+   {
+    "word": "anew",
+    "uses": 81,
+    "weight": 7.187,
+    "owner": null,
+    "families": [
+     [
+      "liquid",
+      10
+     ],
+     [
+      "nemotron",
+      13
+     ],
+     [
+      "gemini",
+      23
+     ]
+    ],
+    "models": 35
+   },
+   {
+    "word": "breathes",
+    "uses": 76,
+    "weight": 7.113,
+    "owner": null,
+    "families": [
+     [
+      "agnes",
+      12
+     ],
+     [
+      "other",
+      12
+     ],
+     [
+      "gpt-oss",
+      7
+     ]
+    ],
+    "models": 34
+   },
+   {
+    "word": "scene",
+    "uses": 70,
+    "weight": 6.966,
+    "owner": "llama",
+    "families": [
+     [
+      "llama",
+      68
+     ],
+     [
+      "granite",
+      1
+     ],
+     [
+      "longcat",
+      1
+     ]
+    ],
+    "models": 7
+   }
+  ]
+ }
+}
