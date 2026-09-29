@@ -120,7 +120,9 @@ case "$ENGINE" in
         done
         CODEX_USED_MODEL=""
         for _model in $CODEX_MODEL_QUEUE; do
-            CODEX_ARGS=(exec --ephemeral --skip-git-repo-check)
+            # Not --ephemeral: burnrate's codex collector reads the saved
+            # session file, and without one codex haiku never reach the dashboard.
+            CODEX_ARGS=(exec --skip-git-repo-check)
             [ "$_model" != "__default__" ] && CODEX_ARGS+=(-m "$_model")
             [ -n "$CODEX_REASONING" ] && CODEX_ARGS+=(-c "model_reasoning_effort=$CODEX_REASONING")
             CODEX_ARGS+=(-o "$HAIKU_OUTPUT")
