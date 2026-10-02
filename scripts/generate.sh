@@ -197,6 +197,9 @@ case "$ENGINE" in
         fi
         AGY_MODEL_QUEUE="${AGY_MODEL:-__default__} $_shuffled_fallbacks"
 
+        _agy_quota_re='quota|rate.?limit|resource.?exhausted|429|503|unavailable|model.*not.*available|no model'
+        _agy_upgrade_re='requires a newer version|not supported|please upgrade|no longer supported'
+
         AGY_SUCCESS=0
         HAIKU_MODEL="unknown"
         for _model in $AGY_MODEL_QUEUE; do
@@ -233,15 +236,17 @@ case "$ENGINE" in
             cat "$HAIKU_ERROR" >&2
             cat "$HAIKU_ERROR" >> "$AGY_ERROR_HISTORY"
 
-            # Check for hard errors that mean fallback won't help.
-            if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$HAIKU_ERROR"; then
-                finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
-            fi
-
             # Check for quota / availability errors that warrant trying the next model.
-            if grep -qiE 'quota|rate.?limit|resource.?exhausted|429|503|unavailable|model.*not.*available|no model' "$HAIKU_ERROR"; then
+            # This runs before the upgrade check: a 429 says "Please upgrade your
+            # subscription", which is a quota problem, not an outdated CLI.
+            if grep -qiE "$_agy_quota_re" "$HAIKU_ERROR"; then
                 log "WARNING: agy model $_model_label quota/availability error — trying next fallback"
                 continue
+            fi
+
+            # Check for hard errors that mean fallback won't help.
+            if grep -qiE "$_agy_upgrade_re" "$HAIKU_ERROR"; then
+                finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
             fi
 
             # Any other error (timeout / auth / unknown): stop immediately, no fallback.
@@ -250,11 +255,13 @@ case "$ENGINE" in
         done
 
         if [ "$AGY_SUCCESS" -eq 0 ]; then
-            if grep -qiE 'requires a newer version|not supported|please upgrade|no longer supported' "$AGY_ERROR_HISTORY"; then
+            # Quota lines are dropped first so their "please upgrade" wording
+            # doesn't pass for an outdated CLI.
+            if grep -viE "$_agy_quota_re" "$AGY_ERROR_HISTORY" | grep -qiE "$_agy_upgrade_re"; then
                 finish 1 "agy_needs_upgrade" "ERROR: Antigravity CLI out of date or tier unsupported — run 'agy update'"
             fi
             log "ERROR: All agy models exhausted (tried: $AGY_MODEL_QUEUE)"
-            finish 1 "agy_all_models_failed" "ERROR: All agy models exhausted — check quotas"
+            finish 1 "agy_all_models_failed" "ERROR: All agy models hit quota/availability limits — wait for the reset, 'agy update' won't help"
         fi
 
         # agy prints an OAuth login blob to stdout and still exits 0 when
