@@ -93,6 +93,9 @@ CRON_TZ=Europe/Prague
 # Keep the engine CLIs current (before the first cycle) — a stale CLI can
 # silently drop an engine when a provider ships a new default model
 0 5 * * * /home/YOUR_USER/daily-kickstart-claude/cron/update-clis.sh
+
+# Claude's login has a fixed expiry; ntfy a warning in the last 3 days (09:00)
+0 9 * * * /home/YOUR_USER/daily-kickstart-claude/cron/auth-expiry.sh
 ```
 
 If a provider's default model outruns its CLI (it happens), pin a working one
