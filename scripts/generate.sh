@@ -16,6 +16,7 @@ HAIKU_OUTPUT=""
 HAIKU_ERROR=""
 HAIKU_RAW=""
 AGY_ERROR_HISTORY=""
+CODEX_INSTRUCTIONS=""
 # "unknown" (never "default") is the honest record when an engine does not
 # report the model it used — see the codex/agy branches below.
 HAIKU_MODEL="unknown"
@@ -28,6 +29,7 @@ cleanup() {
     [ -n "$HAIKU_ERROR" ] && rm -f "$HAIKU_ERROR"
     [ -n "$HAIKU_RAW" ] && rm -f "$HAIKU_RAW"
     [ -n "$AGY_ERROR_HISTORY" ] && rm -f "$AGY_ERROR_HISTORY"
+    [ -n "$CODEX_INSTRUCTIONS" ] && rm -f "$CODEX_INSTRUCTIONS"
     release_project_lock
 }
 trap cleanup EXIT
@@ -118,21 +120,95 @@ case "$ENGINE" in
         for _model in $CODEX_FALLBACK_MODELS; do
             [ "$_model" != "${CODEX_MODEL:-__default__}" ] && CODEX_MODEL_QUEUE="$CODEX_MODEL_QUEUE $_model"
         done
-        CODEX_USED_MODEL=""
-        for _model in $CODEX_MODEL_QUEUE; do
+        # Same idea as the claude branch: keep the context down to the poem.
+        # Unflagged, codex sends its full agent harness with a haiku request:
+        # a 17.7k-char base prompt, the memories folder guide, the skills list,
+        # sandbox and environment notes, and the shell/patch/plan/web tools.
+        # Measured 2026-10-19 on the Pi (codex-cli 0.163.0): 15,686 -> 2,377
+        # input tokens a run (gpt-5.6-sol, low). What remains is the prompt and
+        # the exec/wait/request_user_input tools the model's tool mode brings,
+        # which no setting turned off. -C keeps codex out of the repo (no
+        # AGENTS.md, no git state) and is a plain CLI flag, so it is always
+        # passed. Every other switch goes through -c, never --disable:
+        # --disable exits 1 on a feature name the installed CLI does not know,
+        # and update-clis.sh can install one that dropped a name. -c ignores
+        # an unknown top-level key or feature flag (it just stops trimming),
+        # but aborts with "Error loading config.toml" on a known key of the
+        # wrong type, or on a field the multi_agent_v2 table does not have.
+        # So the switches come in two tiers, and each config error drops the
+        # more fragile tier left and retries the same model: a future CLI
+        # costs tokens, never the haiku, and says so once.
+        CODEX_EMPTY_DIR="${TMPDIR:-/tmp}/dkc-c"
+        mkdir -p "$CODEX_EMPTY_DIR" || finish 1 "codex_failed" "ERROR: Cannot create $CODEX_EMPTY_DIR"
+        CODEX_INSTRUCTIONS=$(mktemp)
+        printf '%s\n' "Output only the haiku, nothing else. No preamble, no explanation, just three lines." > "$CODEX_INSTRUCTIONS"
+        CODEX_TRIM_ARGS=(
+            -c "model_instructions_file=$CODEX_INSTRUCTIONS"
+            -c include_permissions_instructions=false
+            -c include_environment_context=false
+            -c include_apps_instructions=false
+            -c include_skills_usage_instructions=false
+            -c include_collaboration_mode_instructions=false
+            -c skills.include_instructions=false
+            -c include_apply_patch_tool=false
+            -c include_plan_tool=false
+            -c web_search=disabled
+        )
+        for _feature in memories multi_agent plugins apps tool_suggest skill_search goals \
+            image_generation browser_use computer_use shell_tool unified_exec view_image sleep_tool; do
+            CODEX_TRIM_ARGS+=(-c "features.$_feature=false")
+        done
+        # multi_agent_v2 is a table, not a flag: "=false" leaves its ~2.5k-char
+        # team preamble and agent tools in place; these fields remove them.
+        # They are the fragile tier: one renamed field fails config loading.
+        CODEX_AGENT_TRIM_ARGS=()
+        for _setting in enabled=false usage_hint_enabled=false wait_agent_enabled=false \
+            'usage_hint_text=""' 'root_agent_usage_hint_text=""' 'subagent_usage_hint_text=""' \
+            'multi_agent_mode_hint_text=""' disable_direct_message=true disable_native_tools=true; do
+            CODEX_AGENT_TRIM_ARGS+=(-c "features.multi_agent_v2.$_setting")
+        done
+        CODEX_TRIM_DROPPED=""
+        codex_attempt() {
             # Not --ephemeral: burnrate's codex collector reads the saved
             # session file, and without one codex haiku never reach the dashboard.
-            CODEX_ARGS=(exec --skip-git-repo-check)
-            [ "$_model" != "__default__" ] && CODEX_ARGS+=(-m "$_model")
+            # The +-guards keep bash 3.2 (macOS) from calling an emptied array unbound.
+            CODEX_ARGS=(exec --skip-git-repo-check -C "$CODEX_EMPTY_DIR"
+                ${CODEX_TRIM_ARGS[@]+"${CODEX_TRIM_ARGS[@]}"}
+                ${CODEX_AGENT_TRIM_ARGS[@]+"${CODEX_AGENT_TRIM_ARGS[@]}"})
+            [ "$1" != "__default__" ] && CODEX_ARGS+=(-m "$1")
             [ -n "$CODEX_REASONING" ] && CODEX_ARGS+=(-c "model_reasoning_effort=$CODEX_REASONING")
             CODEX_ARGS+=(-o "$HAIKU_OUTPUT")
+            # Each attempt starts clean, as the agy branch does: a failed
+            # attempt's partial output must not pass for the next one's.
+            : > "$HAIKU_OUTPUT"
             # < /dev/null: codex exec reads stdin and hangs on an open pipe.
-            if run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" "${CODEX_ARGS[@]}" \
+            run_with_timeout "$CODEX_TIMEOUT_SECONDS" "$CODEX_BIN" "${CODEX_ARGS[@]}" \
                 "Output only a haiku, nothing else. No preamble, no explanation, just three lines. $USER_PROMPT" \
-                < /dev/null 2> "$HAIKU_ERROR"; then
+                < /dev/null 2> "$HAIKU_ERROR"
+        }
+        CODEX_USED_MODEL=""
+        for _model in $CODEX_MODEL_QUEUE; do
+            if codex_attempt "$_model"; then
                 CODEX_USED_MODEL="$_model"
                 break
             fi
+            while grep -qi 'Error loading config' "$HAIKU_ERROR"; do
+                if [ "${#CODEX_AGENT_TRIM_ARGS[@]}" -gt 0 ]; then
+                    CODEX_AGENT_TRIM_ARGS=()
+                    CODEX_TRIM_DROPPED="the multi_agent_v2 fields"
+                elif [ "${#CODEX_TRIM_ARGS[@]}" -gt 0 ]; then
+                    CODEX_TRIM_ARGS=()
+                    CODEX_TRIM_DROPPED="every -c trimming switch"
+                else
+                    break
+                fi
+                log "WARNING: codex rejected a context-trimming switch; retrying without $CODEX_TRIM_DROPPED"
+                cat "$HAIKU_ERROR" >&2
+                if codex_attempt "$_model"; then
+                    CODEX_USED_MODEL="$_model"
+                    break 2
+                fi
+            done
             log "ERROR: Codex CLI failed (model $_model)"
             cat "$HAIKU_ERROR" >&2
             # Distinguish "the CLI is out of date / model unavailable" (needs
@@ -155,6 +231,16 @@ case "$ENGINE" in
             "$SCRIPT_DIR/notify.sh" warning "$PROJECT_NAME codex fell back" \
                 "Pin ${CODEX_MODEL:-__default__} is unavailable; this haiku came from $CODEX_USED_MODEL. Update CODEX_MODEL in scripts/lib.sh." || true
             printf '%s\n' "${CODEX_MODEL:-__default__}" > "$CODEX_FALLBACK_STATE"
+        fi
+        # Same once-only rule for lost trimming: it costs tokens every cycle
+        # but fails nothing, so without an alert nobody would notice.
+        CODEX_TRIM_STATE="$STATE_DIR/codex_trim_fallback"
+        if [ -z "$CODEX_TRIM_DROPPED" ]; then
+            rm -f "$CODEX_TRIM_STATE"
+        elif [ "$(cat "$CODEX_TRIM_STATE" 2>/dev/null)" != "$CODEX_TRIM_DROPPED" ]; then
+            "$SCRIPT_DIR/notify.sh" warning "$PROJECT_NAME codex lost its context trimming" \
+                "The installed codex rejected $CODEX_TRIM_DROPPED, so haiku run without them and cost more tokens. Check the -c switches in scripts/generate.sh against 'codex features list'." || true
+            printf '%s\n' "$CODEX_TRIM_DROPPED" > "$CODEX_TRIM_STATE"
         fi
         # codex exec prints a startup banner to stderr ("model: gpt-5.6-sol")
         # naming the model that actually answered. Record that, not the
