@@ -140,6 +140,22 @@ set -euo pipefail
 output_file=""
 model="__default__"
 
+# Every argument, one per line, so tests can check how codex was called.
+[ -n "${CODEX_STUB_ARGS:-}" ] && printf '%s\n' "$@" "--- end of call" >> "$CODEX_STUB_ARGS"
+
+# A CLI that rejects trimming switches the way codex rejects a field the
+# multi_agent_v2 table lacks, or a wrongly-typed key: before doing anything,
+# with a config error. AGENT rejects only multi_agent_v2 fields; ANY rejects
+# every feature switch.
+if [ -n "${CODEX_STUB_REJECT_AGENT:-}" ] && printf '%s\n' "$@" | grep -q '^features\.multi_agent_v2\.'; then
+    printf 'Error loading config.toml: data did not match any variant of untagged enum FeatureToml\n' >&2
+    exit 1
+fi
+if [ -n "${CODEX_STUB_REJECT_ANY:-}" ] && printf '%s\n' "$@" | grep -q '^features\.'; then
+    printf 'Error loading config.toml: invalid type: boolean `false`, expected struct Stub\n' >&2
+    exit 1
+fi
+
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -o)
@@ -595,6 +611,71 @@ test_codex_falls_back_to_pin_without_banner() {
     assert_file_contains "$project_dir/model.log" "engine=codex model=gpt-stub-pin effort=low" "codex should fall back to the configured pin and effort"
 }
 
+test_codex_runs_with_lean_context() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # A haiku needs none of codex's agent harness; sending it cost ~15.7k input
+    # tokens a run. Outside the repo, with a one-line system prompt, memories
+    # and tools off, and only through -c (--disable aborts on an unknown name).
+    run_generate "$project_dir" ENGINE=codex CODEX_STUB_ARGS="$project_dir/codex.args"
+    assert_eq "0" "$RUN_STATUS" "codex generation should exit cleanly"
+
+    local args_file="$project_dir/codex.args"
+    assert_eq "${TMPDIR:-/tmp}/dkc-c" "$(grep -A1 -x -- '-C' "$args_file" | tail -1)" "codex should run in the empty directory, not the repo"
+    assert_file_contains "$args_file" "model_instructions_file=" "codex should get the one-line system prompt"
+    assert_file_contains "$args_file" "features.memories=false" "codex memories should be off"
+    assert_file_contains "$args_file" "features.shell_tool=false" "codex shell tool should be off"
+    assert_eq "0" "$(grep -c -x -- '--disable' "$args_file" || true)" "codex switches should never use --disable"
+}
+
+# The arguments of call N (1-based) to the stub codex, one per line.
+codex_call_args() {
+    awk -v n="$2" '/^--- end of call$/ { call++; next } call == n - 1' "$1/codex.args"
+}
+
+test_codex_config_error_drops_agent_fields_first() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+    stub_notify "$project_dir"
+
+    # A renamed multi_agent_v2 field must cost only that tier, not all trimming.
+    run_generate "$project_dir" ENGINE=codex CODEX_STUB_REJECT_AGENT=1 \
+        CODEX_STUB_ARGS="$project_dir/codex.args"
+    assert_eq "0" "$RUN_STATUS" "a rejected multi_agent_v2 field should fall back, not fail"
+    assert_file_contains "$project_dir/haiku.txt" "morning sparrow sings" "the fallback run should still append the haiku"
+    assert_eq "2" "$(grep -c -x -- '--- end of call' "$project_dir/codex.args")" "codex should be retried once"
+    assert_eq "0" "$(codex_call_args "$project_dir" 2 | grep -c '^features\.multi_agent_v2\.' || true)" "the retry should drop the multi_agent_v2 fields"
+    assert_eq "1" "$(codex_call_args "$project_dir" 2 | grep -c -x 'features.memories=false')" "the retry should keep the other trimming switches"
+    assert_eq "${TMPDIR:-/tmp}/dkc-c" "$(codex_call_args "$project_dir" 2 | grep -A1 -x -- '-C' | tail -1)" "the retry should still run outside the repo"
+    assert_file_contains "$project_dir/notify.calls" "warning|daily-kickstart-claude codex lost its context trimming|The installed codex rejected the multi_agent_v2 fields" "lost trimming should send a warning"
+
+    # Still broken next cycle: no second alert.
+    run_generate "$project_dir" ENGINE=codex CODEX_STUB_REJECT_AGENT=1
+    assert_eq "1" "$(wc -l < "$project_dir/notify.calls" | tr -d ' ')" "lost trimming should warn only once"
+}
+
+test_codex_config_error_falls_back_to_defaults() {
+    local project_dir
+
+    project_dir="$(setup_project)"
+    trap "rm -rf '$project_dir'" EXIT
+
+    # Every -c switch rejected: the haiku still comes, from an untrimmed codex,
+    # but never from inside the repo.
+    run_generate "$project_dir" ENGINE=codex CODEX_STUB_REJECT_ANY=1 \
+        CODEX_STUB_ARGS="$project_dir/codex.args"
+    assert_eq "0" "$RUN_STATUS" "rejected trimming switches should fall back, not fail"
+    assert_file_contains "$project_dir/haiku.txt" "morning sparrow sings" "the fallback run should still append the haiku"
+    assert_eq "3" "$(grep -c -x -- '--- end of call' "$project_dir/codex.args")" "codex should drop one tier per config error"
+    assert_eq "0" "$(codex_call_args "$project_dir" 3 | grep -c '^features\.' || true)" "the last retry should carry no feature switches"
+    assert_eq "${TMPDIR:-/tmp}/dkc-c" "$(codex_call_args "$project_dir" 3 | grep -A1 -x -- '-C' | tail -1)" "the last retry should still run outside the repo"
+}
+
 # A stub notify.sh that records each alert instead of sending it.
 stub_notify() {
     local project_dir="$1"
@@ -911,6 +992,9 @@ main() {
     run_test test_agy_unauthenticated
     run_test test_trailing_prose_rejected
     run_test test_agy_records_unknown_model
+    run_test test_codex_runs_with_lean_context
+    run_test test_codex_config_error_drops_agent_fields_first
+    run_test test_codex_config_error_falls_back_to_defaults
     run_test test_codex_records_model_that_answered
     run_test test_codex_falls_back_to_pin_without_banner
     run_test test_codex_falls_back_when_pin_retired
